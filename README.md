@@ -14,11 +14,10 @@ Greyscale Histogram Hash
 
 Gradient Hash (My own original algorithm)
 
-
 ## Supported Attacks (Not all yet implemented)
-JPEG
+JPEG Compression Simulation
 
-Horizontal Flip
+Flip L/R
 
 Random Noise
 
@@ -26,10 +25,9 @@ Gaussian Noise
 
 Subimage Insertion
 
-
-
-
 ## Example Usage
+
+Create and match two hashes:
 ```Java
 IHashAlgorithm h = HashFactory.AVERAGE_HASH;
 ImageHash hash1 = HashFactory.hash(img1, h);
