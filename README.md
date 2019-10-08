@@ -1,7 +1,15 @@
 # Image-Hashing-Tools
 A general purpose framework for finding near-duplicate images, which provides an image library for fast pixel comparisons, along with extensible implementations and tools for image hashing and attacking image hashes, including simulating jpg/jpeg compression.
 
-## Supported Hash Algorithms (WIP, finished items will have a ✓)
+## Supported Colorspaces (Entire project is WIP, finished items will have a ✓)
+### Greyscale
+### RGB (Red, Green, Blue)
+### RGBA (RGB with alpha/transparency channel)
+### YCbCr (Luminance, Chrominance toward blue, Chrominance toward red)
+### CMYK (Cyan, Magenta, Yellow, Black)
+### HSI (Hue, Saturation, Intensity. A cartesian transformation of RGB colorspace)
+
+## Supported Hash Algorithms
 ### Average Hash (aHash) ✓
 Inspiration: [Hacker Factor](http://www.hackerfactor.com/blog/?/archives/529-Kind-of-Like-That.html)
 Pros: Very fast
