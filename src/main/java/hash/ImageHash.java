@@ -1,11 +1,14 @@
 package hash;
 
+import java.io.Serializable;
 import java.util.BitSet;
 
-public class ImageHash implements Comparable<ImageHash> {
+public class ImageHash implements Comparable<ImageHash>, Serializable {
 
-	private BitSet bits;
-	private String type;
+	private static final long serialVersionUID = 1L;
+	
+	private final BitSet bits;
+	private final String type;
 
 	public ImageHash(BitSet hash, String hashType) throws IllegalArgumentException {
 		char nameChar;

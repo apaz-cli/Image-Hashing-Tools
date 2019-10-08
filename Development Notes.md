@@ -1,33 +1,25 @@
 #TODO 
 
-##Attack:
-Write attacks
-JPEG compression
-Vertical flip
 
+## High Priority
+Implement .equals() for all IImage types
 
-##Hash:
-Implement Hashes
+Add RGBAImage constructor to HSIImage, CMYKImage, YCbCrImage
 
+Implement HSIImage, CMYKImage
 
-##Image:
-Add IllegalArgumentExceptions/ArrayIndexOutOfBoundsExceptions everywhere
-Validate Greyscale NearestNeighbor 
-Write Greyscale Bicubic rescale
-Write subimage insertion/extraction
+Add subimage insertion/extraction to IImage and implement each
+
 Write YCbCr Gamma Correction
 
 
-##Utils:
+## Backlog
 Implement DCTII/IDCTII 32x32 for pHash
+
 Implement DCTII/IDCTII 8x8 for simulated jpg compression
-Write JPEG compression pipeline
-Test and utilize ImageUtils.to1DArray() and .to2DArray()
 
-Here's a possible example of what that would look like.
+Add IllegalArgumentExceptions/ArrayIndexOutOfBoundsExceptions everywhere
 
-	IHashAlgorithm h = HashFactory.AVERAGE_HASH;
-	ImageHash hash1 = HashFactory.hash(img1, h);
-	ImageHash hash2 = HashFactory.hash(img2, h);
-	boolean matchesNormal = h.matches(img1, img2);
-	boolean matchesStrict = h.matches(img1, img2, MatchMode.STRICT);
+Implement other attacks
+
+Implement other Hashes

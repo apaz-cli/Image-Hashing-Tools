@@ -15,11 +15,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.WindowConstants;
 
-import hash.HashFactory;
-import hash.ImageHash;
+import hash.*;
+import hash.implementations.*;
 import image.*;
-import image.implementations.GreyscaleImage;
 import image.implementations.*;
+import attack.implementations.*;
 
 @SuppressWarnings("unused")
 public class BenchmarkRunner {
@@ -48,13 +48,20 @@ public class BenchmarkRunner {
 	private static int warmupIterations = 1000;
 
 	public static void main(String[] args) {
-		HashFactory.dHash(img1);
+		
+		showImage(img1);
+		RGBImage rgblena = new RGBImage(img1).resizeBilinear(8, 8);
+		showImage(rgblena);
+		showImage(rgblena.resizeNearest(512, 512));
+		GreyscaleImage lena = rgblena.toGreyscale();
+		showImage(lena.resizeNearest(512, 512));
+		
 	}
 
 	public static void showImage(IImage<?> img) {
 		showImage(img.toBufferedImage(), "");
 	}
-	
+
 	public static void showImage(IImage<?> img, String name) {
 		showImage(img.toBufferedImage(), name);
 	}
@@ -62,7 +69,7 @@ public class BenchmarkRunner {
 	public static void showImage(BufferedImage img) {
 		showImage(img, "");
 	}
-	
+
 	public static void showImage(BufferedImage img, String name) {
 		JFrame editorFrame = new JFrame(name);
 		editorFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -78,6 +85,11 @@ public class BenchmarkRunner {
 	}
 
 	private static void averageBenchmark(int iterations) {
+		// Load Class
+		for (int i = 0; i < warmupIterations; i++) {
+			benchmark();
+		}
+		
 		double totalTime = 0d;
 		for (int it = 0; it < iterations; it++) {
 			totalTime += benchmark();
@@ -89,8 +101,9 @@ public class BenchmarkRunner {
 		long time1 = System.currentTimeMillis();
 
 		// Paste code to benchmark here.
-		ImageUtils.noise(500, 500);
-
+		IHashAlgorithm alg = new AverageHash();
+		boolean match = alg.matches(alg.hash(img1), alg.hash(img2), MatchMode.SLOPPY);
+		
 		long time2 = System.currentTimeMillis();
 		return (time2 - time1);
 	}

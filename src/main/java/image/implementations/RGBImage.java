@@ -3,7 +3,12 @@ package image.implementations;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
+
+import javax.imageio.ImageIO;
 
 import image.IImage;
 
@@ -98,6 +103,14 @@ public class RGBImage implements IImage<RGBImage> {
 
 	}
 
+	public RGBImage(File imgFile) throws IOException {
+		this(ImageIO.read(imgFile));
+	}
+
+	public RGBImage(URL imgURL) throws IOException {
+		this(ImageIO.read(imgURL));
+	}
+
 	public GreyscaleImage getRed() {
 		return r;
 	}
@@ -138,12 +151,6 @@ public class RGBImage implements IImage<RGBImage> {
 	}
 
 	@Override
-	public RGBImage resizeBicubic(int width, int height) {
-		return new RGBImage(r.resizeBicubic(width, height), g.resizeBicubic(width, height),
-				b.resizeBicubic(width, height));
-	}
-
-	@Override
 	public RGBImage rescaleNearest(float widthFactor, float heightFactor) {
 		return new RGBImage(r.rescaleNearest(widthFactor, heightFactor), g.rescaleNearest(widthFactor, heightFactor),
 				b.rescaleNearest(widthFactor, heightFactor));
@@ -153,12 +160,6 @@ public class RGBImage implements IImage<RGBImage> {
 	public RGBImage rescaleBilinear(float widthFactor, float heightFactor) {
 		return new RGBImage(r.rescaleBilinear(widthFactor, heightFactor), g.rescaleBilinear(widthFactor, heightFactor),
 				b.rescaleBilinear(widthFactor, heightFactor));
-	}
-
-	@Override
-	public RGBImage rescaleBicubic(float widthFactor, float heightFactor) {
-		return new RGBImage(r.rescaleBicubic(widthFactor, heightFactor), g.rescaleBicubic(widthFactor, heightFactor),
-				b.rescaleBicubic(widthFactor, heightFactor));
 	}
 
 	@Override

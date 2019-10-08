@@ -25,19 +25,21 @@ public class ImageUtils {
 		return ImageIO.read(connection.getInputStream());
 	}
 
-	public static GreyscaleImage imageRepresentation(ImageHash hash, int width, int height) throws IllegalArgumentException {
+	public static GreyscaleImage imageRepresentation(ImageHash hash, int width, int height)
+			throws IllegalArgumentException {
 		return imageRepresentation(hash.getBits(), width, height);
 	}
-	
+
 	public static GreyscaleImage imageRepresentation(ImageHash hash) throws IllegalArgumentException {
 		return imageRepresentation(hash.getBits());
 	}
-	
+
 	public static GreyscaleImage imageRepresentation(BitSet bs, int width, int height) throws IllegalArgumentException {
 		if (bs.length() != width * height) {
-			throw new IllegalArgumentException("The length of the BitSet must be equal to width * height. Expected: " + bs.length() + " width * height was: " + width * height);
+			throw new IllegalArgumentException("The length of the BitSet must be equal to width * height. Expected: "
+					+ bs.length() + " width * height was: " + width * height);
 		}
-		
+
 		byte[] pixels = new byte[bs.length()];
 		for (int i = 0; i < bs.length(); i++) {
 			// Represent 1 as black, 0 as white
@@ -52,7 +54,8 @@ public class ImageUtils {
 		double sqrt = Math.sqrt(bs.length());
 		int rounded = (int) Math.round(Math.floor(sqrt));
 		if (sqrt - rounded != 0) {
-			throw new IllegalArgumentException("The length of the BitSet must be a perfect square. Got: " + bs.length());
+			throw new IllegalArgumentException(
+					"The length of the BitSet must be a perfect square. Got: " + bs.length());
 		}
 
 		byte[] pixels = new byte[bs.length()];
@@ -79,6 +82,17 @@ public class ImageUtils {
 	public static RGBAImage noiseRGBA(int width, int height) {
 		return new RGBAImage(ImageUtils.noise(width, height), ImageUtils.noise(width, height),
 				ImageUtils.noise(width, height), ImageUtils.noise(width, height));
+	}
+
+	// Returns an array containing normally distributed noise, rounded to the
+	// nearest integer.
+	public static int[] gaussianNoise(int length, int mean, int sd) {
+		Random r = new Random();
+		int[] gaussNoise = new int[length];
+		for (int i = 0; i < length; i++) {
+			gaussNoise[i] = (int) Math.round((r.nextGaussian() * sd) + mean);
+		}
+		return gaussNoise;
 	}
 
 	public static BufferedImage resize(BufferedImage img, int width, int height) {

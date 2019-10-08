@@ -1,6 +1,11 @@
 package image.implementations;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+
+import javax.imageio.ImageIO;
 
 import image.IImage;
 
@@ -28,6 +33,7 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 
 		// @nof
 		int r, g, b;
+		float j, k, l;
 		for (int i = 0; i < red.length; i++) {
 			// Extract workable integer
 			r = red[i] & 0xff;
@@ -37,22 +43,22 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 			// TODO precompute floating point multiplication for all possible values 0-255
 			// Convert RGB to YCbCr
 			// Equations can be found at https://sistenix.com/rgb2ycbcr.html
-			float j = 16 
+			j = 16 
 					+ (r * (65.738f / 256)) 
 					+ (g * (129.057f / 256)) 
 					+ (b * (25.064f / 256));
 			// Cb
-			float k = 128 
+			k = 128 
 					- (r * (37.945f / 256)) 
 					- (g * (74.494f / 256)) 
 					+ (b * (112.439f / 256));
 			// Cr
-			float l = 128 
+			l = 128 
 					+ (r * (112.439f / 256)) 
 					- (g * (94.154f / 256)) 
 					- (b * (18.285f / 256));
 			
-			// Validate arrays
+			// Validate
 			if (j > 255) {j = 255f;} else if (j < 0) {j = 0f;}
 			if (k > 255) {k = 255f;} else if (k < 0) {k = 0f;}
 			if (l > 255) {l = 255f;} else if (l < 0) {l = 0f;}
@@ -85,6 +91,24 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 		this.Cr = Cr;
 	}
 
+	public YCbCrImage(BufferedImage img) {
+		YCbCrImage ycbcr = new YCbCrImage(new RGBImage(img));
+		this.width = ycbcr.getWidth();
+		this.height = ycbcr.getHeight();
+		this.Y = ycbcr.getY();
+		this.Cb = ycbcr.getCb();
+		this.Cr = ycbcr.getCr();
+	}
+
+	public YCbCrImage(File imgFile) throws IOException {
+		this(ImageIO.read(imgFile));
+	}
+
+	public YCbCrImage(URL imgURL) throws IOException {
+		this(ImageIO.read(imgURL));
+	}
+
+	
 	@Override
 	public int getWidth() {
 		return this.width;
@@ -134,18 +158,6 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 	public YCbCrImage rescaleBilinear(float widthFactor, float heightFactor) {
 		return new YCbCrImage(Y.rescaleBilinear(widthFactor, heightFactor),
 				Cb.rescaleBilinear(widthFactor, heightFactor), Cr.rescaleBilinear(widthFactor, heightFactor));
-	}
-
-	@Override
-	public YCbCrImage resizeBicubic(int width, int height) {
-		return new YCbCrImage(Y.resizeBicubic(width, height), Cb.resizeBicubic(width, height),
-				Cr.resizeBicubic(width, height));
-	}
-
-	@Override
-	public YCbCrImage rescaleBicubic(float widthFactor, float heightFactor) {
-		return new YCbCrImage(Y.rescaleBicubic(widthFactor, heightFactor), Cb.rescaleBicubic(widthFactor, heightFactor),
-				Cr.rescaleBicubic(widthFactor, heightFactor));
 	}
 
 	@Override

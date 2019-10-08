@@ -15,10 +15,10 @@ import image.IImage;
 
 public class GreyscaleImage implements IImage<GreyscaleImage> {
 
-	private byte[] pixels;
-	private int width;
-	private int height;
-	
+	private final byte[] pixels;
+	private final int width;
+	private final int height;
+
 	public GreyscaleImage(int width, int height) {
 		this.width = width;
 		this.height = height;
@@ -30,7 +30,10 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	// Pixel array is not copied. It becomes the backing array.
 	public GreyscaleImage(byte[] pixels, int width, int height) throws IllegalArgumentException {
 		if (pixels.length != width * height) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("The length of the pixel array must be width * height.");
+		}
+		if (pixels.length == 0) {
+			throw new IllegalArgumentException("Width/Height may not be zero.");
 		}
 		this.width = width;
 		this.height = height;
@@ -155,12 +158,12 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	@Override
 	public GreyscaleImage resizeNearest(int width, int height) throws ArithmeticException {
 		// Packs and unpacks the int. This is okay, the performance cost is marginal.
-		return this.rescaleNearest(((float) (this.width - 1)) / width, ((float) (this.height - 1)) / height);
+		return rescaleNearest(width / (float) this.width, height / (float) this.height);
 	}
 
 	@Override
 	public GreyscaleImage rescaleNearest(float widthFactor, float heightFactor) throws ArithmeticException {
-		// Throws when new width or height overflows int.maxvalue
+		// Throws when new width * new height overflows int.maxvalue
 		int newWidth = Math.toIntExact(Math.round(this.width * widthFactor));
 		int newHeight = Math.toIntExact(Math.round(this.height * heightFactor));
 		byte[] newPixels = new byte[newWidth * newHeight];
@@ -187,9 +190,12 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		int A, B, C, D, x, y, index, gray;
 		float x_diff, y_diff;
 
+		// @nof
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
 
+				// To tell the truth I don't really know what's going on here,
+				// but it works, so I can't really complain.
 				x = (int) (xRatio * j);
 				y = (int) (yRatio * i);
 				x_diff = (xRatio * j) - x;
@@ -201,28 +207,22 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 				C = pixels[index + this.width] & 0xff;
 				D = pixels[index + this.width + 1] & 0xff;
 
-				gray = (int) (A * (1 - x_diff) * (1 - y_diff) + B * (x_diff) * (1 - y_diff)
-						+ C * (y_diff) * (1 - x_diff) + D * (x_diff * y_diff));
+				
+				gray = (int) (A * (1 - x_diff) * (1 - y_diff) + 
+							  B * (x_diff) * (1 - y_diff) + 
+							  C * (y_diff) * (1 - x_diff) + 
+							  D * (x_diff * y_diff));
 
 				scaled[offset++] = (byte) gray;
 			}
 		}
+		// @dof
 		return new GreyscaleImage(scaled, width, height);
 	}
 
 	@Override
 	public GreyscaleImage rescaleBilinear(float widthFactor, float heightFactor) {
 		return resizeBilinear(Math.round(this.width * widthFactor), Math.round(this.height * heightFactor));
-	}
-
-	@Override
-	public GreyscaleImage resizeBicubic(int width, int height) {
-		return this.rescaleBicubic(((float) (this.width - 1)) / width, ((float) (this.height - 1)) / height);
-	}
-
-	@Override
-	public GreyscaleImage rescaleBicubic(float widthFactor, float heightFactor) {
-		return null;
 	}
 
 	@Override
@@ -246,8 +246,8 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	@Override
 	public BufferedImage toBufferedImage() {
 		BufferedImage img = new BufferedImage(this.width, this.height, BufferedImage.TYPE_BYTE_GRAY);
-		img.setData(Raster.createRaster(img.getSampleModel(), new DataBufferByte(this.pixels, this.pixels.length),
-				null));
+		img.setData(
+				Raster.createRaster(img.getSampleModel(), new DataBufferByte(this.pixels, this.pixels.length), null));
 		return img;
 	}
 
@@ -257,21 +257,30 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		return this;
 	}
 
-	// Returns new RGBImage, with each color channel backed by this
+	// Returns with each color channel backed by self
 	@Override
 	public RGBImage toRGB() {
-		// The constructor does the cloning.
 		return new RGBImage(this, this, this);
 	}
 
-	// Returns new RGBAImage, with each color channel backed by this, and a new opaque alpha channel.
+	// Returns new RGBAImage, with each color channel backed by this, and a new
+	// opaque alpha channel.
 	@Override
 	public RGBAImage toRGBA() {
 		// Zero alpha represents completely transparent, so we must set them all to
-		// opaque. 
+		// opaque.
 		byte[] alpha = new byte[this.width * this.height];
 		Arrays.fill(alpha, (byte) 255);
 		return new RGBAImage(this.toRGB(), new GreyscaleImage(alpha, this.width, this.height));
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (o instanceof GreyscaleImage) {
+			GreyscaleImage other = (GreyscaleImage) o;
+			return java.util.Arrays.equals(this.pixels, other.getPixels()) && this.width == other.getWidth()
+					&& this.width == other.getHeight();
+		}
+		return false;
+	}
 }

@@ -6,6 +6,7 @@ import hash.IHashAlgorithm;
 import hash.ImageHash;
 import hash.MatchMode;
 import image.IImage;
+import image.implementations.YCbCrImage;
 
 public class PerceptualHash implements IHashAlgorithm {
 
@@ -22,7 +23,9 @@ public class PerceptualHash implements IHashAlgorithm {
 
 	@Override
 	public ImageHash hash(IImage<?> img) {
-		// TODO Auto-generated method stub
+		img = img.resizeBilinear(32, 32);
+		YCbCrImage image = img.toYCbCr();
+		
 		return null;
 	}
 

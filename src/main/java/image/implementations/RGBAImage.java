@@ -3,15 +3,20 @@ package image.implementations;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+
+import javax.imageio.ImageIO;
 
 import image.IImage;
 
 public class RGBAImage implements IImage<RGBAImage> {
 
-	private int width;
-	private int height;
 	private RGBImage rgb;
 	private GreyscaleImage a;
+	private int width;
+	private int height;
 
 	public RGBAImage(int width, int height) {
 		this.width = width;
@@ -92,6 +97,14 @@ public class RGBAImage implements IImage<RGBAImage> {
 		this.a = new GreyscaleImage(alpha, this.width, this.height);
 	}
 
+	public RGBAImage(File imgFile) throws IOException {
+		this(ImageIO.read(imgFile));
+	}
+
+	public RGBAImage(URL imgURL) throws IOException {
+		this(ImageIO.read(imgURL));
+	}
+
 	@Override
 	public int getWidth() {
 		return this.width;
@@ -147,17 +160,6 @@ public class RGBAImage implements IImage<RGBAImage> {
 	public RGBAImage rescaleBilinear(float widthFactor, float heightFactor) {
 		return new RGBAImage(this.rgb.rescaleBilinear(widthFactor, heightFactor),
 				this.a.rescaleBilinear(widthFactor, heightFactor));
-	}
-
-	@Override
-	public RGBAImage resizeBicubic(int width, int height) {
-		return new RGBAImage(this.rgb.resizeBicubic(width, height), this.a.resizeBicubic(width, height));
-	}
-
-	@Override
-	public RGBAImage rescaleBicubic(float widthFactor, float heightFactor) {
-		return new RGBAImage(this.rgb.rescaleBicubic(widthFactor, heightFactor),
-				this.a.rescaleBicubic(widthFactor, heightFactor));
 	}
 
 	@Override
