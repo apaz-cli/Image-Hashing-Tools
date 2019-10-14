@@ -12,25 +12,25 @@ public class CMYKImage implements IImage<CMYKImage> {
 	// Gw = G ÷ 255
 	// Bw = B ÷ 255
 
-	// K = 1 - max(Rw, Gw, Bw);
-	// C = (1 - Rw - K) ÷ (1 - K)
-	// M = (1 - Gw - K) ÷ (1 - K)
-	// Y = (1 - Bw - K) ÷ ( 1 - K)
+	// k = 1 - max(Rw, Gw, Bw);
+	// c = (1 - Rw - k) ÷ (1 - k)
+	// m = (1 - Gw - k) ÷ (1 - k)
+	// y = (1 - Bw - k) ÷ ( 1 - k)
 
-	private float[] C;
-	private float[] M;
-	private float[] Y;
-	private float[] K;
+	private float[] c;
+	private float[] m;
+	private float[] y;
+	private float[] k;
 	private int width;
 	private int height;
 
-	public CMYKImage(float[] C, float[] M, float[] Y, float[] K, int width, int height) {
+	public CMYKImage(float[] c, float[] m, float[] y, float[] k, int width, int height) {
 		this.width = width;
 		this.height = height;
-		this.C = C;
-		this.M = M;
-		this.Y = Y;
-		this.K = K;
+		this.c = c;
+		this.m = m;
+		this.y = y;
+		this.k = k;
 	}
 
 	public CMYKImage(RGBImage img) {
@@ -52,17 +52,17 @@ public class CMYKImage implements IImage<CMYKImage> {
 		}
 
 		// Initialize and Calculate KCMY
-		this.K = new float[length];
-		this.C = new float[length];
-		this.M = new float[length];
-		this.Y = new float[length];
+		this.k = new float[length];
+		this.c = new float[length];
+		this.m = new float[length];
+		this.y = new float[length];
 
 		i = 0;
 		for (; i < length; i++) {
-			this.K[i] = 1 - Math.max(Rw[i], Math.max(Gw[i], Bw[i]));
-			this.C[i] = (1 - Rw[i] - this.K[i]) / (1 - this.K[i]);
-			this.M[i] = (1 - Gw[i] - this.K[i]) / (1 - this.K[i]);
-			this.Y[i] = (1 - Bw[i] - this.K[i]) / (1 - this.K[i]);
+			this.k[i] = 1 - Math.max(Rw[i], Math.max(Gw[i], Bw[i]));
+			this.c[i] = (1 - Rw[i] - this.k[i]) / (1 - this.k[i]);
+			this.m[i] = (1 - Gw[i] - this.k[i]) / (1 - this.k[i]);
+			this.y[i] = (1 - Bw[i] - this.k[i]) / (1 - this.k[i]);
 		}
 	}
 
@@ -76,10 +76,26 @@ public class CMYKImage implements IImage<CMYKImage> {
 		return this.height;
 	}
 
+	public float[] getC() {
+		return this.c;
+	}
+	
+	public float[] getM() {
+		return this.m;
+	}
+	
+	public float[] getY() {
+		return this.y;
+	}
+	
+	public float[] getK() {
+		return this.k;
+	}
+	
 	@Override
 	public CMYKImage deepClone() {
-		return new CMYKImage(Arrays.copyOf(this.C, this.C.length), Arrays.copyOf(this.M, this.M.length),
-				Arrays.copyOf(this.Y, this.Y.length), Arrays.copyOf(this.K, this.K.length), this.width, this.height);
+		return new CMYKImage(Arrays.copyOf(this.c, this.c.length), Arrays.copyOf(this.m, this.m.length),
+				Arrays.copyOf(this.y, this.y.length), Arrays.copyOf(this.k, this.k.length), this.width, this.height);
 	}
 
 	@Override
@@ -122,13 +138,13 @@ public class CMYKImage implements IImage<CMYKImage> {
 		byte[] g = new byte[length];
 		byte[] b = new byte[length];
 
-		// r = 255 × ( 1 - C ÷ 100 ) × ( 1 - K ÷ 100 )
-		// g = 255 × ( 1 - M ÷ 100 ) × ( 1 - K ÷ 100 )
-		// b = 255 × ( 1 - Y ÷ 100 ) × ( 1 - K ÷ 100 )
+		// r = 255 × ( 1 - c ÷ 100 ) × ( 1 - k ÷ 100 )
+		// g = 255 × ( 1 - m ÷ 100 ) × ( 1 - k ÷ 100 )
+		// b = 255 × ( 1 - y ÷ 100 ) × ( 1 - k ÷ 100 )
 		int red, green, blue;
 		int i = 0;
 		for (; i < length; i++) {
-			red = Math.round(255f * (1 - C[i] / 100f) * (1 - K[i] / 100f));
+			red = Math.round(255f * (1 - c[i] / 100f) * (1 - k[i] / 100f));
 			if (red > 255) {
 				red = 255;
 			} else if (red < 0) {
@@ -136,7 +152,7 @@ public class CMYKImage implements IImage<CMYKImage> {
 			}
 			r[i] = (byte) red;
 
-			green = Math.round(255f * (1 - M[i] / 100f) * (1 - K[i] / 100f));
+			green = Math.round(255f * (1 - m[i] / 100f) * (1 - k[i] / 100f));
 			if (green > 255) {
 				green = 255;
 			} else if (green < 0) {
@@ -144,7 +160,7 @@ public class CMYKImage implements IImage<CMYKImage> {
 			}
 			g[i] = (byte) green;
 
-			blue = Math.round(255f * (1 - Y[i] / 100f) * (1 - K[i] / 100f));
+			blue = Math.round(255f * (1 - y[i] / 100f) * (1 - k[i] / 100f));
 			if (blue > 255) {
 				blue = 255;
 			} else if (blue < 0) {

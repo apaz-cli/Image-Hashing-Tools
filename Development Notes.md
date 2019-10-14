@@ -1,6 +1,5 @@
 #TODO 
 
-
 ## High Priority
 Implement .equals() for all IImage types
 

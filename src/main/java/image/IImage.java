@@ -66,4 +66,9 @@ public interface IImage<T extends IImage<T>> {
 		return new HSIImage(this.toRGB());
 	}
 
+	/*
+	 * abstract public T extractSubimage(int x1, int y1, int x2, int y2);
+	 * 
+	 * abstract public T emplaceSubimage(int x1, int y1, int x2, int y2);
+	 */
 }

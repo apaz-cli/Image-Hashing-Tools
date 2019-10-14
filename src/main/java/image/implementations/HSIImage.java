@@ -11,9 +11,9 @@ import image.IImage;
 
 public class HSIImage implements IImage<HSIImage> {
 
-	private float[] H; // Hue
-	private float[] S; // Saturation
-	private float[] I; // Intensity
+	private float[] h; // Hue
+	private float[] s; // Saturation
+	private float[] i; // Intensity
 	private int width;
 	private int height;
 

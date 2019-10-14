@@ -139,14 +139,14 @@ public class SliceHash implements IHashAlgorithm {
 		// @nof
 		mocOffset = 0;
 		for (; mocOffset < sliceNumber; mocOffset++) {
-			weightedCenters[mocOffset] = (int) ((averageWeight * (horizontalAverages[mocOffset]))
-					+ (medianWeight * horizontalMedians[mocOffset]));
-			weightedCenters[mocOffset + sliceNumber] = (int) ((averageWeight * (verticalAverages[mocOffset]))
-					+ (medianWeight * verticalMedians[mocOffset]));
+			weightedCenters[mocOffset] = (int) (
+					(averageWeight * (horizontalAverages[mocOffset])) + 
+					(medianWeight * horizontalMedians[mocOffset]));
+			weightedCenters[mocOffset + sliceNumber] = (int) (
+					(averageWeight * (verticalAverages[mocOffset])) + 
+					(medianWeight * verticalMedians[mocOffset]));
 		}
 		// @dof
-
-		System.out.println(Arrays.toString(weightedCenters));
 
 		// Set digits of hash.
 		// JVM replaces constants in for loop
@@ -162,8 +162,7 @@ public class SliceHash implements IHashAlgorithm {
 				bs.set(mocOffset);
 			}
 		}
-		
-		System.out.println(bs); //TODO WUT
+
 		return new ImageHash(bs, this.getHashName());
 	}
 

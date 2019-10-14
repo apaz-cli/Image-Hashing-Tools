@@ -3,13 +3,20 @@ package utils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.ImageWriter;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -19,6 +26,8 @@ import hash.*;
 import hash.implementations.*;
 import image.*;
 import image.implementations.*;
+import match.downloader.ImageDownloader;
+import match.hasher.ImageHasher;
 import attack.implementations.*;
 
 @SuppressWarnings("unused")
@@ -28,6 +37,7 @@ public class BenchmarkRunner {
 	private static BufferedImage img2 = null;
 	private static String image1URL = "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png";
 	private static String image2URL = "https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium";
+
 	static {
 		try {
 			img1 = ImageUtils.openImage(new URL(image1URL));
@@ -47,14 +57,15 @@ public class BenchmarkRunner {
 
 	private static int warmupIterations = 1000;
 
-	public static void main(String[] args) {
-		
+	// ********//
+	// * MAIN *//
+	// ********//
+
+	public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
 		showImage(img1);
-		RGBImage rgblena = new RGBImage(img1).resizeBilinear(8, 8);
-		showImage(rgblena);
-		showImage(rgblena.resizeNearest(512, 512));
-		GreyscaleImage lena = rgblena.toGreyscale();
-		showImage(lena.resizeNearest(512, 512));
+		showImage(new RGBImage(img1));
+		showImage(new GreyscaleImage(img1));
+		showImage(new YCbCrImage(img1).getY());
 		
 	}
 
@@ -89,7 +100,7 @@ public class BenchmarkRunner {
 		for (int i = 0; i < warmupIterations; i++) {
 			benchmark();
 		}
-		
+
 		double totalTime = 0d;
 		for (int it = 0; it < iterations; it++) {
 			totalTime += benchmark();
@@ -103,7 +114,7 @@ public class BenchmarkRunner {
 		// Paste code to benchmark here.
 		IHashAlgorithm alg = new AverageHash();
 		boolean match = alg.matches(alg.hash(img1), alg.hash(img2), MatchMode.SLOPPY);
-		
+
 		long time2 = System.currentTimeMillis();
 		return (time2 - time1);
 	}

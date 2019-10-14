@@ -41,20 +41,21 @@ public class GaussianNoiseAttack implements IAttack {
 		} else if (img instanceof RGBAImage) {
 			RGBAImage rgba = img.toRGBA();
 			// Don't attack alpha channel
-			return new RGBAImage(this.attackGreyscale(rgba.getRed(), mean, sd), this.attackGreyscale(rgba.getGreen(), mean, sd),
-					this.attackGreyscale(rgba.getBlue(), mean, sd), rgba.getAlpha());
+			return new RGBAImage(this.attackGreyscale(rgba.getRed(), mean, sd),
+					this.attackGreyscale(rgba.getGreen(), mean, sd), this.attackGreyscale(rgba.getBlue(), mean, sd),
+					rgba.getAlpha());
 		} else if (img instanceof RGBImage) {
-			RGBImage rgba = img.toRGB();
-			return new RGBImage(this.attackGreyscale(rgba.getRed(), mean, sd), this.attackGreyscale(rgba.getGreen(), mean, sd),
-					this.attackGreyscale(rgba.getBlue(), mean, sd));
+			RGBImage rgb = img.toRGB();
+			return new RGBImage(this.attackGreyscale(rgb.getRed(), mean, sd),
+					this.attackGreyscale(rgb.getGreen(), mean, sd), this.attackGreyscale(rgb.getBlue(), mean, sd));
 		} else if (img instanceof YCbCrImage) {
 			YCbCrImage ycbcr = img.toYCbCr();
-			return new YCbCrImage(this.attackGreyscale(ycbcr.getY(), mean, sd), this.attackGreyscale(ycbcr.getCb(), mean, sd),
-					this.attackGreyscale(ycbcr.getCr(), mean, sd));
+			return new YCbCrImage(this.attackGreyscale(ycbcr.getY(), mean, sd),
+					this.attackGreyscale(ycbcr.getCb(), mean, sd), this.attackGreyscale(ycbcr.getCr(), mean, sd));
 		}
-		throw new UnsupportedOperationException("This attack has not been implemented for this image type.");
+		return this.attack(img.toRGBA());
 	}
-	
+
 	@Override
 	public IImage<?> attack(BufferedImage img) {
 		return this.attack(new RGBAImage(img));

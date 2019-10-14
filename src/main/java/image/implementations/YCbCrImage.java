@@ -27,6 +27,7 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 
 		this.width = rgb.getWidth();
 		this.height = rgb.getHeight();
+		
 		byte[] y = new byte[this.width * this.height];
 		byte[] cb = new byte[this.width * this.height];
 		byte[] cr = new byte[this.width * this.height];
@@ -89,6 +90,8 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 		this.Y = Y;
 		this.Cb = Cb;
 		this.Cr = Cr;
+		this.width = Y.getWidth();
+		this.height = Y.getHeight();
 	}
 
 	public YCbCrImage(BufferedImage img) {

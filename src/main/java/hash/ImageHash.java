@@ -6,9 +6,10 @@ import java.util.BitSet;
 public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 	private static final long serialVersionUID = 1L;
-	
+
 	private final BitSet bits;
 	private final String type;
+	private String source = null;
 
 	public ImageHash(BitSet hash, String hashType) throws IllegalArgumentException {
 		char nameChar;
@@ -22,6 +23,19 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 		this.bits = hash;
 		this.type = hashType;
+	}
+
+	public ImageHash(String source, BitSet hash, String hashType) throws IllegalArgumentException {
+		this(hash, hashType);
+		this.source = source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
+	}
+
+	public String getSource() {
+		return this.source;
 	}
 
 	public BitSet getBits() {
@@ -54,7 +68,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 				distance++;
 			}
 		}
-		
+
 		return distance;
 	}
 
@@ -78,7 +92,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		// If they're not different anywhere, then they're bitwise equal.
 		return 0;
 	}
-	
+
 	// For easy serialization
 	// In the form type,bits
 	@Override
@@ -87,9 +101,9 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		for (int i = 0; i < this.bits.length(); i++) {
 			bitStr.append(this.bits.get(i) ? 1 : 0);
 		}
-		
+
 		// Convert bit string to hex
-		String hexStr = Integer.toString(Integer.parseInt(bitStr.reverse().toString(),2),16);
+		String hexStr = Integer.toString(Integer.parseInt(bitStr.reverse().toString(), 2), 16);
 		return this.type + "," + hexStr;
 	}
 
@@ -104,7 +118,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 						"Image path may not contain the characters comma, pipe, or double quote (,|\").");
 			}
 		}
-		
+
 		return this.toString() + "," + imagePath;
 	}
 
@@ -114,7 +128,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		// 1. bits
 		// 2. Name,bits
 		// 3. Name,bits,path
-		
+
 		String[] split;
 		int hashIndex;
 		if (imageHash.contains(",")) {
@@ -125,21 +139,21 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			split = new String[1];
 			split[0] = imageHash;
 		}
-		
+
 		String binHash = "";
 		try {
 			binHash = Integer.toString(Integer.parseInt(split[hashIndex], 16), 2);
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("The hash could not be parsed from this string.");
 		}
-		
-		
+
 		BitSet bs = new BitSet(binHash.length());
 		for (int i = 0; i < binHash.length(); i++) {
 			bs.set(i, binHash.charAt(i) == 1);
 		}
-		
-		// If in normal form, it begins with the name. If it was just the hex bits, then give it a name.
+
+		// If in normal form, it begins with the name. If it was just the hex bits, then
+		// give it a name.
 		return new ImageHash(bs, split.length >= 2 ? split[0] : "unknownHash");
 	}
 
@@ -151,7 +165,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		}
 		return false;
 	}
-	
+
 	// Dependent only on the bits
 	@Override
 	public int hashCode() {
@@ -160,20 +174,20 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 	public float percentSimilarity(ImageHash hash) throws IllegalArgumentException {
 		areComparable(hash);
-		
+
 		int distance = this.hammingDistance(hash);
 		return distance / (float) this.bits.length();
 	}
 
 	private void areComparable(ImageHash hash) throws IllegalArgumentException {
-		// If one or both of them is of unknown origin, then ignore comparison of types. 
+		// If one or both of them is of unknown origin, then ignore comparison of types.
 		if (!(this.type == "unknownHash" || hash.type == "unknownHash")) {
 			if (this.type != hash.getType()) {
 				throw new IllegalArgumentException(
 						"These two hashes are not the same type, and therefore cannot be compared.");
 			}
 		}
-		
+
 		if (this.bits.length() != hash.getLength()) {
 			throw new IllegalArgumentException(
 					"These two hashes are not of the same length, and therefore cannot be compared.");

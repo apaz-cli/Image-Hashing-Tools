@@ -1,15 +1,20 @@
 package utils;
 
+import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.BitSet;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 
 import hash.ImageHash;
 import image.implementations.GreyscaleImage;
@@ -18,10 +23,13 @@ import image.implementations.RGBImage;
 
 public class ImageUtils {
 
+	// Returns null if isn't an image
+	// TODO Gifs not supported on Java 8, upgrade to 9
 	public static BufferedImage openImage(URL imgURL) throws IOException {
 		final HttpURLConnection connection = (HttpURLConnection) imgURL.openConnection();
 		connection.setRequestProperty("User-Agent",
 				"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
+
 		return ImageIO.read(connection.getInputStream());
 	}
 

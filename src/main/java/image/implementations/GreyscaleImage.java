@@ -30,7 +30,8 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	// Pixel array is not copied. It becomes the backing array.
 	public GreyscaleImage(byte[] pixels, int width, int height) throws IllegalArgumentException {
 		if (pixels.length != width * height) {
-			throw new IllegalArgumentException("The length of the pixel array must be width * height.");
+			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
+					+ width + "  Height: " + height + "  Pixel length: " + pixels.length);
 		}
 		if (pixels.length == 0) {
 			throw new IllegalArgumentException("Width/Height may not be zero.");

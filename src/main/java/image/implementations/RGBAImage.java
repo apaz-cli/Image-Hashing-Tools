@@ -209,4 +209,12 @@ public class RGBAImage implements IImage<RGBAImage> {
 		return this;
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (o instanceof RGBAImage) {
+			RGBAImage obj = (RGBAImage) o;
+			return this.rgb.equals(obj.getRGB()) && this.a.equals(obj.getAlpha());
+		}
+		return false;
+	}
 }

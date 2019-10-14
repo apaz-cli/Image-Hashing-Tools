@@ -18,7 +18,15 @@ public class AverageHash implements IHashAlgorithm {
 
 	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
-		// Assert comparable
+
+		// This assertion assures that
+		if (!hash1.getType().equals(this.getHashName())) {
+			throw new IllegalArgumentException(
+					"Another method must be used to compare nonstandard variations of this hash. "
+				  + "Also, make sure you are comparing to hashes of the same type.");
+		}
+
+		// No need to assert comparable, Hamming distance method does this.
 		if (mode == MatchMode.SLOPPY) {
 			return hash1.hammingDistance(hash2) < 8;
 		} else if (mode == MatchMode.NORMAL) {
@@ -48,12 +56,12 @@ public class AverageHash implements IHashAlgorithm {
 			average += b & 0xff;
 		}
 		average /= thumbnail.length;
-		
+
 		// Compute average hash using average
 		BitSet hash = new BitSet(64);
 		for (int i = 0; i < 64; i++) {
 			if ((thumbnail[i] & 0xff) > average) {
-				hash.set(i);	
+				hash.set(i);
 			}
 		}
 		return new ImageHash(hash, this.getHashName());

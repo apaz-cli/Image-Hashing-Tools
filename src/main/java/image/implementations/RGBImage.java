@@ -189,7 +189,7 @@ public class RGBImage implements IImage<RGBImage> {
 		return img;
 	}
 
-	// Creates new
+	// Creates new out of averages
 	@Override
 	public GreyscaleImage toGreyscale() {
 		byte[] red = this.r.getPixels();
