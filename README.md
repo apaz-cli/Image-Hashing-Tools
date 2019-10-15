@@ -16,6 +16,13 @@ HSI (Hue, Saturation, Intensity. A cartesian transformation of RGB colorspace)
 
 
 ## Supported Hash Algorithms
+
+All examples will use Lena:
+
+
+<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/lena.png" width="250" height="250">
+
+
 ### Average Hash (aHash) ✓
 Inspiration: [Hacker Factor](http://www.hackerfactor.com/blog/?/archives/529-Kind-of-Like-That.html)
 
@@ -25,14 +32,28 @@ Cons: Not extremely accurate
 
 Description:
 
+
 ### Difference Hash (dHash)
 Inspiration: [Hacker Factor](http://www.hackerfactor.com/blog/?/archives/529-Kind-of-Like-That.html)
 
-Pros: Almost as fast as aHash, 
+Pros: A good general hash. Almost as fast as aHash, and doesn't care much about changes of background.
 
-Cons: 
+Cons: Not robust against flips/rotations
 
 Description:
+
+1. Resize to 9x8
+
+<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/dHash/lena%209x8.png">
+
+2. Reduce to Greyscale
+
+<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/dHash/lena%209x8%20greyscale.png">
+
+3. Set the bits of the hash row by row, depending on if the pixel to the left is less than the pixel to the right. If it is, set it to 1. If not, set to 0. This results in an 8x8, laid out into a 64 bit hash.
+
+<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/dHash/lena%20dhash.png">
+
 
 ### Perceptual Hash (pHash)
 Inspiration: [Hacker Factor](http://hackerfactor.com/blog/index.php%3F/archives/432-Looks-Like-It.html) [PHash.org](https://www.phash.org/)
