@@ -8,7 +8,7 @@ import java.net.URL;
 import javax.imageio.ImageIO;
 
 import image.IImage;
-import pipeline.imagesources.SourcedImage;
+import pipeline.sources.SourcedImage;
 import utils.ImageUtils;
 
 public interface IHashAlgorithm {

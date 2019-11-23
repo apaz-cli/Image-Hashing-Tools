@@ -1,4 +1,4 @@
-package pipeline.imagesources.operations;
+package pipeline.sources.ops;
 
 import image.IImage;
 

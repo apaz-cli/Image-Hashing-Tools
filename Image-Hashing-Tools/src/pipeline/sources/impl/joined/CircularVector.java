@@ -1,4 +1,4 @@
-package pipeline.imagesources;
+package pipeline.sources.impl.joined;
 
 import java.util.Collection;
 import java.util.Vector;

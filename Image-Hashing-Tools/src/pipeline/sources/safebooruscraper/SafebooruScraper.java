@@ -1,5 +1,6 @@
+package pipeline.sources.safebooruscraper;
 /*
-package pipeline.imagesources.safebooruscraper;
+package pipeline.sources.safebooruscraper;
  
 
 import java.io.File;

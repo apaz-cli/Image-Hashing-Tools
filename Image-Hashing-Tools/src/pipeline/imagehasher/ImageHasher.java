@@ -7,8 +7,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
-import pipeline.imagesources.ImageLoader;
-import pipeline.imagesources.ImageSource;
+import pipeline.sources.ImageSource;
+import pipeline.sources.impl.ImageLoader;
 
 public class ImageHasher {
 

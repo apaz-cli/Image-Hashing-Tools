@@ -1,6 +1,6 @@
-package pipeline.imagesources.operations;
+package pipeline.sources.ops;
 
-import pipeline.imagesources.SourcedImage;
+import pipeline.sources.SourcedImage;
 
 public interface SourcedImageOperation {
 	public abstract SourcedImage operate(SourcedImage img);

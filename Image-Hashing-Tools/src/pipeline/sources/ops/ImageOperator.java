@@ -1,10 +1,10 @@
-package pipeline.imagesources.operations;
+package pipeline.sources.ops;
 
 import java.util.Objects;
 
 import image.IImage;
-import pipeline.imagesources.ImageSource;
-import pipeline.imagesources.SourcedImage;
+import pipeline.sources.ImageSource;
+import pipeline.sources.SourcedImage;
 
 public class ImageOperator implements ImageSource {
 

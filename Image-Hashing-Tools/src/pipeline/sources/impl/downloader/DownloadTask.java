@@ -1,9 +1,10 @@
-package pipeline.imagesources;
+package pipeline.sources.impl.downloader;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
 
+import pipeline.sources.SourcedImage;
 import utils.ImageUtils;
 
 class DownloadTask implements Runnable {

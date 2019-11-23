@@ -1,4 +1,4 @@
-package pipeline.imagesources;
+package pipeline.sources;
 
 import java.awt.image.BufferedImage;
 

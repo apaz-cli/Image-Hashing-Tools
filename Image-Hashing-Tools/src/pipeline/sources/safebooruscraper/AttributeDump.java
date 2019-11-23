@@ -1,4 +1,4 @@
-package pipeline.imagesources.safebooruscraper;
+package pipeline.sources.safebooruscraper;
 
 import java.io.BufferedWriter;
 import java.io.File;

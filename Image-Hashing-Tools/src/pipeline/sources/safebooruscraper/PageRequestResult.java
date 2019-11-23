@@ -1,4 +1,4 @@
-package pipeline.imagesources.safebooruscraper;
+package pipeline.sources.safebooruscraper;
 
 public class PageRequestResult {
 

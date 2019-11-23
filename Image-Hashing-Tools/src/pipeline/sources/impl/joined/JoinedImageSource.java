@@ -1,7 +1,10 @@
-package pipeline.imagesources;
+package pipeline.sources.impl.joined;
 
 import java.util.Arrays;
 import java.util.List;
+
+import pipeline.sources.ImageSource;
+import pipeline.sources.SourcedImage;
 
 public class JoinedImageSource implements ImageSource {
 

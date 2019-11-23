@@ -1,4 +1,4 @@
-package pipeline.imagesources;
+package pipeline.sources.impl;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -9,6 +9,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+
+import pipeline.sources.ImageSource;
+import pipeline.sources.SourcedImage;
 
 public class ImageLoader implements ImageSource {
 

@@ -1,4 +1,4 @@
-package pipeline.imagesources;
+package pipeline.sources.impl.downloader;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,6 +13,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import pipeline.sources.ImageSource;
+import pipeline.sources.SourcedImage;
 
 public class ImageDownloader implements ImageSource {
 

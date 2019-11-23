@@ -5,7 +5,7 @@ import java.awt.image.BufferedImage;
 import hash.IHashAlgorithm;
 import image.IImage;
 import image.implementations.RGBImage;
-import pipeline.imagesources.SourcedImage;
+import pipeline.sources.SourcedImage;
 
 public class HashTask implements Runnable {
 
