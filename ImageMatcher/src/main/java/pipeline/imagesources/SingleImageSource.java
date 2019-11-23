@@ -60,7 +60,8 @@ public class SingleImageSource implements ImageSource {
 
 	@Override
 	public void close() {
-
+		exhausted = true;
+		img = null;
 	}
 
 }
