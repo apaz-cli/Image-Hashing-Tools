@@ -11,7 +11,7 @@ public class SourcedImage {
 
 	private String source;
 	private IImage<?> img;
-	boolean isURL; // If isn't url, is File
+	boolean isURL; // If isn't URL, is File
 
 	public SourcedImage(BufferedImage img) {
 		this(img, (String) null);
@@ -86,6 +86,10 @@ public class SourcedImage {
 
 	public String getSource() {
 		return this.source;
+	}
+	
+	public SourcedImage deepCopy() {
+		return new SourcedImage(this.img, this.source, this.isURL);
 	}
 
 }
