@@ -83,6 +83,7 @@ public class BenchmarkRunner {
 		SourcedImage img;
 		while ((img = s.nextImage()) != null) {
 			System.out.println(dhash.hash(img.unwrap(), img.getSource()));
+			showImage(img.unwrap());
 		}
 
 		System.out.println("Finished");

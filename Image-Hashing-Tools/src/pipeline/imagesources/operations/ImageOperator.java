@@ -81,6 +81,10 @@ public class ImageOperator implements ImageSource {
 			img = source.nextImage();
 		}
 
+		if (img == null) {
+			return null;
+		}
+
 		// Apply operations in specified order
 		if (iiFirst) {
 			IImage<?> iimg = applyIIOperations(img.unwrap());

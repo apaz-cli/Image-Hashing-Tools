@@ -27,7 +27,9 @@ public class RGBAImage implements IImage<RGBAImage> {
 	}
 
 	public RGBAImage(RGBImage rgb, GreyscaleImage alpha) throws IllegalArgumentException {
-		if (rgb.getWidth() != alpha.getWidth() || rgb.getHeight() != alpha.getHeight()) {
+		this.width = rgb.getWidth();
+		this.height = rgb.getHeight();
+		if (this.width != alpha.getWidth() || this.height != alpha.getHeight()) {
 			throw new IllegalArgumentException(
 					"The widths and heights of all the images must be the same to construct an RGBAImage.");
 		}
