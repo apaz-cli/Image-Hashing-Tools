@@ -15,8 +15,34 @@ public class JoinedImageSource implements ImageSource {
 		this.sources = new CircularVector<>(Arrays.asList(imageSources));
 	}
 
+	/**
+	 * Fear creating cycles with JoinedImageSources. If you add this object into
+	 * itself, or into a JoinedImageSource that this object contains, you may enter
+	 * an infinite loop when you call nextImage().
+	 */
 	public void addSource(ImageSource source) {
-		sources.add(source);
+		synchronized (sources) {
+			if (validSource(source)) {
+				sources.add(source);
+			}
+		}
+	}
+	
+	// Returns true if valid to add
+	boolean validSource(ImageSource source) {
+		// Already synchronized on sources
+		if (this == source) {
+			return false;
+		}
+		for(ImageSource is : sources) {
+			if (is instanceof JoinedImageSource) {
+				JoinedImageSource src = (JoinedImageSource) is;
+				if (!src.validSource(source)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	public SourcedImage nextImage() {
@@ -39,7 +65,9 @@ public class JoinedImageSource implements ImageSource {
 	}
 
 	public void close() {
-		sources = new CircularVector<>();
+		synchronized (sources) {
+			sources = new CircularVector<>();
+		}
 	}
 
 }
