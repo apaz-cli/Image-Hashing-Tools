@@ -62,6 +62,7 @@ public class SingleImageSource implements ImageSource {
 	public void close() {
 		exhausted = true;
 		img = null;
+		
 	}
 
 }
