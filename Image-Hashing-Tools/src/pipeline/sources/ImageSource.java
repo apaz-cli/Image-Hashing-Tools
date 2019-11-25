@@ -49,15 +49,6 @@ public interface ImageSource extends Closeable {
 			list.add(img);
 		}
 		return list;
-		/*
-		System.out.println("Turning to List");
-		List<SourcedImage> list = this.toSourcedList();
-		System.out.println("Trying to Stream");
-		Stream<SourcedImage> sourceStream = list.stream();
-		System.out.println("Stream 1");
-		Stream<BufferedImage> buffStream = sourceStream.map(SourceUtil::castToBufferedImage);
-		System.out.println("Stream 2");
-		return buffStream.collect(Collectors.toList());*/
 	}
 
 	/**

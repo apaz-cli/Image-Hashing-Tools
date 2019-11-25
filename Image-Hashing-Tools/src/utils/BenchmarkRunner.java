@@ -68,7 +68,7 @@ public class BenchmarkRunner {
 
 	public static void main(String[] args) {
 		
-		ImageSource s = new ImageLoader("C:\\Users\\PazderaAaron\\Wallpapers");
+		ImageSource s = new ImageLoader("C:\\Users\\PazderaAaron\\Wallpapers\\SFW");
 		
 		SourcedImageOperation compareResizeHashes = (img) -> {
 			return img;
@@ -84,6 +84,7 @@ public class BenchmarkRunner {
 		
 		ImageBuffer buffer = new ImageBuffer();
 		buffer.emplaceOpen(slist);
+		buffer.emplace(null);
 		
 		System.out.println("List In Buffer");
 		
