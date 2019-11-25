@@ -74,7 +74,8 @@ public class ImageOperator implements ImageSource {
 	public SourcedImage nextImage() {
 		// Get image from backing source
 		SourcedImage img = null;
-		synchronized (source) {
+
+		synchronized (this) {
 			if (this.source == null) {
 				return null;
 			}
@@ -128,13 +129,18 @@ public class ImageOperator implements ImageSource {
 		return img;
 	}
 
-	@Override
-	public void close() {
-		synchronized (source) {
-			this.source = null;
-			this.iimageOperations = null;
+	public void executeAll() {
+		@SuppressWarnings("unused")
+		SourcedImage img;
+		while ((img = this.nextImage()) != null) {
 		}
+	}
 
+	@Override
+	public synchronized void close() {
+		this.source = null;
+		this.iimageOperations = null;
+		this.sourcedImageOperations = null;
 	}
 
 }

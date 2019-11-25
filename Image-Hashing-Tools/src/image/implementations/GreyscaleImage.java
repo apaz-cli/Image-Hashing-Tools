@@ -152,7 +152,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 
 	@Override
 	public GreyscaleImage deepClone() {
-		return new GreyscaleImage(Arrays.copyOf(this.pixels, this.pixels.length), this.getWidth(), this.getHeight());
+		return new GreyscaleImage(Arrays.copyOf(this.pixels, this.pixels.length), this.width, this.height);
 	}
 
 	@Override
@@ -292,8 +292,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	public boolean equals(Object o) {
 		if (o instanceof GreyscaleImage) {
 			GreyscaleImage other = (GreyscaleImage) o;
-			return java.util.Arrays.equals(this.pixels, other.getPixels()) && this.width == other.getWidth()
-					&& this.width == other.getHeight();
+			return java.util.Arrays.equals(this.pixels, other.getPixels()) && this.width == other.getWidth();
 		}
 		return false;
 	}

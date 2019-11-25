@@ -1,4 +1,4 @@
-package pipeline.sources.impl;
+package pipeline.sources.impl.loader;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.imageio.ImageIO;
 
@@ -14,6 +16,8 @@ import pipeline.sources.ImageSource;
 import pipeline.sources.SourcedImage;
 
 public class ImageLoader implements ImageSource {
+
+	private ExecutorService loadThread = Executors.newSingleThreadExecutor();
 
 	private List<File> files = new LinkedList<>();
 	private List<SourcedImage> imageBuffer = new LinkedList<>();
@@ -33,6 +37,10 @@ public class ImageLoader implements ImageSource {
 
 	public ImageLoader(String fileOrFolderPath) {
 		this(new File(fileOrFolderPath));
+	}
+	
+	public ImageLoader(Path fileOrFolderPath) {
+		this(fileOrFolderPath.toFile());
 	}
 
 	private void indexFile(File file) {
@@ -63,7 +71,9 @@ public class ImageLoader implements ImageSource {
 			Path p = f.toPath();
 			try {
 				String mimeType = Files.probeContentType(p);
-				if (!mimeType.contains("image")) {
+				if (mimeType == null) {
+					files.remove(f);
+				} else if (!mimeType.contains("image")) {
 					files.remove(f);
 				}
 			} catch (IOException e) {
@@ -74,20 +84,33 @@ public class ImageLoader implements ImageSource {
 		this.imageNumber = files.size();
 	}
 
-	private void loadImages() {
-		synchronized (files) {
-			for (int i = 0; i < files.size() && i < 50; i++) {
-				File f = files.remove(0);
-				BufferedImage img = null;
-				try {
-					img = ImageIO.read(f);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				synchronized (imageBuffer) {
-					imageBuffer.add(new SourcedImage(img, f));
-					imageBuffer.notify();
-				}
+	void loadImages() {
+		// At most 50 times
+		for (int i = 0; i < 50; i++) {
+			File f;
+			synchronized (files) {
+				f = !files.isEmpty() ? files.remove(0) : null;
+			}
+			if (f == null) {
+				return;
+			}
+
+			BufferedImage img = null;
+			try {
+				img = ImageIO.read(f);
+			} catch (Exception e) {
+				System.err.println("Lost image: " + f + ". Error: Type: " + e.getClass().getName() + " Message: "
+						+ e.getMessage());
+			}
+
+			if (img == null) {
+				i--;
+				continue;
+			}
+
+			synchronized (imageBuffer) {
+				imageBuffer.add(new SourcedImage(img, f));
+				imageBuffer.notify();
 			}
 		}
 	}
@@ -108,15 +131,18 @@ public class ImageLoader implements ImageSource {
 			}
 
 			img = imageBuffer.remove(0);
+		}
 
-			synchronized (imagesIterated) {
-				imagesIterated++;
-				if (this.imagesIterated != this.imageNumber) {
-					if (this.imageBuffer.size() < 25) {
-						this.loadImages();
-					}
-				}
+		boolean load = false;
+		synchronized (imagesIterated) {
+			imagesIterated++;
+			if (this.imagesIterated != this.imageNumber && this.imageBuffer.isEmpty()) {
+				loadThread.execute(new LoadTask(this));
 			}
+		}
+
+		if (load) {
+			this.loadImages();
 		}
 
 		return img;
@@ -125,6 +151,7 @@ public class ImageLoader implements ImageSource {
 	@Override
 	public void close() {
 		synchronized (imageBuffer) {
+			loadThread.shutdownNow();
 			imageBuffer = new LinkedList<>();
 			synchronized (files) {
 				files = new LinkedList<>();
@@ -133,6 +160,7 @@ public class ImageLoader implements ImageSource {
 				this.imageNumber = 0;
 				this.imagesIterated = 0;
 			}
+
 		}
 	}
 

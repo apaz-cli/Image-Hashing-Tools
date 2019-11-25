@@ -1,4 +1,4 @@
-package pipeline.imagehasher;
+package pipeline.hasher;
 
 import java.awt.image.BufferedImage;
 

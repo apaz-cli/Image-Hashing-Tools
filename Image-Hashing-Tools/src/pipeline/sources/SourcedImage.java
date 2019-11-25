@@ -89,7 +89,7 @@ public class SourcedImage {
 	}
 	
 	public SourcedImage deepCopy() {
-		return new SourcedImage(this.img, this.source, this.isURL);
+		return new SourcedImage(this.img.deepClone(), new String(this.source), this.isURL);
 	}
 
 }

@@ -1,10 +1,11 @@
 package pipeline.sources;
 
 import java.awt.image.BufferedImage;
+import java.io.Closeable;
 
 import image.IImage;
 
-public interface ImageSource {
+public interface ImageSource extends Closeable {
 	public abstract SourcedImage nextImage();
 	
 	public default IImage<?> nextIImage() {
@@ -25,6 +26,6 @@ public interface ImageSource {
 	 * However, if the ImageSource implemented has other ImageSources inside, it
 	 * need not close them too. It must only give up references.
 	 */
+	@Override
 	public abstract void close();
-
 }

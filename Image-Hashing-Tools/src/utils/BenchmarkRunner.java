@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
@@ -27,12 +28,10 @@ import hash.implementations.*;
 import hash.implementations.slicehash.*;
 import image.*;
 import image.implementations.*;
-import pipeline.imagehasher.ImageHasher;
-import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
-import pipeline.sources.impl.ImageLoader;
-import pipeline.sources.impl.downloader.ImageDownloader;
-import pipeline.sources.impl.joined.JoinedImageSource;
+import pipeline.hasher.ImageHasher;
+import pipeline.sources.*;
+import pipeline.sources.impl.*;
+import pipeline.sources.impl.loader.ImageLoader;
 import pipeline.sources.ops.IImageOperation;
 import pipeline.sources.ops.ImageOperator;
 import pipeline.sources.ops.SourcedImageOperation;
@@ -46,31 +45,49 @@ public class BenchmarkRunner {
 	private static BufferedImage img2 = null;
 	private static String image1URL = "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png";
 	private static String image2URL = "https://images3.alphacoders.com/836/83635.jpg"; // "https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png";//"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium";
-
-	static {
-		try {
-			img1 = ImageUtils.openImage(new URL(image1URL));
-			System.out.println("Image 1 width: " + img1.getWidth());
-			System.out.println("Image 1 height: " + img1.getHeight());
-
-			img2 = ImageUtils.openImage(new URL(image2URL));
-			System.out.println("Image 2 width: " + img2.getWidth());
-			System.out.println("Image 2 height: " + img2.getHeight());
-
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
+	/*
+	 * static { try { img1 = ImageUtils.openImage(new URL(image1URL));
+	 * System.out.println("Image 1 width: " + img1.getWidth());
+	 * System.out.println("Image 1 height: " + img1.getHeight());
+	 * 
+	 * img2 = ImageUtils.openImage(new URL(image2URL));
+	 * System.out.println("Image 2 width: " + img2.getWidth());
+	 * System.out.println("Image 2 height: " + img2.getHeight());
+	 * 
+	 * } catch (MalformedURLException e) { e.printStackTrace(); } catch (IOException
+	 * e) { e.printStackTrace(); } }
+	 */
 	private static int warmupIterations = 1000;
 
 	// ********//
 	// * MAIN *//
 	// ********//
 
+	static DifferenceHash dhash = new DifferenceHash();
+
 	public static void main(String[] args) {
+		
+		ImageSource s = new ImageLoader("C:\\Users\\PazderaAaron\\Wallpapers");
+
+		SourcedImageOperation compareResizeHashes = (img) -> {
+			SourcedImage copy = new SourcedImage(img.deepCopy().unwrap().rescaleBilinear(.5f, .5f), img.getSource(), img.isURL());
+			ImageHash h1 = dhash.hash(img);
+			ImageHash h2 = dhash.hash(copy);
+			float diff = h1.percentHammingDifference(h2);
+			System.out.println(diff >= .25f ? diff + " " + img.getSource() : diff);
+			if (diff >= .25f) {
+				showImage(img);
+				showImage(copy);
+			}
+			return img;
+		};
+
+		ImageOperator operator = new ImageOperator(s, compareResizeHashes);
+		operator.executeAll();
+		operator.close();
+		s.close();
+		System.out.println("Closed");
+		
 
 		/*
 		 * int[][] testarr = ImageUtils.array1dToArray2d(new int[] {1, 2, 3, 4, 5, 6},

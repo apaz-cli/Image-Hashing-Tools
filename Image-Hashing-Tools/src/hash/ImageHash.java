@@ -10,7 +10,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 	// TODO rewrite bits as Integer for bitLength 32, and Long for bitLength 64.
 	// It should behave as normal otherwise.
-	
+
 	private final BitSet bits;
 	private final String type;
 	private final int bitLength;
@@ -47,16 +47,12 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return bits;
 	}
 
-	public int length() {
-		return bits.length();
-	}
-
 	public boolean getBit(int bitIndex) throws ArrayIndexOutOfBoundsException {
 		return bits.get(bitIndex);
 	}
 
 	public int getLength() {
-		return this.bits.length();
+		return this.bitLength;
 	}
 
 	public String getType() {
@@ -224,7 +220,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return this.bits.hashCode();
 	}
 
-	public float percentHammingSimilarity(ImageHash hash) throws IllegalArgumentException {
+	public float percentHammingDifference(ImageHash hash) throws IllegalArgumentException {
 		areComparable(hash);
 
 		int distance = this.hammingDistance(hash);
@@ -240,9 +236,10 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			}
 		}
 
-		if (this.bits.length() != hash.getLength()) {
+		if (this.bitLength != hash.getLength()) {
 			throw new IllegalArgumentException(
-					"These two hashes are not of the same length, and therefore cannot be compared.");
+					"These two hashes are not of the same length, and therefore cannot be compared. Hash 1: "
+							+ this.getLength() + " Hash 2: " + hash.getLength());
 		}
 	}
 }

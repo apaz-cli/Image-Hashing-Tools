@@ -1,5 +1,5 @@
 
-package pipeline.imagehasher;
+package pipeline.hasher;
 
 import java.io.File;
 import java.util.Collection;
@@ -8,12 +8,12 @@ import java.util.concurrent.Executors;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import pipeline.sources.ImageSource;
-import pipeline.sources.impl.ImageLoader;
+import pipeline.sources.impl.loader.ImageLoader;
 
 public class ImageHasher {
 
 	// This is the pool for hashing, different from the one for downloading.
-	private ExecutorService pool = Executors.newWorkStealingPool(15);
+	private ExecutorService pool = Executors.newWorkStealingPool(3);
 
 	private ImageSource source;
 	private IHashAlgorithm algorithm;
@@ -36,14 +36,14 @@ public class ImageHasher {
 			src = (ImageSource) source;
 		} else if (source instanceof File) {
 			File s = (File) source;
-			boolean readable = s.canRead(), dir = s.isDirectory();
-			if (!readable || !dir) {
-				throw new IllegalArgumentException(
-						"The source file must be a readable directory. Readable: " + readable + " isDirectory: " + dir);
+			boolean readable = s.canRead();
+			if (!readable) {
+				throw new IllegalArgumentException("The source file must be a readable directory. Readable: " + readable
+						+ ". If the file is not readable, this could possibly be because it does not exist, or may alternatively be due to insufficient permissions.");
 			}
 			src = new ImageLoader(s);
 		} else if (source instanceof Collection<?>) {
-
+			
 		}
 
 		// Writers
@@ -60,6 +60,10 @@ public class ImageHasher {
 		this.output = output;
 	}
 
+	public void hashAll() {
+
+	}
+	
 	private void setOutputType(Object output) {
 
 	}
@@ -67,9 +71,7 @@ public class ImageHasher {
 	void recieveHash(ImageHash hash, String source) {
 
 	}
+
 	
-	public void begin() {
-		
-	}
 
 }

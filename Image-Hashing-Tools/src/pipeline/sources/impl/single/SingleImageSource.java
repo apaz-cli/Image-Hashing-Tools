@@ -1,4 +1,4 @@
-package pipeline.sources.impl;
+package pipeline.sources.impl.single;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -49,21 +49,17 @@ public class SingleImageSource implements ImageSource {
 	}
 
 	@Override
-	public SourcedImage nextImage() {
-		synchronized (img) {
-			SourcedImage prevImg = img;
-			if (prevImg != null) {
-				img = null;
-			}
-			return prevImg;
+	public synchronized SourcedImage nextImage() {
+		SourcedImage prevImg = img;
+		if (prevImg != null) {
+			img = null;
 		}
+		return prevImg;
 	}
 
 	@Override
-	public void close() {
-		synchronized (img) {
-			img = null;
-		}
+	public synchronized void close() {
+		img = null;
 	}
 
 }
