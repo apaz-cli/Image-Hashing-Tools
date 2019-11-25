@@ -31,6 +31,7 @@ import image.implementations.*;
 import pipeline.hasher.ImageHasher;
 import pipeline.sources.*;
 import pipeline.sources.impl.*;
+import pipeline.sources.impl.buffer.ImageBuffer;
 import pipeline.sources.impl.loader.ImageLoader;
 import pipeline.sources.ops.IImageOperation;
 import pipeline.sources.ops.ImageOperator;
@@ -68,24 +69,30 @@ public class BenchmarkRunner {
 	public static void main(String[] args) {
 		
 		ImageSource s = new ImageLoader("C:\\Users\\PazderaAaron\\Wallpapers");
-
+		
 		SourcedImageOperation compareResizeHashes = (img) -> {
-			SourcedImage copy = new SourcedImage(img.deepCopy().unwrap().rescaleBilinear(.5f, .5f), img.getSource(), img.isURL());
-			ImageHash h1 = dhash.hash(img);
-			ImageHash h2 = dhash.hash(copy);
-			float diff = h1.percentHammingDifference(h2);
-			System.out.println(diff >= .25f ? diff + " " + img.getSource() : diff);
-			if (diff >= .25f) {
-				showImage(img);
-				showImage(copy);
-			}
 			return img;
 		};
 
 		ImageOperator operator = new ImageOperator(s, compareResizeHashes);
-		operator.executeAll();
-		operator.close();
+		
+		List<SourcedImage> slist = operator.toSourcedList();
 		s.close();
+		operator.close();
+		
+		System.out.println("List Finished");
+		
+		ImageBuffer buffer = new ImageBuffer();
+		buffer.emplaceOpen(slist);
+		
+		System.out.println("List In Buffer");
+		
+		List<BufferedImage> buffList = buffer.toBufferedImageList();
+		
+		
+		
+		
+		buffer.close();
 		System.out.println("Closed");
 		
 

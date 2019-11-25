@@ -61,5 +61,4 @@ public class ImageCollection implements ImageSource {
 			this.coll = null;
 		}
 	}
-
 }

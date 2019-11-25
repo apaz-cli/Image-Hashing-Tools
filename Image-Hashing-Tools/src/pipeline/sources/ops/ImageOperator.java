@@ -129,6 +129,10 @@ public class ImageOperator implements ImageSource {
 		return img;
 	}
 
+	/**
+	 * Invokes the functions provided on all images in this source
+	 * Does not return a list.
+	 */
 	public void executeAll() {
 		@SuppressWarnings("unused")
 		SourcedImage img;
@@ -138,9 +142,11 @@ public class ImageOperator implements ImageSource {
 
 	@Override
 	public synchronized void close() {
-		this.source = null;
-		this.iimageOperations = null;
-		this.sourcedImageOperations = null;
+		synchronized (this) {
+			this.source = null;
+			this.iimageOperations = null;
+			this.sourcedImageOperations = null;
+		}
 	}
 
 }
