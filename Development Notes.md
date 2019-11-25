@@ -2,6 +2,8 @@
 
 ## High Priority
 
+Rewrite ImageLoader to synchronize on this
+
 Rewrite Image Downloader as ImageSource
 
 Rewrite Safebooru Scraper as ImageSource
