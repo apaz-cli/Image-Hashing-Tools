@@ -11,13 +11,6 @@ public class HashFactory {
 	protected HashFactory() {
 	}
 
-	// TODO figure out the correct way to do this
-	public static final AverageHash AVERAGE_HASH = new AverageHash();
-	public static final PerceptualHash PERCEPTUAL_HASH = new PerceptualHash();
-	public static final DifferenceHash DIFFERENCE_HASH = new DifferenceHash();
-	public static final GreyscaleHistogramHash GREYSCALE_HISTOGRAM_HASH = new GreyscaleHistogramHash();
-	public static final RGBHistogramHash RGB_HISTOGRAM_HASH = new RGBHistogramHash();
-
 	public static ImageHash hash(IImage<?> img, IHashAlgorithm algorithm) {
 		return algorithm.hash(img);
 	}
