@@ -37,17 +37,17 @@ public class ImageBuffer implements ImageSource {
 				return;
 			}
 
+			if (this.buffer == null) {
+				throw new IllegalStateException("This object is already closed.");
+			}
+
 			if (this.filled) {
 				throw new IllegalStateException("This object is already marked as filled.");
 			}
 
-			if (this.buffer == null) {
-				throw new IllegalStateException("This object is already closed.");
-			}
 			synchronized (buffer) {
 				buffer.add(emp);
 				buffer.notify();
-				System.out.println("PUT IN BUFFER");
 			}
 		}
 	}
@@ -65,7 +65,7 @@ public class ImageBuffer implements ImageSource {
 				this.markFilled();
 				return;
 			} else if (this.filled) {
-				throw new IllegalStateException("This object is already marked as filled.");
+				throw new IllegalStateException("This object is already marked as filled and/or closed.");
 			}
 			synchronized (imgCollection) {
 				imgCollection.forEach((img) -> {
@@ -93,16 +93,13 @@ public class ImageBuffer implements ImageSource {
 		SourcedImage img = null;
 		synchronized (this) {
 			if (this.buffer == null) {
-				System.out.println("IMAGEBUFFER RETURN NULL, buffer null");
 				return null;
 			}
 			synchronized (buffer) {
 				if (buffer.isEmpty()) {
 					if (!this.filled) {
 						try {
-							System.out.println("IMAGEBUFFER WAITING");
 							buffer.wait();
-							System.out.println("IMAGEBUFFER NOTIFIED");
 						} catch (InterruptedException e) {
 						}
 					} else {
@@ -113,7 +110,6 @@ public class ImageBuffer implements ImageSource {
 				img = buffer.remove(0);
 			}
 		}
-		System.out.println("IMAGEBUFFER RETURN IMG");
 		return img;
 	}
 

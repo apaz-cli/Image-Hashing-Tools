@@ -2,6 +2,10 @@
 
 ## High Priority
 
+Rewrite Image Downloader as ImageSource
+
+Rewrite Safebooru Scraper as ImageSource
+
 Validate SliceHash
 
 Validate ImageHash to/fromString
@@ -10,18 +14,16 @@ Fix array2dToArray1d so that it doesn't need to take x, y arguments
 
 Add subimage insertion/extraction to IImage and implement each
 
-Write ImageLoader
-
-Write remaining pipeline for Type I - II error for different hashes and attacks
+Figure out how to track Type I - II error
 
 Add RGBAImage constructor to HSIImage, CMYKImage, YCbCrImage
 
-Implement .equals() for all IImage types
+Verify .equals() for all IImage types
 
 
 ## Backlog
 
-Implement HSIImage, CMYKImage
+Fully Implement HSIImage, CMYKImage
 
 Add optional Integer/Long types to ImageHash
 
