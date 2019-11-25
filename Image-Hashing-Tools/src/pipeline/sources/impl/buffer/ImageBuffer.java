@@ -11,6 +11,7 @@ import pipeline.sources.impl.SourceUtil;
 
 public class ImageBuffer implements ImageSource {
 
+	private boolean filled = false;
 	private List<SourcedImage> buffer = null;
 
 	public ImageBuffer() {
@@ -24,16 +25,20 @@ public class ImageBuffer implements ImageSource {
 	/**
 	 * Accepts BufferedImage, IImage<?>, SourcedImage
 	 * 
-	 * A null argument closes this ImageSource. If you're in putting objects from
-	 * multiple sources and don't want to close is buffer when a different buffer
-	 * ends, then call emplaceOpen() instead.
+	 * A null argument marks this ImageSource as filled. If you're in putting
+	 * objects from multiple sources and don't want to close is buffer when a
+	 * different buffer ends, then call emplaceOpen() instead.
 	 */
 	public void emplace(Object img) throws IllegalStateException {
 		SourcedImage emp = SourceUtil.castToSourced(img);
 		synchronized (this) {
 			if (img == null) {
-				this.close();
+				this.markFilled();
 				return;
+			}
+
+			if (this.filled) {
+				throw new IllegalStateException("This object is already marked as filled.");
 			}
 
 			if (this.buffer == null) {
@@ -54,21 +59,33 @@ public class ImageBuffer implements ImageSource {
 		this.emplace(img);
 	}
 
-	public void emplace(Collection<?> imgCollection) {
-		if (imgCollection == null) {
-			return;
-		}
-		synchronized (imgCollection) {
-			imgCollection.forEach((img) -> {
-				this.emplace(img);
-			});
+	public void emplace(Collection<?> imgCollection) throws IllegalStateException {
+		synchronized (this) {
+			if (imgCollection == null) {
+				this.markFilled();
+				return;
+			} else if (this.filled) {
+				throw new IllegalStateException("This object is already marked as filled.");
+			}
+			synchronized (imgCollection) {
+				imgCollection.forEach((img) -> {
+					this.emplace(img);
+				});
+			}
 		}
 	}
 
 	public void emplaceOpen(Collection<?> imgCollection) throws IllegalStateException {
-		// It isn't possible to have null in a collection, so we can just pass it on.
-		// Also, if null, emplace(Collection<?>) will handle it.
+		if (imgCollection == null) {
+			return;
+		}
 		this.emplace(imgCollection);
+	}
+
+	public void markFilled() {
+		synchronized (this) {
+			this.filled = true;
+		}
 	}
 
 	@Override
@@ -76,18 +93,27 @@ public class ImageBuffer implements ImageSource {
 		SourcedImage img = null;
 		synchronized (this) {
 			if (this.buffer == null) {
+				System.out.println("IMAGEBUFFER RETURN NULL, buffer null");
 				return null;
 			}
 			synchronized (buffer) {
 				if (buffer.isEmpty()) {
-					try {
-						buffer.wait();
-					} catch (InterruptedException e) {
+					if (!this.filled) {
+						try {
+							System.out.println("IMAGEBUFFER WAITING");
+							buffer.wait();
+							System.out.println("IMAGEBUFFER NOTIFIED");
+						} catch (InterruptedException e) {
+						}
+					} else {
+						// If empty and no more coming, finally return null.
+						return null;
 					}
 				}
 				img = buffer.remove(0);
 			}
 		}
+		System.out.println("IMAGEBUFFER RETURN IMG");
 		return img;
 	}
 
@@ -98,7 +124,9 @@ public class ImageBuffer implements ImageSource {
 				return;
 			}
 
-			synchronized (buffer) {
+			this.filled = true;
+
+			synchronized (this.buffer) {
 				this.buffer.notifyAll();
 			}
 
@@ -107,4 +135,5 @@ public class ImageBuffer implements ImageSource {
 			this.buffer = null;
 		}
 	}
+
 }
