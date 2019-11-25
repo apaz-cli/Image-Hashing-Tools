@@ -241,7 +241,7 @@ public class RGBImage implements IImage<RGBImage> {
 	public RGBImage toRGB() {
 		return this;
 	}
-
+	
 	// Uses self to back RGBAImage
 	@Override
 	public RGBAImage toRGBA() {
