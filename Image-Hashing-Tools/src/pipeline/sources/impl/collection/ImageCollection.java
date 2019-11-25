@@ -1,6 +1,5 @@
 package pipeline.sources.impl.collection;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
@@ -28,20 +27,27 @@ public class ImageCollection implements ImageSource {
 	 * available options and join it onto this one with JoinedImageSource.
 	 */
 	public ImageCollection(Collection<?> imgColl) {
-		synchronized (imgColl) {
-			Objects.requireNonNull(imgColl);
-			coll = imgColl.parallelStream().map(SourceUtil::castToSourced).collect(Collectors.toList());
+		Objects.requireNonNull(imgColl);
+		Collection<SourcedImage> casted = imgColl.parallelStream().map(SourceUtil::castToSourced)
+				.collect(Collectors.toList());
+		synchronized (this) {
+			coll = casted;
 		}
 	}
 
 	@Override
 	public SourcedImage nextImage() {
 		SourcedImage item = null;
-		synchronized (coll) {
+		synchronized (this) {
+			if (coll == null) {
+				return null;
+			}
 			Iterator<SourcedImage> it = coll.iterator();
 			if (it.hasNext()) {
 				item = it.next();
 				it.remove();
+			} else {
+				return null;
 			}
 		}
 		return item;
@@ -51,7 +57,9 @@ public class ImageCollection implements ImageSource {
 	public void close() {
 		// Ensures that there is no reference to the backing collection anywhere outside
 		// the object.
-		coll = new ArrayList<>();
+		synchronized (this) {
+			this.coll = null;
+		}
 	}
 
 }
