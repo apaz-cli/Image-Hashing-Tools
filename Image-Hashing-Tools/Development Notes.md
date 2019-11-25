@@ -18,8 +18,6 @@ Figure out how to track Type I - II error
 
 Add RGBAImage constructor to HSIImage, CMYKImage, YCbCrImage
 
-Verify .equals() for all IImage types
-
 
 ## Backlog
 

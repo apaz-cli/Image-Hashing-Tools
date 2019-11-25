@@ -85,7 +85,7 @@ public class RGBImage implements IImage<RGBImage> {
 		// BufferedImage handle it, and try again.
 
 		// This also fixes a Java 8 ImageIO bug. When you're opening animated gifs
-		// without this, it would usually explode. Now however, it 
+		// without this, it would usually explode. Now however, it
 
 		// Draw img onto new image with known encoding.
 		BufferedImage newImg = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
@@ -250,6 +250,15 @@ public class RGBImage implements IImage<RGBImage> {
 		byte[] alpha = new byte[this.width * this.height];
 		Arrays.fill(alpha, (byte) 255);
 		return new RGBAImage(this, alpha);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof RGBImage) {
+			RGBImage other = (RGBImage) obj;
+			return this.r.equals(other.getRed()) && this.g.equals(other.getGreen()) && this.b.equals(other.getBlue());
+		}
+		return false;
 	}
 
 }

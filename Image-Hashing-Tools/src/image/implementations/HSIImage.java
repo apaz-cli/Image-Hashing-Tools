@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
@@ -45,6 +46,18 @@ public class HSIImage implements IImage<HSIImage> {
 	@Override
 	public int getHeight() {
 		return this.height;
+	}
+	
+	public float[] getH() {
+		return this.h;
+	}
+	
+	public float[] getS() {
+		return this.s;
+	}
+	
+	public float[] getI() {
+		return this.i;
 	}
 
 	@Override
@@ -98,6 +111,16 @@ public class HSIImage implements IImage<HSIImage> {
 	public RGBAImage toRGBA() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof HSIImage)) {
+			return false;
+		}
+		HSIImage other = (HSIImage) obj;
+		return Arrays.equals(this.h, other.getH()) && Arrays.equals(this.s, other.getS())
+				&& Arrays.equals(this.i, other.getI());
 	}
 
 }

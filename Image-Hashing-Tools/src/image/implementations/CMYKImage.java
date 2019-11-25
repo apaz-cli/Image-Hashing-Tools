@@ -36,7 +36,7 @@ public class CMYKImage implements IImage<CMYKImage> {
 	public CMYKImage(IImage<?> img) {
 		this(img.toRGB());
 	}
-	
+
 	public CMYKImage(RGBImage img) {
 		byte[] R = img.getRed().getPixels();
 		byte[] G = img.getGreen().getPixels();
@@ -83,19 +83,19 @@ public class CMYKImage implements IImage<CMYKImage> {
 	public float[] getC() {
 		return this.c;
 	}
-	
+
 	public float[] getM() {
 		return this.m;
 	}
-	
+
 	public float[] getY() {
 		return this.y;
 	}
-	
+
 	public float[] getK() {
 		return this.k;
 	}
-	
+
 	@Override
 	public CMYKImage deepClone() {
 		return new CMYKImage(Arrays.copyOf(this.c, this.c.length), Arrays.copyOf(this.m, this.m.length),
@@ -184,6 +184,16 @@ public class CMYKImage implements IImage<CMYKImage> {
 		byte[] alpha = new byte[this.width * this.height];
 		Arrays.fill(alpha, (byte) 255);
 		return new RGBAImage(this.toRGB(), alpha);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof CMYKImage)) {
+			return false;
+		}
+		CMYKImage other = (CMYKImage) obj;
+		return Arrays.equals(this.c, other.getC()) && Arrays.equals(this.m, other.getM())
+				&& Arrays.equals(this.y, other.getY()) && Arrays.equals(this.k, other.getK());
 	}
 
 }
