@@ -46,56 +46,62 @@ public class BenchmarkRunner {
 	private static BufferedImage img2 = null;
 	private static String image1URL = "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png";
 	private static String image2URL = "https://images3.alphacoders.com/836/83635.jpg"; // "https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png";//"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium";
-	/*
-	 * static { try { img1 = ImageUtils.openImage(new URL(image1URL));
-	 * System.out.println("Image 1 width: " + img1.getWidth());
-	 * System.out.println("Image 1 height: " + img1.getHeight());
-	 * 
-	 * img2 = ImageUtils.openImage(new URL(image2URL));
-	 * System.out.println("Image 2 width: " + img2.getWidth());
-	 * System.out.println("Image 2 height: " + img2.getHeight());
-	 * 
-	 * } catch (MalformedURLException e) { e.printStackTrace(); } catch (IOException
-	 * e) { e.printStackTrace(); } }
-	 */
+
+	static {
+		try {
+			img1 = ImageUtils.openImage(new URL(image1URL));
+			System.out.println("Image 1 width: " + img1.getWidth());
+			System.out.println("Image 1 height: " + img1.getHeight());
+
+			img2 = ImageUtils.openImage(new URL(image2URL));
+			System.out.println("Image 2 width: " + img2.getWidth());
+			System.out.println("Image 2 height: " + img2.getHeight());
+
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	private static int warmupIterations = 1000;
 
 	// ********//
 	// * MAIN *//
 	// ********//
 
-	static DifferenceHash dhash = new DifferenceHash();
+	static IHashAlgorithm dHash = new DifferenceHash();
+	static SourcedImage lastImage = null;
+	static {
+		try {
+			lastImage = new SourcedImage(img1, new URL(image1URL));
+		} catch (Exception e) {
+		}
+	}
 
 	public static void main(String[] args) {
-		
-		ImageSource s = new ImageLoader("C:\\Users\\PazderaAaron\\Wallpapers\\SFW");
-		
-		SourcedImageOperation compareResizeHashes = (img) -> {
+
+		ImageSource s = new ImageLoader("C:\\Users\\PazderaAaron\\Wallpapers");
+
+		SourcedImageOperation compareDifferentImageDifference = (img) -> {
+
+			ImageHash h1 = dHash.hash(lastImage);
+			ImageHash h2 = dHash.hash(img);
+			float diff = h1.percentHammingDifference(h2);
+			System.out.println(diff + 
+					(diff < .20 ?
+							" ERROR: " + h1.getSource() + " <-> " + h2.getSource() 
+							: ""));
+
+			lastImage = img;
 			return img;
 		};
 
-		ImageOperator operator = new ImageOperator(s, compareResizeHashes);
-		
-		List<SourcedImage> slist = operator.toSourcedList();
-		s.close();
+		ImageOperator operator = new ImageOperator(s, compareDifferentImageDifference);
+		operator.executeAll();
+		System.out.println("All Executed");
 		operator.close();
-		
-		System.out.println("List Finished");
-		
-		ImageBuffer buffer = new ImageBuffer();
-		buffer.emplaceOpen(slist);
-		buffer.emplace(null);
-		
-		System.out.println("List In Buffer");
-		
-		List<BufferedImage> buffList = buffer.toBufferedImageList();
-		
-		
-		
-		
-		buffer.close();
-		System.out.println("Closed");
-		
+		System.out.println("closed");
 
 		/*
 		 * int[][] testarr = ImageUtils.array1dToArray2d(new int[] {1, 2, 3, 4, 5, 6},

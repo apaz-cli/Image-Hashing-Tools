@@ -53,6 +53,6 @@ public interface IHashAlgorithm {
 	}
 
 	default ImageHash hash(SourcedImage img) {
-		return this.hash(img.unwrap());
+		return this.hash(img.unwrap(), img.getSource());
 	}
 }
