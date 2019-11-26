@@ -114,7 +114,9 @@ public class ImageLoader implements ImageSource {
 				try {
 					// Since we've synchronized, this should be the last one in.
 					imageBuffer.put(TERMINALIMAGE);
-					this.loadThread.shutdownNow();
+					synchronized (this) {
+						this.loadThread.shutdownNow();
+					}
 				} catch (InterruptedException e) {
 				}
 				return;
@@ -184,8 +186,8 @@ public class ImageLoader implements ImageSource {
 
 	@Override
 	public void close() {
-		loadThread.shutdownNow();
 		synchronized (this) {
+			loadThread.shutdownNow();
 			synchronized (files) {
 				this.files = null;
 			}
