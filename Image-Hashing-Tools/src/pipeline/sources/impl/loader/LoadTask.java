@@ -10,6 +10,6 @@ public class LoadTask implements Runnable {
 
 	@Override
 	public void run() {
-		owner.loadImages();
+		owner.loadImage();
 	}
 }

@@ -86,14 +86,16 @@ public class ImageOperator implements ImageSource {
 			return null;
 		}
 
-		// Apply operations in specified order
-		if (iiFirst) {
-			IImage<?> iimg = applyIIOperations(img.unwrap());
-			img = applySourcedOperations(new SourcedImage(iimg, img.getSource(), img.isURL()));
-		} else {
-			img = applySourcedOperations(img);
-			IImage<?> iimg = applyIIOperations(img.unwrap());
-			img = new SourcedImage(iimg, img.getSource(), img.isURL());
+		synchronized (this) {
+			// Apply operations in specified order
+			if (iiFirst) {
+				IImage<?> iimg = applyIIOperations(img.unwrap());
+				img = applySourcedOperations(new SourcedImage(iimg, img.getSource(), img.isURL()));
+			} else {
+				img = applySourcedOperations(img);
+				IImage<?> iimg = applyIIOperations(img.unwrap());
+				img = new SourcedImage(iimg, img.getSource(), img.isURL());
+			}
 		}
 		return img;
 	}
@@ -130,8 +132,8 @@ public class ImageOperator implements ImageSource {
 	}
 
 	/**
-	 * Invokes the functions provided on all images in this source
-	 * Does not return a list.
+	 * Invokes the functions provided on all images in this source Does not return a
+	 * list.
 	 */
 	public void executeAll() {
 		@SuppressWarnings("unused")

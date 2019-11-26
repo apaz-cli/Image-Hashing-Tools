@@ -5,10 +5,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
 
 import javax.imageio.ImageIO;
 
@@ -17,37 +19,41 @@ import pipeline.sources.SourcedImage;
 
 public class ImageLoader implements ImageSource {
 
-	private ExecutorService loadThread = Executors.newSingleThreadExecutor();
+	private static SourcedImage TERMINALIMAGE = new TerminalImage(null);
+
+	private ExecutorService loadThread = Executors.newWorkStealingPool(3);
 
 	private List<File> files = new LinkedList<>();
-	private List<SourcedImage> imageBuffer = new LinkedList<>();
+	private SynchronousQueue<SourcedImage> imageBuffer = new SynchronousQueue<>();
+	private Object bufferAccessFlag = new Object();
 
-	private int imageNumber = 0;
-	private Integer imagesIterated = 0;
+	private List<File> failedLoads = new ArrayList<>();
 
-	public ImageLoader(File fileOrFolder) {
+	public ImageLoader(File fileOrFolder) throws IllegalArgumentException {
 		// Only at most one of the two following functions will do anything, depending
 		// on if is file or directory.
 		this.indexFolder(fileOrFolder);
 		this.indexFile(fileOrFolder);
 
-		this.trimFolder();
-		this.loadImages();
+		// If no files are indexed, trimFolder() will throw an exception.
+		this.trimIndex();
+
+		// Now throw an exception if no images are indexed.
+		if (files.isEmpty()) {
+			throw new IllegalArgumentException(
+					"The file or folder specified was valid, but did not contain any images.");
+		}
+		for (int i = 0; i < 6; i++) {
+			loadThread.execute(new LoadTask(this));
+		}
 	}
 
-	public ImageLoader(String fileOrFolderPath) {
+	public ImageLoader(String fileOrFolderPath) throws IllegalArgumentException {
 		this(new File(fileOrFolderPath));
 	}
-	
-	public ImageLoader(Path fileOrFolderPath) {
-		this(fileOrFolderPath.toFile());
-	}
 
-	private void indexFile(File file) {
-		if (file.isDirectory() || !file.canRead()) {
-			return;
-		}
-		files.add(file);
+	public ImageLoader(Path fileOrFolderPath) throws IllegalArgumentException {
+		this(fileOrFolderPath.toFile());
 	}
 
 	private void indexFolder(File folder) {
@@ -65,7 +71,20 @@ public class ImageLoader implements ImageSource {
 		}
 	}
 
-	private void trimFolder() {
+	private void indexFile(File file) {
+		if (file.isDirectory() || !file.canRead()) {
+			return;
+		}
+		files.add(file);
+	}
+
+	private void trimIndex() {
+		// This function doesn't have to be synchronized, because it is only called in
+		// the constructor.
+		if (this.files.isEmpty()) {
+			throw new IllegalArgumentException("Couldn't load any files out of the file specified.");
+		}
+
 		for (int i = 0; i < this.files.size(); i++) {
 			File f = this.files.get(i);
 			Path p = f.toPath();
@@ -73,7 +92,7 @@ public class ImageLoader implements ImageSource {
 				String mimeType = Files.probeContentType(p);
 				if (mimeType == null) {
 					files.remove(f);
-				} else if (!mimeType.contains("image")) {
+				} else if (!mimeType.contains("image/")) {
 					files.remove(f);
 				}
 			} catch (IOException e) {
@@ -81,86 +100,100 @@ public class ImageLoader implements ImageSource {
 				files.remove(f);
 			}
 		}
-		this.imageNumber = files.size();
 	}
 
-	void loadImages() {
-		// At most 50 times
-		for (int i = 0; i < 50; i++) {
-			File f;
-			synchronized (files) {
-				f = !files.isEmpty() ? files.remove(0) : null;
-			}
-			if (f == null) {
+	void loadImage() {
+
+		// Get file, handle if can't.
+		File f;
+		synchronized (files) {
+			if (!files.isEmpty()) {
+				f = files.remove(0);
+			} else {
+				// If it's null, we're done. We should inform the buffer.
+				try {
+					// Since we've synchronized, this should be the last one in.
+					imageBuffer.put(TERMINALIMAGE);
+					this.loadThread.shutdownNow();
+				} catch (InterruptedException e) {
+				}
 				return;
 			}
-
-			BufferedImage img = null;
-			try {
-				img = ImageIO.read(f);
-			} catch (Exception e) {
-				System.err.println("Lost image: " + f + ". Error: Type: " + e.getClass().getName() + " Message: "
-						+ e.getMessage());
-			}
-
-			if (img == null) {
-				i--;
-				continue;
-			}
-
-			synchronized (imageBuffer) {
-				imageBuffer.add(new SourcedImage(img, f));
-				imageBuffer.notify();
-			}
 		}
+
+		// Beyond this point, we have a valid file.
+		// Get image by loading that file, handle if can't.
+		BufferedImage img = null;
+		try {
+			img = ImageIO.read(f);
+			if (img == null) {
+				synchronized (failedLoads) {
+					// Now that we've failed gracefully, we can try again.
+					this.failedLoads.add(f);
+					this.loadImage();
+					return;
+				}
+			}
+		} catch (Exception e) {
+			// Now that we've failed gracefully, we can try again.
+			System.err.println(
+					"Lost image to Error: " + f + " Reason: " + e.getClass().getName() + ": " + e.getMessage());
+			this.loadImage();
+			return;
+		}
+
+		// Now that we have a non-null image we can add it to the buffer and inform one
+		// waiting nextImage() method that it's ready.
+		try {
+			synchronized (bufferAccessFlag) {
+				if (imageBuffer != null) {
+					imageBuffer.put(new SourcedImage(img, f));
+				}
+			}
+			System.out.println("IMAGE LOADED");
+		} catch (InterruptedException e) {
+		}
+
+	}
+
+	public List<File> getFailedLoads() {
+		return failedLoads;
 	}
 
 	@Override
 	public SourcedImage nextImage() {
-		if (this.imagesIterated >= this.imageNumber) {
-			return null;
-		}
-
-		SourcedImage img = null;
-		synchronized (imageBuffer) {
-			if (imageBuffer.isEmpty()) {
-				try {
-					imageBuffer.wait();
-				} catch (InterruptedException e) {
-				}
-			}
-
-			img = imageBuffer.remove(0);
-		}
-
-		boolean load = false;
-		synchronized (imagesIterated) {
-			imagesIterated++;
-			if (this.imagesIterated != this.imageNumber && this.imageBuffer.isEmpty()) {
+		synchronized (this) {
+			if (loadThread != null) {
 				loadThread.execute(new LoadTask(this));
 			}
 		}
-
-		if (load) {
-			this.loadImages();
+		SourcedImage img = null;
+		try {
+			synchronized (this) {
+				if (this.imageBuffer == null) {
+					return null;
+				}
+				System.out.println("WAITING FOR IMAGE");
+				img = imageBuffer.take();
+			}
+		} catch (InterruptedException e) {
 		}
-
-		return img;
+		return img != TERMINALIMAGE ? img : null;
 	}
 
 	@Override
 	public void close() {
-		synchronized (imageBuffer) {
-			loadThread.shutdownNow();
-			imageBuffer = new LinkedList<>();
+		loadThread.shutdownNow();
+		synchronized (this) {
 			synchronized (files) {
-				files = new LinkedList<>();
+				this.files = null;
 			}
-			synchronized (imagesIterated) {
-				this.imageNumber = 0;
-				this.imagesIterated = 0;
+			synchronized (bufferAccessFlag) {
+				this.imageBuffer = null;
 			}
-
+			synchronized (failedLoads) {
+				this.failedLoads = null;
+			}
 		}
 	}
 

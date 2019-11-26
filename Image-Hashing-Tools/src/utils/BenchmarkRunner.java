@@ -81,7 +81,7 @@ public class BenchmarkRunner {
 
 	public static void main(String[] args) {
 
-		ImageSource s = new ImageLoader("C:\\Users\\PazderaAaron\\Wallpapers");
+		ImageLoader s = new ImageLoader("C:\\Users\\PazderaAaron\\Downloads\\The Good Stuff\\Gelbooru");
 
 		SourcedImageOperation compareDifferentImageDifference = (img) -> {
 
@@ -98,8 +98,10 @@ public class BenchmarkRunner {
 		};
 
 		ImageOperator operator = new ImageOperator(s, compareDifferentImageDifference);
+		System.out.println("Executing All");
 		operator.executeAll();
 		System.out.println("All Executed");
+		System.out.println(s.getFailedLoads());
 		operator.close();
 		System.out.println("closed");
 

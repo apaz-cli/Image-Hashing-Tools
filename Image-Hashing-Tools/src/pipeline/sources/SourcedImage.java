@@ -34,13 +34,13 @@ public class SourcedImage {
 
 	public SourcedImage(BufferedImage img, URL source) {
 		this.img = new RGBAImage(img);
-		this.source = source.toString();
+		this.source = source == null ? null : source.toString();
 		this.isURL = true;
 	}
 
 	public SourcedImage(BufferedImage img, File source) {
 		this.img = new RGBAImage(img);
-		this.source = source.toString();
+		this.source = source == null ? null : source.toString();
 		this.isURL = false;
 	}
 
@@ -57,13 +57,13 @@ public class SourcedImage {
 
 	public SourcedImage(IImage<?> img, URL source) {
 		this.img = img;
-		this.source = source.toString();
+		this.source = source == null ? null : source.toString();
 		this.isURL = true;
 	}
 
 	public SourcedImage(IImage<?> img, File source) {
 		this.img = img;
-		this.source = source.toString();
+		this.source = source == null ? null : source.toString();
 		this.isURL = false;
 	}
 
@@ -87,7 +87,7 @@ public class SourcedImage {
 	public String getSource() {
 		return this.source;
 	}
-	
+
 	public SourcedImage deepCopy() {
 		return new SourcedImage(this.img.deepClone(), new String(this.source), this.isURL);
 	}
