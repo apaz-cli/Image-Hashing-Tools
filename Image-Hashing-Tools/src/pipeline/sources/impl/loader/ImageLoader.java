@@ -163,7 +163,7 @@ public class ImageLoader implements ImageSource {
 	public List<File> getFailedLoads() {
 		return failedLoads;
 	}
-
+	
 	@Override
 	public SourcedImage nextImage() {
 		synchronized (this) {
