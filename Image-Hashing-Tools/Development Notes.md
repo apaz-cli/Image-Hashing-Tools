@@ -2,8 +2,6 @@
 
 ## High Priority
 
-Rewrite ImageLoader to synchronize on this
-
 Rewrite ImageSources that rely on a backing ImageSource to use nextIImage/nextBufferedImage of backing source.
 
 Rewrite Image Downloader as ImageSource
