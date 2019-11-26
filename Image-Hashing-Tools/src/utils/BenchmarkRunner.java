@@ -90,7 +90,7 @@ public class BenchmarkRunner {
 			float diff = h1.percentHammingDifference(h2);
 			System.out.println(diff + 
 					(diff < .20 ?
-							" ERROR: " + h1.getSource() + " <-> " + h2.getSource() 
+							"\nMATCH:\n" + h1.getSource() + "\n" + h2.getSource() 
 							: ""));
 
 			lastImage = img;

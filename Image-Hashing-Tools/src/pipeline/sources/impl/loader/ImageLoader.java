@@ -138,8 +138,11 @@ public class ImageLoader implements ImageSource {
 			// Now that we've failed gracefully, we can try again.
 			System.err.println(
 					"Lost image to Error: " + f + " Reason: " + e.getClass().getName() + ": " + e.getMessage());
-			this.loadImage();
-			return;
+			synchronized (failedLoads) {
+				this.failedLoads.add(f);
+				this.loadImage();
+				return;
+			}
 		}
 
 		// Now that we have a non-null image we can add it to the buffer and inform one
@@ -150,7 +153,6 @@ public class ImageLoader implements ImageSource {
 					imageBuffer.put(new SourcedImage(img, f));
 				}
 			}
-			System.out.println("IMAGE LOADED");
 		} catch (InterruptedException e) {
 		}
 
@@ -173,7 +175,6 @@ public class ImageLoader implements ImageSource {
 				if (this.imageBuffer == null) {
 					return null;
 				}
-				System.out.println("WAITING FOR IMAGE");
 				img = imageBuffer.take();
 			}
 		} catch (InterruptedException e) {
