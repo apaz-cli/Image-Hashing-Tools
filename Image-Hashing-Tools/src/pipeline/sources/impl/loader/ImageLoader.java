@@ -161,7 +161,7 @@ public class ImageLoader implements ImageSource {
 	}
 
 	public List<File> getFailedLoads() {
-		return failedLoads;
+		return failedLoads; 
 	}
 	
 	@Override
