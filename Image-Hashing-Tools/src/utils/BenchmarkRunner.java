@@ -32,6 +32,7 @@ import pipeline.hasher.ImageHasher;
 import pipeline.sources.*;
 import pipeline.sources.impl.*;
 import pipeline.sources.impl.buffer.ImageBuffer;
+import pipeline.sources.impl.downloader.URLCollectionDownloader;
 import pipeline.sources.impl.loader.ImageLoader;
 import pipeline.sources.ops.IImageOperation;
 import pipeline.sources.ops.ImageOperator;
@@ -81,18 +82,20 @@ public class BenchmarkRunner {
 
 	public static void main(String[] args) {
 
-		ImageLoader s = new ImageLoader("C:\\Users\\PazderaAaron\\Downloads\\The Good Stuff\\Gelbooru");
+		URLCollectionDownloader s = null;
+		try {
+			s = new URLCollectionDownloader(new File("C:\\Users\\PazderaAaron\\Downloads\\Attachment_Links.txt"));
+			System.out.println("Done Constructing");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		SourcedImageOperation compareDifferentImageDifference = (img) -> {
 
 			ImageHash h1 = dHash.hash(lastImage);
 			ImageHash h2 = dHash.hash(img);
 			float diff = h1.percentHammingDifference(h2);
-			System.out.println(diff + 
-					(diff < .20 ?
-							"\nMATCH:\n" + h1.getSource() + "\n" + h2.getSource() 
-							: ""));
-
+			// System.out.println(diff + (diff < .20 ? "\nMATCH:\n" + h1.getSource() + "\n" + h2.getSource() : ""));
 			lastImage = img;
 			return img;
 		};
@@ -101,7 +104,7 @@ public class BenchmarkRunner {
 		System.out.println("Executing All");
 		operator.executeAll();
 		System.out.println("All Executed");
-		System.out.println(s.getFailedLoads());
+		System.out.println(s.getFailedDownloads());
 		operator.close();
 		System.out.println("closed");
 

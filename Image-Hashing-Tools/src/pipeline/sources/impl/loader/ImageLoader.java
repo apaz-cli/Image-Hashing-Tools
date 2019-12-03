@@ -16,6 +16,7 @@ import javax.imageio.ImageIO;
 
 import pipeline.sources.ImageSource;
 import pipeline.sources.SourcedImage;
+import pipeline.sources.TerminalImage;
 
 public class ImageLoader implements ImageSource {
 

@@ -16,14 +16,16 @@ Fix array2dToArray1d so that it doesn't need to take x, y arguments
 
 Add subimage insertion/extraction to IImage and implement each
 
-Figure out how to track Type I - II error
+List a bunch of comparison tasks to do with ImageOperators
+
+Figure out how to track Type I - II error. Do it in tasks on ImageOperators?
 
 Add RGBAImage constructor to HSIImage, CMYKImage, YCbCrImage
 
 
 ## Backlog
 
-Fully Implement HSIImage, CMYKImage
+Fully Implement HSIImage, CMYKImage, YCbCrImage
 
 Add optional Integer/Long types to ImageHash
 
