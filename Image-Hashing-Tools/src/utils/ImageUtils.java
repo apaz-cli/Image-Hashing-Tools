@@ -60,6 +60,10 @@ public class ImageUtils {
 		return ImageIO.read(s);
 	}
 
+	public static SourcedImage openImageSourced(URL imgURL) throws IOException {
+		return new SourcedImage(openImage(imgURL), imgURL);
+	}
+
 	public static void showImage(SourcedImage img) {
 		showImage(img.unwrap());
 	}
