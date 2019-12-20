@@ -25,7 +25,6 @@ import javax.swing.WindowConstants;
 
 import hash.*;
 import hash.implementations.*;
-import hash.implementations.slicehash.*;
 import image.*;
 import image.implementations.*;
 import pipeline.hasher.ImageHasher;
@@ -108,49 +107,6 @@ public class BenchmarkRunner {
 		operator.close();
 		System.out.println("closed");
 
-		/*
-		 * int[][] testarr = ImageUtils.array1dToArray2d(new int[] {1, 2, 3, 4, 5, 6},
-		 * 3, 2); for (int i = 0; i < testarr.length; i++) {
-		 * System.out.println(Arrays.toString(testarr[i])); }
-		 * 
-		 * testarr = ImageUtils.transpose(testarr); for (int i = 0; i < testarr.length;
-		 * i++) { System.out.println(Arrays.toString(testarr[i])); }
-		 * 
-		 * testarr = ImageUtils.transpose(testarr); for (int i = 0; i < testarr.length;
-		 * i++) { System.out.println(Arrays.toString(testarr[i])); }
-		 * 
-		 * System.out.println(Arrays.toString(ImageUtils.array2dToArray1d(testarr, 2,
-		 * 3)));
-		 * 
-		 * RGBImage img = new RGBImage(img2); showImage(img.resizeBilinear(32,
-		 * 32).resizeNearest(512, 512), "Original"); GreyscaleImage grey =
-		 * img.resizeBilinear(32, 32).toGreyscale(); showImage(grey.resizeNearest(512,
-		 * 512), "Resized"); SliceHash sHash = new SliceHash(); sHash.hash(grey);
-		 */
-
-		/*
-		 * if (args.length == 0) { args = new String[] {
-		 * "C:\\Users\\PazderaAaron\\Downloads\\Attachment_Links.txt",
-		 * "C:\\Users\\PazderaAaron\\Downloads\\AttachmentHashes.txt" }; }
-		 * 
-		 * try { ImageHasher hasher = new ImageHasher(new File(args[0]), new
-		 * DifferenceHash(), new File(args[1])); hasher.awaitCompletion(); for (String s
-		 * : hasher.getFailedDownloadURLs()) { System.err.println(s); } } catch
-		 * (IOException | InterruptedException | ExecutionException e) {
-		 * e.printStackTrace(); }
-		 */
-
-		/*
-		 * ImageIO.write(new RGBImage(img1).toBufferedImage(), "png", new
-		 * File("lena.png")); ImageIO.write(new RGBImage(img1).resizeNearest(9,
-		 * 8).rescaleNearest(25, 25).toBufferedImage(), "png", new
-		 * File("lena 9x8.png")); ImageIO.write(new RGBImage(img1).resizeNearest(9,
-		 * 8).toGreyscale().rescaleNearest(25, 25).toBufferedImage(), "png", new
-		 * File("lena 9x8 greyscale.png"));
-		 * ImageIO.write(ImageUtils.imageRepresentation(new
-		 * DifferenceHash().hash(img1)).rescaleNearest(25, 25).toBufferedImage(), "png",
-		 * new File("lena dhash.png"));
-		 */
 	}
 
 	public static void showImage(SourcedImage img) {
