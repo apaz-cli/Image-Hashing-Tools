@@ -64,8 +64,6 @@ public class BenchmarkRunner {
 		}
 	}
 
-	private static int warmupIterations = 1000;
-
 	// ********//
 	// * MAIN *//
 	// ********//
@@ -139,94 +137,6 @@ public class BenchmarkRunner {
 		editorFrame.setVisible(true);
 	}
 
-	private static void averageBenchmark(int iterations) {
-		// Load Class
-		for (int i = 0; i < warmupIterations; i++) {
-			benchmark();
-		}
-
-		double totalTime = 0d;
-		for (int it = 0; it < iterations; it++) {
-			totalTime += benchmark();
-		}
-		System.out.println("Completed in " + totalTime / (double) iterations + "ms on average.");
-	}
-
-	private static long benchmark() {
-		long time1 = System.currentTimeMillis();
-
-		// Paste code to pipeline here.
-		IHashAlgorithm alg = new AverageHash();
-		boolean match = alg.matches(alg.hash(img1), alg.hash(img2), MatchMode.SLOPPY);
-
-		long time2 = System.currentTimeMillis();
-		return (time2 - time1);
-	}
-
-	private static void race(int iterations, String contestant1Name, String contestant2Name) {
-		// Load classes
-		raceWarmup();
-		System.out.println("Warmed up.");
-
-		// Time the first block
-		double totalTime = 0d;
-		for (int it = 0; it < iterations; it++) {
-			totalTime += timeContestant1();
-		}
-		double contestant1 = totalTime / (double) iterations;
-		System.out.println("Contestant 1 finished in " + contestant1 + "ms on average.");
-
-		// Time the second block
-		totalTime = 0d;
-		for (int it = 0; it < iterations; it++) {
-			totalTime += timeContestant2();
-		}
-		double contestant2 = totalTime / (double) iterations;
-		System.out.println("Contestant 2 finished in " + contestant2 + "ms on average.");
-
-		// Compare
-		DecimalFormat df = new DecimalFormat("#.00");
-		if (contestant1 > contestant2) {
-			System.out.println(contestant1Name + " executed " + df.format(contestant1 - contestant2)
-					+ "ms faster on average. (" + df.format(contestant1 / contestant2) + "x faster)");
-			return;
-		}
-		System.out.println(contestant2Name + " executed " + df.format(contestant2 - contestant1)
-				+ "ms faster on average. (" + df.format(contestant2 / contestant1) + "x faster)");
-		return;
-	}
-
-	private static void raceWarmup() {
-		for (int i = 0; i < warmupIterations; i++) {
-			timeContestant1();
-			timeContestant2();
-		}
-	}
-
-	private static long timeContestant1() {
-
-		long time1 = System.currentTimeMillis();
-		// Paste code to pipeline here.
-
-		RGBImage rgb = new RGBImage(img1);
-		GreyscaleImage gsi = rgb.toGreyscale();
-		gsi = gsi.resizeBilinear(1000, 1000);
-
-		long time2 = System.currentTimeMillis();
-		return (time2 - time1);
-	}
-
-	private static long timeContestant2() {
-
-		long time1 = System.currentTimeMillis();
-		// Paste code to pipeline here.
-
-		RGBImage rgb = new RGBImage(img1);
-		rgb = rgb.resizeBilinear(1000, 1000);
-		GreyscaleImage gsi = rgb.toGreyscale();
-
-		long time2 = System.currentTimeMillis();
-		return (time2 - time1);
-	}
+	
 
 }
