@@ -45,18 +45,17 @@ public class BenchmarkRunner {
 	private static BufferedImage img1 = null;
 	private static BufferedImage img2 = null;
 	private static String image1URL = "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png";
-	private static String image2URL = "https://images3.alphacoders.com/836/83635.jpg"; // "https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png";//"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium";
-
+	private static String image2URL = "https://images3.alphacoders.com/836/83635.jpg";
+	// serafuku waves
+	// "https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png";
+	// Astolfo "https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium";
 	static {
 		try {
 			img1 = ImageUtils.openImage(new URL(image1URL));
-			System.out.println("Image 1 width: " + img1.getWidth());
-			System.out.println("Image 1 height: " + img1.getHeight());
+			System.out.println("Image 1 w/h: " + img1.getWidth() + "/" + img1.getHeight());
 
 			img2 = ImageUtils.openImage(new URL(image2URL));
-			System.out.println("Image 2 width: " + img2.getWidth());
-			System.out.println("Image 2 height: " + img2.getHeight());
-
+			System.out.println("Image 2 w/h: " + img2.getWidth() + "/" + img2.getHeight());
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -92,7 +91,8 @@ public class BenchmarkRunner {
 			ImageHash h1 = dHash.hash(lastImage);
 			ImageHash h2 = dHash.hash(img);
 			float diff = h1.percentHammingDifference(h2);
-			// System.out.println(diff + (diff < .20 ? "\nMATCH:\n" + h1.getSource() + "\n" + h2.getSource() : ""));
+			// System.out.println(diff + (diff < .20 ? "\nMATCH:\n" + h1.getSource() + "\n"
+			// + h2.getSource() : ""));
 			lastImage = img;
 			return img;
 		};
@@ -106,37 +106,5 @@ public class BenchmarkRunner {
 		System.out.println("closed");
 
 	}
-
-	public static void showImage(SourcedImage img) {
-		showImage(img.unwrap());
-	}
-
-	public static void showImage(IImage<?> img) {
-		showImage(img.toBufferedImage(), "");
-	}
-
-	public static void showImage(IImage<?> img, String name) {
-		showImage(img.toBufferedImage(), name);
-	}
-
-	public static void showImage(BufferedImage img) {
-		showImage(img, "");
-	}
-
-	public static void showImage(BufferedImage img, String name) {
-		JFrame editorFrame = new JFrame(name);
-		editorFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-		ImageIcon imageIcon = new ImageIcon(img);
-		JLabel jLabel = new JLabel();
-		jLabel.setIcon(imageIcon);
-		editorFrame.getContentPane().add(jLabel, BorderLayout.CENTER);
-
-		editorFrame.pack();
-		editorFrame.setLocationRelativeTo(null);
-		editorFrame.setVisible(true);
-	}
-
-	
 
 }
