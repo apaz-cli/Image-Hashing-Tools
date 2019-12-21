@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -60,8 +61,22 @@ public class ImageUtils {
 		return ImageIO.read(s);
 	}
 
+	public static BufferedImage openImage(File imgFile) throws IOException {
+		if (!imgFile.isFile()) {
+			throw new IllegalArgumentException("imgFile is not a file.");
+		}
+		if (!imgFile.canRead()) {
+			throw new IllegalArgumentException("Insufficient permission to read file.");
+		}
+		return ImageIO.read(imgFile);
+	}
+
 	public static SourcedImage openImageSourced(URL imgURL) throws IOException {
 		return new SourcedImage(openImage(imgURL), imgURL);
+	}
+
+	public static SourcedImage openImageSourced(File imgFile) throws IOException {
+		return new SourcedImage(openImage(imgFile), imgFile);
 	}
 
 	public static void showImage(SourcedImage img) {

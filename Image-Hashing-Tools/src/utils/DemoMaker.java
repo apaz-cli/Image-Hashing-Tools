@@ -38,20 +38,16 @@ public class DemoMaker {
 		IHashAlgorithm dhash = new DifferenceHash();
 
 		RGBImage rgb = new RGBImage(Lenna);
-		// BenchmarkRunner.showImage(rgb);
 
 		RGBImage nineByEight = rgb.resizeBilinear(9, 8);
 		nineByEight = nineByEight.rescaleNearest(64, 64);
-		// BenchmarkRunner.showImage(nineByEight);
 
 		GreyscaleImage greyNineByEight = nineByEight.toGreyscale();
 		greyNineByEight = greyNineByEight.rescaleNearest(64, 64);
-		// BenchmarkRunner.showImage(greyNineByEight);
 
 		ImageHash LennaHash = dhash.hash(Lenna);
 		IImage<?> rep = ImageUtils.imageRepresentation(LennaHash);
 		rep = rep.rescaleNearest(64, 64);
-		// BenchmarkRunner.showImage(rep);
 
 		File destFolder = new File(folderPath);
 		destFolder.mkdirs();
