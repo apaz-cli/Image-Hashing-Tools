@@ -136,6 +136,7 @@ public class ImageUtils {
 		return new GreyscaleImage(pixels, rounded, rounded);
 	}
 
+	// Returns an image packed with noise 0-255
 	public static GreyscaleImage noise(int width, int height) {
 		Random r = new Random();
 		byte[] noise = new byte[width * height];
