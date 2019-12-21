@@ -49,7 +49,6 @@ public class CompareDistances implements SourcedImageOperation {
 		}
 	}
 
-	// May run out of memory for large sets.
 	public List<Pair<String, Float>> getHistoryPercentDifferences() {
 		List<Pair<String, Float>> percentList = new ArrayList<>();
 
@@ -62,5 +61,11 @@ public class CompareDistances implements SourcedImageOperation {
 		}
 
 		return percentList;
+	}
+
+	public void clearHistory() {
+		synchronized (this.history) {
+			this.history = new ArrayList<>();
+		}
 	}
 }
