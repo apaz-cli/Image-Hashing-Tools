@@ -68,12 +68,13 @@ public class ImageOperator implements ImageSource {
 	}
 
 	/**
-	 * Invokes the functions provided on all images in this source does not return a
-	 * list. This is a terminal operation. It simply executes the operations on all
-	 * the images in the ImageSource, or until close() is called.
+	 * Invokes the operations provided on all images in this source does not return
+	 * a list. This is a terminal operation. It simply executes the operations on
+	 * all the images in the ImageSource, or until close() is called.
 	 */
 	public void executeAll() {
-		// Does not need to be synchronized, because nextImage() is synchronized.
+		// Does not need to be synchronized on this to deal with closing, because calls
+		// to getting images and applying operations are already synchronized.
 		@SuppressWarnings("unused")
 		SourcedImage img;
 		while ((img = this.nextImage()) != null) {
