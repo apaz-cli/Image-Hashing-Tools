@@ -1,3 +1,3 @@
 package pipeline.sources.ops;
 
-public interface ImageOperation {}
+public abstract interface ImageOperation {}

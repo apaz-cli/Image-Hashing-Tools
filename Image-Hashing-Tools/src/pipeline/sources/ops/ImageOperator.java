@@ -5,76 +5,33 @@ import java.util.Objects;
 import image.IImage;
 import pipeline.sources.ImageSource;
 import pipeline.sources.SourcedImage;
+import pipeline.sources.TerminalImage;
 
 public class ImageOperator implements ImageSource {
 
 	ImageSource source;
-	boolean iiFirst = true;
-	IImageOperation[] iimageOperations;
-	SourcedImageOperation[] sourcedImageOperations;
+	private ImageOperation[] imageOperations;
 
-	public ImageOperator(ImageSource source, IImageOperation operation) {
-		Objects.requireNonNull(source);
-		Objects.requireNonNull(operation);
-		this.source = source;
-		this.iimageOperations = new IImageOperation[] { operation };
+	public ImageOperator(ImageSource source, ImageOperation operation) {
+		this(source, new ImageOperation[] { operation });
 	}
 
-	public ImageOperator(ImageSource source, SourcedImageOperation operation) {
-		Objects.requireNonNull(source);
-		Objects.requireNonNull(operation);
-		this.source = source;
-		this.sourcedImageOperations = new SourcedImageOperation[] { operation };
-	}
-
-	public ImageOperator(ImageSource source, IImageOperation... operations) {
+	public ImageOperator(ImageSource source, ImageOperation... operations) {
 		Objects.requireNonNull(source);
 		Objects.requireNonNull(operations);
-		for (IImageOperation op : operations) {
+		for (ImageOperation op : operations) {
 			Objects.requireNonNull(op);
 		}
 
 		this.source = source;
-		this.iimageOperations = operations;
-	}
-
-	public ImageOperator(ImageSource source, SourcedImageOperation... operations) {
-		Objects.requireNonNull(source);
-		Objects.requireNonNull(operations);
-		for (SourcedImageOperation op : operations) {
-			Objects.requireNonNull(op);
-		}
-		this.source = source;
-		this.iimageOperations = null;
-		this.sourcedImageOperations = operations;
-	}
-
-	public ImageOperator(ImageSource source, IImageOperation[] iiOperations, SourcedImageOperation... siOperations) {
-		Objects.requireNonNull(source);
-		Objects.requireNonNull(iiOperations);
-		Objects.requireNonNull(siOperations);
-		for (IImageOperation op : iiOperations) {
-			Objects.requireNonNull(op);
-		}
-		for (SourcedImageOperation op : siOperations) {
-			Objects.requireNonNull(op);
-		}
-
-		this.source = source;
-		this.iimageOperations = iiOperations;
-		this.sourcedImageOperations = siOperations;
-	}
-
-	public ImageOperator(ImageSource source, SourcedImageOperation[] siOperations, IImageOperation... iiOperations) {
-		this(source, iiOperations, siOperations);
-		iiFirst = false;
+		this.imageOperations = operations;
 	}
 
 	@Override
 	public SourcedImage nextImage() {
+
 		// Get image from backing source
 		SourcedImage img = null;
-
 		synchronized (this) {
 			if (this.source == null) {
 				return null;
@@ -82,60 +39,41 @@ public class ImageOperator implements ImageSource {
 			img = source.nextImage();
 		}
 
-		if (img == null) {
+		if (img == null || img instanceof TerminalImage) {
 			return null;
 		}
 
+		return applyOperations(img);
+	}
+
+	public SourcedImage applyOperations(SourcedImage img) {
 		synchronized (this) {
-			// Apply operations in specified order
-			if (iiFirst) {
-				IImage<?> iimg = applyIIOperations(img.unwrap());
-				img = applySourcedOperations(new SourcedImage(iimg, img.getSource(), img.isURL()));
-			} else {
-				img = applySourcedOperations(img);
-				IImage<?> iimg = applyIIOperations(img.unwrap());
-				img = new SourcedImage(iimg, img.getSource(), img.isURL());
+
+			if (this.imageOperations == null) {
+				return null;
+			}
+
+			synchronized (this.imageOperations) {
+				for (ImageOperation op : this.imageOperations) {
+					if (op instanceof IImageOperation) {
+						IImage<?> operated = ((IImageOperation) op).operate(img.unwrap());
+						img = new SourcedImage(operated, img.getSource(), img.isURL());
+					} else if (op instanceof SourcedImageOperation) {
+						img = ((SourcedImageOperation) op).operate(img);
+					}
+				}
 			}
 		}
 		return img;
 	}
 
-	private SourcedImage applySourcedOperations(SourcedImage img) {
-		if (sourcedImageOperations == null) {
-			return img;
-		}
-
-		if (img == null) {
-			return null;
-		}
-
-		for (int i = 0; i < sourcedImageOperations.length; i++) {
-			img = sourcedImageOperations[i].operate(img);
-		}
-		return img;
-
-	}
-
-	private IImage<?> applyIIOperations(IImage<?> img) {
-		if (iimageOperations == null) {
-			return img;
-		}
-
-		if (img == null) {
-			return null;
-		}
-
-		for (int i = 0; i < iimageOperations.length; i++) {
-			img = iimageOperations[i].operate(img);
-		}
-		return img;
-	}
-
 	/**
-	 * Invokes the functions provided on all images in this source Does not return a
-	 * list.
+	 * Invokes the functions provided on all images in this source does not return a
+	 * list. This is a terminal operation. It simply executes the operations on all
+	 * the images in the ImageSource, or until close() is called.
 	 */
 	public void executeAll() {
+		// Does not need to be synchronized, because nextImage() is synchronized.
 		@SuppressWarnings("unused")
 		SourcedImage img;
 		while ((img = this.nextImage()) != null) {
@@ -146,8 +84,9 @@ public class ImageOperator implements ImageSource {
 	public synchronized void close() {
 		synchronized (this) {
 			this.source = null;
-			this.iimageOperations = null;
-			this.sourcedImageOperations = null;
+			synchronized (imageOperations) {
+				this.imageOperations = null;
+			}
 		}
 	}
 
