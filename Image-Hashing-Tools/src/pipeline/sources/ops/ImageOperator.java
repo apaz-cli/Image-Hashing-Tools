@@ -47,22 +47,22 @@ public class ImageOperator implements ImageSource {
 	}
 
 	public SourcedImage applyOperations(SourcedImage img) {
+		// Only one instance of this method may run at a time, it can't be threaded.
 		synchronized (this) {
 
 			if (this.imageOperations == null) {
 				return null;
 			}
 
-			synchronized (this.imageOperations) {
-				for (ImageOperation op : this.imageOperations) {
-					if (op instanceof IImageOperation) {
-						IImage<?> operated = ((IImageOperation) op).operate(img.unwrap());
-						img = new SourcedImage(operated, img.getSource(), img.isURL());
-					} else if (op instanceof SourcedImageOperation) {
-						img = ((SourcedImageOperation) op).operate(img);
-					}
+			for (ImageOperation op : this.imageOperations) {
+				if (op instanceof IImageOperation) {
+					IImage<?> operated = ((IImageOperation) op).operate(img.unwrap());
+					img = new SourcedImage(operated, img.getSource(), img.isURL());
+				} else if (op instanceof SourcedImageOperation) {
+					img = ((SourcedImageOperation) op).operate(img);
 				}
 			}
+
 		}
 		return img;
 	}
@@ -85,9 +85,7 @@ public class ImageOperator implements ImageSource {
 	public synchronized void close() {
 		synchronized (this) {
 			this.source = null;
-			synchronized (imageOperations) {
-				this.imageOperations = null;
-			}
+			this.imageOperations = null;
 		}
 	}
 
