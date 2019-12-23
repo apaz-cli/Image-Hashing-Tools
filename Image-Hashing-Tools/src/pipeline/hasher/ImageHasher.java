@@ -2,49 +2,50 @@
 package pipeline.hasher;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.util.Collection;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import hash.IHashAlgorithm;
+import image.IImage;
 import pipeline.sources.ImageSource;
+import pipeline.sources.SourcedImage;
 import pipeline.sources.impl.collection.ImageCollection;
 import pipeline.sources.impl.loader.ImageLoader;
 
 public class ImageHasher {
 
-	// This is the pool for hashing, different from the one for downloading.
-	private ExecutorService pool = Executors.newWorkStealingPool(3);
-
 	private ImageSource source;
 	private IHashAlgorithm algorithm;
-	private Object output;
+	private HasherOutput outputLambda;
 
-	// -1: none
-	// 0: PrintStream (includes System.out, System.err)
-	// 1: File
-	// 2: Collection<ImageHash>
-	// 3: PrintWriter
-	private int outputType = -1;
+	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, HasherOutput outputLambda)
+			throws IllegalArgumentException, IOException {
+		this((Object) source, algorithm, outputLambda);
+	}
 
-	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, Object output) {
+	public ImageHasher(Object input, IHashAlgorithm algorithm, HasherOutput outputLambda)
+			throws IllegalArgumentException, IOException {
+		this.source = createSource(input);
+		this.algorithm = algorithm;
+		this.outputLambda = outputLambda == null ? (hash) -> {
+			System.out.println(hash);
+		} : outputLambda;
+	}
+
+	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, PrintStream output)
+			throws IllegalArgumentException, IOException {
 		this((Object) source, algorithm, output);
 	}
 
-	/**
-	 * Inputs: File (If folder, construct image source. If file, construct reader.
-	 * If DNE, throw exception.) Collection of BufferedImage, SourcedImage, or
-	 * IImage<?>, or just the one image ImageSource URL
-	 * 
-	 * Outputs: File or Collection of ImageHash or String PrintWriter or PrintStream
-	 * Appendable?
-	 */
-	public ImageHasher(Object input, IHashAlgorithm algorithm, Object output) throws IllegalArgumentException {
+	public ImageHasher(Object input, IHashAlgorithm algorithm, PrintStream output)
+			throws IllegalArgumentException, IOException {
 		this.source = createSource(input);
 		this.algorithm = algorithm;
-		this.output = output;
-		this.setOutputType();
+		this.outputLambda = output == null ? (hash) -> {
+			System.out.println(hash);
+		} : (hash) -> {
+			output.println(hash);
+		};
 	}
 
 	private ImageSource createSource(Object input) {
@@ -68,51 +69,26 @@ public class ImageHasher {
 		return src;
 	}
 
-	private void setOutputType() {
-		if (this.output instanceof PrintStream) {
-			this.outputType = 0;
-		} else if (this.output instanceof File) {
-			this.outputType = 1;
-		} else if (this.output instanceof Collection<?>) {
-			this.outputType = 2;
-		} else if (this.output instanceof PrintWriter) {
-			this.outputType = 3;
-		} else {
-			throw new UnsupportedOperationException(
-					"ImageHasher does not know how to use output: " + this.output.toString());
-		}
-	}
-
-	private void outputPrintStream() {
-
-	}
-
-	private void outputFile() {
-
-	}
-
-	private void outputCollection() {
-
-	}
-
-	private void outputPrintWriter() {
-		
+	public void hashUnsourced() {
+		outputLambda.output(algorithm.hash(source.nextIImage()));
 	}
 
 	public void hash() {
-		
-	}
-
-	public void hashSourced() {
-
+		outputLambda.output(algorithm.hash(source.nextImage()));
 	}
 
 	public void hashAll() {
-
+		SourcedImage img = null;
+		for (; (img = source.nextImage()) != null;) {
+			outputLambda.output(algorithm.hash(img));
+		}
 	}
 
-	public void hashAllSourced() {
-
+	public void hashAllUnsourced() {
+		IImage<?> img = null;
+		for (; (img = source.nextIImage()) != null;) {
+			outputLambda.output(algorithm.hash(img));
+		}
 	}
 
 }
