@@ -30,7 +30,6 @@ import image.implementations.*;
 import pipeline.hasher.ImageHasher;
 import pipeline.sources.*;
 import pipeline.sources.impl.*;
-import pipeline.sources.impl.buffer.ImageBuffer;
 import pipeline.sources.impl.downloader.URLCollectionDownloader;
 import pipeline.sources.impl.loader.ImageLoader;
 import pipeline.sources.ops.IImageOperation;
