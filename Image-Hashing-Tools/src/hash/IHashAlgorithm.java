@@ -73,11 +73,11 @@ public interface IHashAlgorithm {
 	}
 
 	default ImageHash hash(File imgFile) throws IOException {
-		return this.hash(ImageUtils.openImage(imgFile));
+		return this.hash(ImageUtils.openImageSourced(imgFile));
 	}
 
 	default ImageHash hash(URL imgURL) throws IOException {
-		return this.hash(ImageUtils.openImage(imgURL));
+		return this.hash(ImageUtils.openImageSourced(imgURL));
 	}
 
 }
