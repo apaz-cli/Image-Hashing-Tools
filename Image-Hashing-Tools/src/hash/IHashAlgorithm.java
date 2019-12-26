@@ -5,8 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import javax.imageio.ImageIO;
-
 import image.IImage;
 import pipeline.sources.SourcedImage;
 import utils.ImageUtils;
@@ -15,6 +13,8 @@ public interface IHashAlgorithm {
 
 	// Used for writing results of hash to file.
 	abstract String getHashName();
+
+	abstract int getHashLength();
 
 	abstract boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode);
 

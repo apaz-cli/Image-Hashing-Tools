@@ -11,9 +11,17 @@ import image.implementations.GreyscaleImage;
 
 public class DifferenceHash implements IHashAlgorithm {
 
+	public DifferenceHash() {
+	}
+
 	@Override
 	public String getHashName() {
 		return "dHash";
+	}
+
+	@Override
+	public int getHashLength() {
+		return 64;
 	}
 
 	@Override
@@ -33,7 +41,7 @@ public class DifferenceHash implements IHashAlgorithm {
 		} else if (mode == MatchMode.STRICT) {
 			return hash1.hammingDistance(hash2) < 2;
 		}
-		
+
 		// MatchMode.EXACT
 		return hash1.hammingDistance(hash2) == 0;
 	}

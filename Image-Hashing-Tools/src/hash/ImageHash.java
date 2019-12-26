@@ -10,66 +10,66 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 	private final long[] bits;
 	private final String type; // name null is not legal. Name also cannot contain certain characters. (,|\")
-	private final int bitLength; // Will still work if not a multiple of 64. Just don't mess with those bits.
+	private final int hashLength; // Will still work if not a multiple of 64. Just don't mess with those bits.
 	private String source = null; // null appends as "null" with StringBuilder.
 
-	final protected static char[] encoding = "0123456789ABCDEF".toCharArray();// Convenience for toString()
+	final protected static char[] intToHexChar = "0123456789ABCDEF".toCharArray();// Convenience for toString()
 
-	public ImageHash(IHashAlgorithm creator, BitSet hash, int bitLength) throws IllegalArgumentException {
+	public ImageHash(IHashAlgorithm creator, BitSet hash) throws IllegalArgumentException {
 		this.type = creator.getHashName();
 		this.bits = hash.toLongArray();
-		this.bitLength = bitLength;
+		this.hashLength = creator.getHashLength();
 	}
 
-	public ImageHash(IHashAlgorithm creator, BitSet hash, int bitLength, String source)
+	public ImageHash(IHashAlgorithm creator, BitSet hash, String source)
 			throws IllegalArgumentException {
 		this.type = creator.getHashName();
 		this.bits = hash.toLongArray();
-		this.bitLength = bitLength;
+		this.hashLength = creator.getHashLength();
 		this.source = source;
 	}
 
-	public ImageHash(IHashAlgorithm creator, long[] hash, int bitLength) throws IllegalArgumentException {
+	public ImageHash(IHashAlgorithm creator, long[] hash) throws IllegalArgumentException {
 		this.type = creator.getHashName();
 		this.bits = Arrays.copyOf(hash, hash.length);
-		this.bitLength = bitLength;
+		this.hashLength = creator.getHashLength();
 	}
 
-	public ImageHash(IHashAlgorithm creator, long[] hash, int bitLength, String source)
+	public ImageHash(IHashAlgorithm creator, long[] hash, String source)
 			throws IllegalArgumentException {
 		this.type = creator.getHashName();
 		this.bits = Arrays.copyOf(hash, hash.length);
-		this.bitLength = bitLength;
+		this.hashLength = creator.getHashLength();
 		this.source = source;
 	}
 
-	public ImageHash(String hashName, BitSet hash, int bitLength) throws IllegalArgumentException {
+	public ImageHash(String hashName, BitSet hash, int hashLength) throws IllegalArgumentException {
 		checkName(hashName);
 		this.type = hashName;
 		this.bits = hash.toLongArray();
-		this.bitLength = bitLength;
+		this.hashLength = hashLength;
 	}
 
-	public ImageHash(String hashName, BitSet hash, int bitLength, String source) throws IllegalArgumentException {
+	public ImageHash(String hashName, BitSet hash, int hashLength, String source) throws IllegalArgumentException {
 		checkName(hashName);
 		this.type = hashName;
 		this.bits = hash.toLongArray();
-		this.bitLength = bitLength;
+		this.hashLength = hashLength;
 		this.source = source;
 	}
 
-	public ImageHash(String hashName, long[] hash, int bitLength) throws IllegalArgumentException {
+	public ImageHash(String hashName, long[] hash, int hashLength) throws IllegalArgumentException {
 		checkName(hashName);
 		this.type = hashName;
 		this.bits = Arrays.copyOf(hash, hash.length);
-		this.bitLength = bitLength;
+		this.hashLength = hashLength;
 	}
 
-	public ImageHash(String hashName, long[] hash, int bitLength, String source) throws IllegalArgumentException {
+	public ImageHash(String hashName, long[] hash, int hashLength, String source) throws IllegalArgumentException {
 		checkName(hashName);
 		this.type = hashName;
 		this.bits = Arrays.copyOf(hash, hash.length);
-		this.bitLength = bitLength;
+		this.hashLength = hashLength;
 		this.source = source;
 	}
 
@@ -108,7 +108,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 	}
 
 	public int getLength() {
-		return this.bitLength;
+		return this.hashLength;
 	}
 
 	public String getType() {
@@ -135,7 +135,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return distance;
 	}
 
-	// Sort alphabetically by algorithm, then by bit length least to greatest, then
+	// Sort alphabetically by algorithm, then by hash length least to greatest, then
 	// alphabetically by source, then by hash, least to greatest numerically.
 	@Override
 	public int compareTo(ImageHash hash) throws IllegalArgumentException {
@@ -148,8 +148,8 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			return -1;
 		}
 
-		if (this.bitLength != hash.getLength()) {
-			return this.bitLength > hash.getLength() ? 1 : -1;
+		if (this.hashLength != hash.getLength()) {
+			return this.hashLength > hash.getLength() ? 1 : -1;
 		}
 
 		if (this.source.compareTo(hash.getSource()) > 0) {
@@ -184,7 +184,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			long v = this.bits[i];
 			int idx = i * 16;
 			for (int j = 0; j < 16; j++) {
-				encodedChars[idx + j] = encoding[(int) ((v >>> ((15 - j) * 4)) & 0x0F)];
+				encodedChars[idx + j] = intToHexChar[(int) ((v >>> ((15 - j) * 4)) & 0x0F)];
 			}
 		}
 		return encodedChars;
@@ -196,7 +196,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		// @nof
 		return new StringBuilder(this.type)
 				.append(",")
-				.append(this.bitLength)
+				.append(this.hashLength)
 				.append(",")
 				.append(this.hexHash())
 				.append(",")
@@ -210,7 +210,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		// @nof
 		return new StringBuilder(this.type)
 				.append(",")
-				.append(this.bitLength)
+				.append(this.hashLength)
 				.append(",")
 				.append(this.hexHash())
 				.append(",")
@@ -318,7 +318,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		areDistanceComparable(hash);
 
 		int distance = this.hammingDistance(hash);
-		return distance / (float) this.bitLength;
+		return distance / (float) this.hashLength;
 	}
 
 	private void areDistanceComparable(ImageHash hash) throws IllegalArgumentException {
@@ -330,7 +330,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			}
 		}
 
-		if (this.bitLength != hash.getLength()) {
+		if (this.hashLength != hash.getLength()) {
 			throw new IllegalArgumentException(
 					"These two hashes are not of the same length, and therefore cannot be compared. Hash 1: "
 							+ this.getLength() + " Hash 2: " + hash.getLength());
