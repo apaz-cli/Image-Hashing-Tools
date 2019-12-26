@@ -52,7 +52,6 @@ public class BenchmarkRunner {
 				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium" };
 		images = new ArrayList<URL>(
 				Arrays.asList(urls).stream().map(BenchmarkRunner::urlConstructor).collect(Collectors.toList()));
-		System.out.println(images.size() + " links to test with.");
 	}
 
 	private static URL urlConstructor(String url) {
