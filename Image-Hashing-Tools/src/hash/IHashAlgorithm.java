@@ -68,16 +68,16 @@ public interface IHashAlgorithm {
 		return hash;
 	}
 
+	default ImageHash hash(SourcedImage img) {
+		return this.hash(img.unwrap(), img.getSource());
+	}
+
 	default ImageHash hash(File imgFile) throws IOException {
-		return this.hash(ImageIO.read(imgFile));
+		return this.hash(ImageUtils.openImage(imgFile));
 	}
 
 	default ImageHash hash(URL imgURL) throws IOException {
 		return this.hash(ImageUtils.openImage(imgURL));
-	}
-
-	default ImageHash hash(SourcedImage img) {
-		return this.hash(img.unwrap(), img.getSource());
 	}
 
 }
