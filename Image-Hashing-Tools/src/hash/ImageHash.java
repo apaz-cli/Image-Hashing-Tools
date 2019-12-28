@@ -1,5 +1,12 @@
 package hash;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -21,8 +28,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		this.hashLength = creator.getHashLength();
 	}
 
-	public ImageHash(IHashAlgorithm creator, BitSet hash, String source)
-			throws IllegalArgumentException {
+	public ImageHash(IHashAlgorithm creator, BitSet hash, String source) throws IllegalArgumentException {
 		this.type = creator.getHashName();
 		this.bits = hash.toLongArray();
 		this.hashLength = creator.getHashLength();
@@ -35,8 +41,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		this.hashLength = creator.getHashLength();
 	}
 
-	public ImageHash(IHashAlgorithm creator, long[] hash, String source)
-			throws IllegalArgumentException {
+	public ImageHash(IHashAlgorithm creator, long[] hash, String source) throws IllegalArgumentException {
 		this.type = creator.getHashName();
 		this.bits = Arrays.copyOf(hash, hash.length);
 		this.hashLength = creator.getHashLength();
@@ -83,6 +88,111 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 						"Hash name may not contain the characters comma, pipe, or double quote (,|\").");
 			}
 		}
+	}
+
+	public static ImageHash fromString(String imageHash) throws NumberFormatException, IllegalArgumentException {
+		// Can deserialize in two different forms
+		// 1. type,length,bits
+		// 2. type,length,bits,source
+
+		// Parse for arguments
+		String type = null, length = null, bits = null, source = null;
+		String[] split = imageHash.split(",");
+
+		if (split.length == 3) {
+			type = split[0];
+			length = split[1];
+			bits = split[2];
+		} else if (split.length == 4) {
+			type = split[0];
+			length = split[1];
+			bits = split[2];
+			source = split[3];
+		} else {
+			type = split[0];
+			length = split[1];
+			bits = split[2];
+			// Joining the trailing splits handles possible commas in URLs.
+			source = "";
+			for (int i = 3; i < split.length; i++) {
+				source += split[i];
+			}
+		}
+
+		if (type == null) {
+			throw new IllegalArgumentException("Not enough commas. Can deserialize in two different forms:\n"
+					+ "1. type,length,bits\n" + "2. type,length,bits,source");
+		}
+
+		long[] longs = new long[(Integer.valueOf(length) + 63) / 64];
+
+		int currentLong = 0, nibbleOffset = 0;
+		int c;
+		for (char hexChar : (bits = bits.toUpperCase()).toCharArray()) {
+			c = hexChar - 48;
+			if (c < 0x0) {
+				throw new IllegalArgumentException(
+						"Hash contains non-hex characters. Can deserialize in two different forms:\n"
+								+ "1. type,length,bits\n" + "2. type,length,bits,source");
+			} else if (c > 0x9) {
+				c -= 7;
+				if (c < 0xA || c > 0xF) {
+					throw new IllegalArgumentException(
+							"Hash contains non-hex characters. Can deserialize in two different forms:\n"
+									+ "1. type,length,bits\n" + "2. type,length,bits,source");
+				}
+			}
+
+			if (nibbleOffset < 16) {
+				nibbleOffset++;
+				longs[currentLong] |= (0xF & c);
+				if (nibbleOffset != 16) {
+					longs[currentLong] <<= 0x4;
+				}
+			} else {
+				currentLong++;
+				longs[currentLong] |= (0xF & c);
+				longs[currentLong] <<= 0x4;
+				nibbleOffset = 1;
+			}
+		}
+
+		// If in normal form, it begins with the name. If it was just the hex bits, then
+		// give it a name.
+		return new ImageHash(type, longs, Integer.parseInt(length), source == "null" ? null : source);
+	}
+
+	public static ImageHash fromFile(File imageHash) throws IOException {
+		DataInputStream dis = new DataInputStream(new FileInputStream(imageHash));
+		String hash = dis.readUTF();
+		dis.close();
+		return ImageHash.fromString(hash);
+	}
+
+	public void writeToFile(File imageHash) throws IOException, FileNotFoundException {
+		if (!imageHash.isFile()) {
+			throw new FileNotFoundException(
+					"File passed could be found, but is not a file, and is probably a directory.");
+		}
+		DataOutputStream dos = new DataOutputStream(new FileOutputStream(imageHash, false));
+		dos.writeUTF(this.toString());
+		dos.close();
+	}
+
+	public void writeToNewFile(File imageHash) throws IOException, FileNotFoundException {
+		if (!imageHash.exists()) {
+			File parent = new File(imageHash.getParent());
+			if (parent != null) {
+				if (!parent.exists()) {
+					if (!parent.mkdirs()) {
+						throw new IOException("Directories leading up to this file could not be created.");
+					}
+				}
+			}
+			// Cannot return false, and throws own exception if there's a problem.
+			imageHash.createNewFile();
+		}
+		this.writeToFile(imageHash);
 	}
 
 	public void setSource(String source) {
@@ -133,6 +243,29 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		}
 
 		return distance;
+	}
+
+	public float percentHammingDifference(ImageHash hash) throws IllegalArgumentException {
+		areDistanceComparable(hash);
+
+		int distance = this.hammingDistance(hash);
+		return distance / (float) this.hashLength;
+	}
+
+	private void areDistanceComparable(ImageHash hash) throws IllegalArgumentException {
+		// If one or both of them is of unknown origin, then ignore comparison of types.
+		if (!(this.type == "unknownHash" || hash.type == "unknownHash")) {
+			if (this.type != hash.getType()) {
+				throw new IllegalArgumentException(
+						"These two hashes are not the same type, and therefore cannot be compared.");
+			}
+		}
+
+		if (this.hashLength != hash.getLength()) {
+			throw new IllegalArgumentException(
+					"These two hashes are not of the same length, and therefore cannot be compared. Hash 1: "
+							+ this.getLength() + " Hash 2: " + hash.getLength());
+		}
 	}
 
 	// Sort alphabetically by algorithm, then by hash length least to greatest, then
@@ -219,85 +352,6 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		// @dof
 	}
 
-	public static ImageHash fromString(String imageHash) throws NumberFormatException, IllegalArgumentException {
-		// Can deserialize in two different forms
-		// 1. type,length,bits
-		// 2. type,length,bits,source
-
-		// Parse for arguments
-		String type = null, length = null, bits = null, source = null;
-		String[] split = imageHash.split(",");
-
-		if (split.length == 3) {
-			type = split[0];
-			length = split[1];
-			bits = split[2];
-		} else if (split.length == 4) {
-			type = split[0];
-			length = split[1];
-			bits = split[2];
-			source = split[3];
-		} else {
-			type = split[0];
-			length = split[1];
-			bits = split[2];
-			// Joining the trailing splits handles possible commas in URLs.
-			source = "";
-			for (int i = 3; i < split.length; i++) {
-				source += split[i];
-			}
-		}
-
-		if (type == null) {
-			throw new IllegalArgumentException("Not enough commas. Can deserialize in two different forms:\n"
-					+ "1. type,length,bits\n" + "2. type,length,bits,source");
-		}
-
-		if (!bits.matches("[0-9A-Fa-f]+")) {
-			throw new IllegalArgumentException(
-					"Hash contains non-hex characters. Can deserialize in two different forms:\n"
-							+ "1. type,length,bits\n" + "2. type,length,bits,source");
-		}
-
-		int arrLength = (Integer.valueOf(length) + 63) / 64;
-		long[] longs = new long[arrLength];
-
-		int currentLong = 0, nibbleOffset = 0;
-		int c;
-		for (char hexChar : (bits = bits.toUpperCase()).toCharArray()) {
-			c = hexChar - 48;
-			if (c < 0x0) {
-				throw new IllegalArgumentException(
-						"Hash contains non-hex characters. Can deserialize in two different forms:\n"
-								+ "1. type,length,bits\n" + "2. type,length,bits,source");
-			} else if (c > 0x9) {
-				c -= 7;
-				if (c < 0xA || c > 0xF) {
-					throw new IllegalArgumentException(
-							"Hash contains non-hex characters. Can deserialize in two different forms:\n"
-									+ "1. type,length,bits\n" + "2. type,length,bits,source");
-				}
-			}
-
-			if (nibbleOffset < 16) {
-				nibbleOffset++;
-				longs[currentLong] |= (0xF & c);
-				if (nibbleOffset != 16) {
-					longs[currentLong] <<= 0x4;
-				}
-			} else {
-				currentLong++;
-				longs[currentLong] |= (0xF & c);
-				longs[currentLong] <<= 0x4;
-				nibbleOffset = 1;
-			}
-		}
-
-		// If in normal form, it begins with the name. If it was just the hex bits, then
-		// give it a name.
-		return new ImageHash(type, longs, Integer.parseInt(length), source == "null" ? null : source);
-	}
-
 	// Deep equals
 	@Override
 	public boolean equals(Object h) {
@@ -314,26 +368,4 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return Arrays.hashCode(this.bits);
 	}
 
-	public float percentHammingDifference(ImageHash hash) throws IllegalArgumentException {
-		areDistanceComparable(hash);
-
-		int distance = this.hammingDistance(hash);
-		return distance / (float) this.hashLength;
-	}
-
-	private void areDistanceComparable(ImageHash hash) throws IllegalArgumentException {
-		// If one or both of them is of unknown origin, then ignore comparison of types.
-		if (!(this.type == "unknownHash" || hash.type == "unknownHash")) {
-			if (this.type != hash.getType()) {
-				throw new IllegalArgumentException(
-						"These two hashes are not the same type, and therefore cannot be compared.");
-			}
-		}
-
-		if (this.hashLength != hash.getLength()) {
-			throw new IllegalArgumentException(
-					"These two hashes are not of the same length, and therefore cannot be compared. Hash 1: "
-							+ this.getLength() + " Hash 2: " + hash.getLength());
-		}
-	}
 }

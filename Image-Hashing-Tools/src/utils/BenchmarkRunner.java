@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -49,7 +50,8 @@ public class BenchmarkRunner {
 		String[] urls = new String[] { "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png",
 				"https://images3.alphacoders.com/836/83635.jpg",
 				"https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png",
-				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium" };
+				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium",
+				"https://threejsfundamentals.org/threejs/resources/images/tree-02.png" };
 		images = new ArrayList<URL>(
 				Arrays.asList(urls).stream().map(BenchmarkRunner::urlConstructor).collect(Collectors.toList()));
 	}
@@ -64,55 +66,63 @@ public class BenchmarkRunner {
 		return u;
 	}
 
-	/*
-	 * (url) -> {
-	 * 
-	 * 
-	 * /* System.out.println("Image 1 w/h: " + lenna.getWidth() + "/" +
-	 * lenna.getHeight()); System.out.println("Image 2 w/h: " + saber.getWidth() +
-	 * "/" + saber.getHeight());
-	 */
-
 	// ********//
 	// * MAIN *//
 	// ********//
 
 	public static void main(String[] args) {
 
-		IHashAlgorithm dhash = new DifferenceHash();
-
-		ImageHash h = null;
-		try {
-			h = dhash.hash(images.get(0));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		System.out.println(h);
-
-		ImageHash j = ImageHash.fromString(h.toString());
-		System.out.println(j);
-		System.out.println(h.equals(j));
-
-		/*
-		 * URLCollectionDownloader s = null; try { s = new URLCollectionDownloader(new
-		 * File("C:\\Users\\PazderaAaron\\Downloads\\Attachment_Links.txt"));
-		 * System.out.println("Done Constructing"); } catch (IOException e) {
-		 * e.printStackTrace(); }
-		 * 
-		 * SourcedImageOperation compareDifferentImageDifference = (img) -> {
-		 * 
-		 * ImageHash h1 = dHash.hash(lastImage); ImageHash h2 = dHash.hash(img); float
-		 * diff = h1.percentHammingDifference(h2); // System.out.println(diff + (diff <
-		 * .20 ? "\nMATCH:\n" + h1.getSource() + "\n" // + h2.getSource() : ""));
-		 * lastImage = img; return img; };
-		 * 
-		 * ImageOperator operator = new ImageOperator(s,
-		 * compareDifferentImageDifference); System.out.println("Executing All");
-		 * operator.executeAll(); System.out.println("All Executed");
-		 * System.out.println(s.getFailedDownloads()); operator.close();
-		 * System.out.println("closed");
-		 */
 	}
+
+	// For testing ImageHash serialization
+	/*
+	 * IHashAlgorithm dhash = new DifferenceHash(); ImageHash h1 = null, h2 = null;
+	 * try { h1 = dhash.hash(images.get(0)); } catch (IOException e) {
+	 * e.printStackTrace(); }
+	 * 
+	 * System.out.println(h1.toString());
+	 * 
+	 * try { File serialized = new File(
+	 * "C:\\Users\\PazderaAaron\\Downloads\\Image Hashing Related\\Examples\\dhash\\serialized.hash"
+	 * ); h1.writeToNewFile(serialized); h2 = ImageHash.fromFile(serialized); }
+	 * catch (FileNotFoundException e) { e.printStackTrace(); } catch (IOException
+	 * e) { e.printStackTrace(); }
+	 * 
+	 * System.out.println("Hashes are equal: " + h1.equals(h2));
+	 */
+
+	// For testing pipeline
+	/*
+	 * URLCollectionDownloader s = null; try { s = new URLCollectionDownloader(new
+	 * File("C:\\Users\\PazderaAaron\\Downloads\\Attachment_Links.txt"));
+	 * System.out.println("Done Constructing"); } catch (IOException e) {
+	 * e.printStackTrace(); }
+	 * 
+	 * SourcedImageOperation compareDifferentImageDifference = (img) -> {
+	 * 
+	 * ImageHash h1 = dHash.hash(lastImage); ImageHash h2 = dHash.hash(img); float
+	 * diff = h1.percentHammingDifference(h2); // System.out.println(diff + (diff <
+	 * .20 ? "\nMATCH:\n" + h1.getSource() + "\n" // + h2.getSource() : ""));
+	 * lastImage = img; return img; };
+	 * 
+	 * ImageOperator operator = new ImageOperator(s,
+	 * compareDifferentImageDifference); System.out.println("Executing All");
+	 * operator.executeAll(); System.out.println("All Executed");
+	 * System.out.println(s.getFailedDownloads()); operator.close();
+	 * System.out.println("closed");
+	 */
+
+	// For testing ImageHash to/fromString
+	/*
+	 * IHashAlgorithm dhash = new DifferenceHash();
+	 * 
+	 * ImageHash h = null; try { h = dhash.hash(images.get(0)); } catch (Exception
+	 * e) { e.printStackTrace(); }
+	 * 
+	 * System.out.println(h);
+	 * 
+	 * ImageHash j = ImageHash.fromString(h.toString()); System.out.println(j);
+	 * System.out.println(h.equals(j));
+	 */
 
 }
