@@ -10,6 +10,12 @@ import image.IImage;
 public class GreyscaleHistogramHash implements IHashAlgorithm {
 
 	@Override
+	public int getHashLength() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
 	public String getHashName() {
 		return "GreyscaleHistogram";
 	}

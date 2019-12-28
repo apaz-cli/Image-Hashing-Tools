@@ -17,6 +17,11 @@ public class AverageHash implements IHashAlgorithm {
 	}
 
 	@Override
+	public int getHashLength() {
+		return 64;
+	}
+	
+	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
 
 		// This assertion assures that
