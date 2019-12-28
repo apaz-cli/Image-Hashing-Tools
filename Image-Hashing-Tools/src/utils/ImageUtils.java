@@ -1,8 +1,10 @@
 package utils;
 
+import java.awt.BorderLayout;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -11,16 +13,23 @@ import java.util.BitSet;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.WindowConstants;
 
 import hash.ImageHash;
+import image.IImage;
 import image.implementations.GreyscaleImage;
 import image.implementations.RGBAImage;
 import image.implementations.RGBImage;
+import pipeline.sources.SourcedImage;
 
 public class ImageUtils {
 
-	protected ImageUtils() {}
-	
+	protected ImageUtils() {
+	}
+
 	// Returns null if isn't an image, or it's a gif
 	public static BufferedImage openImage(URL imgURL) throws IOException {
 
@@ -50,6 +59,54 @@ public class ImageUtils {
 
 		InputStream s = connection.getInputStream();
 		return ImageIO.read(s);
+	}
+
+	public static BufferedImage openImage(File imgFile) throws IOException {
+		if (!imgFile.isFile()) {
+			throw new IllegalArgumentException("imgFile is not a file.");
+		}
+		if (!imgFile.canRead()) {
+			throw new IllegalArgumentException("Insufficient permission to read file.");
+		}
+		return ImageIO.read(imgFile);
+	}
+
+	public static SourcedImage openImageSourced(URL imgURL) throws IOException {
+		return new SourcedImage(openImage(imgURL), imgURL);
+	}
+
+	public static SourcedImage openImageSourced(File imgFile) throws IOException {
+		return new SourcedImage(openImage(imgFile), imgFile);
+	}
+
+	public static void showImage(SourcedImage img) {
+		showImage(img.unwrap());
+	}
+
+	public static void showImage(IImage<?> img) {
+		showImage(img.toBufferedImage(), "");
+	}
+
+	public static void showImage(IImage<?> img, String name) {
+		showImage(img.toBufferedImage(), name);
+	}
+
+	public static void showImage(BufferedImage img) {
+		showImage(img, "");
+	}
+
+	public static void showImage(BufferedImage img, String name) {
+		JFrame editorFrame = new JFrame(name);
+		editorFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+		ImageIcon imageIcon = new ImageIcon(img);
+		JLabel jLabel = new JLabel();
+		jLabel.setIcon(imageIcon);
+		editorFrame.getContentPane().add(jLabel, BorderLayout.CENTER);
+
+		editorFrame.pack();
+		editorFrame.setLocationRelativeTo(null);
+		editorFrame.setVisible(true);
 	}
 
 	public static GreyscaleImage imageRepresentation(ImageHash hash, int width, int height)
@@ -94,6 +151,7 @@ public class ImageUtils {
 		return new GreyscaleImage(pixels, rounded, rounded);
 	}
 
+	// Returns an image packed with noise 0-255
 	public static GreyscaleImage noise(int width, int height) {
 		Random r = new Random();
 		byte[] noise = new byte[width * height];
@@ -122,7 +180,7 @@ public class ImageUtils {
 		return gaussNoise;
 	}
 
-	public static BufferedImage resize(BufferedImage img, int width, int height) {
+	public static BufferedImage resizeBI(BufferedImage img, int width, int height) {
 		BufferedImage resized = new BufferedImage(width, height, img.getType());
 		Graphics2D g = resized.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -131,109 +189,4 @@ public class ImageUtils {
 		return resized;
 	}
 
-	public static int[][] array1dToArray2d(int[] arr, int x, int y) {
-		int[][] array2d = new int[y][x];
-
-		int index = 0;
-		for (int i = 0; i < array2d.length; i++) {
-			for (int j = 0; j < array2d[i].length; j++) {
-				array2d[i][j] = arr[index];
-				index++;
-			}
-		}
-
-		return array2d;
-	}
-	
-	public static byte[][] array1dToArray2d(byte[] arr, int x, int y) {
-		byte[][] array2d = new byte[y][x];
-
-		int index = 0;
-		for (int i = 0; i < array2d.length; i++) {
-			for (int j = 0; j < array2d[i].length; j++) {
-				array2d[i][j] = arr[index];
-				index++;
-			}
-		}
-
-		return array2d;
-	}
-
-	public static int[] array2dToArray1d(int[][] arr, int x, int y) {
-		// arr[x][y]
-		int[] array1d = new int[x * y];
-
-		for (int i = 0; i < x; i++) {
-			int[] currentArray = arr[i];
-			if (currentArray.length != y) {
-				throw new IllegalArgumentException("All subarrays of pixels must be of length equal to the width.");
-			}
-
-			for (int j = 0; j < y; j++) {
-				array1d[i * y + j] = currentArray[j];
-			}
-		}
-
-		return array1d;
-	}
-
-	
-
-	public static byte[] array2dToArray1d(byte[][] arr, int x, int y) {
-		// arr[x][y]
-		byte[] array1d = new byte[x * y];
-
-		for (int i = 0; i < x; i++) {
-			byte[] currentArray = arr[i];
-			if (currentArray.length != y) {
-				throw new IllegalArgumentException("All subarrays of pixels must be of length equal to the width.");
-			}
-
-			for (int j = 0; j < y; j++) {
-				array1d[i * y + j] = currentArray[j];
-			}
-		}
-
-		return array1d;
-	}
-	
-	public static byte[][] transpose(byte[][] matrix) {
-		int m = matrix.length;
-		int n = matrix[0].length;
-
-		byte[][] transposedMatrix = new byte[n][m];
-
-		for (int x = 0; x < n; x++) {
-			for (int y = 0; y < m; y++) {
-				transposedMatrix[x][y] = matrix[y][x];
-			}
-		}
-
-		return transposedMatrix;
-	}
-
-	public static int[][] transpose(int[][] matrix) {
-		int m = matrix.length;
-		int n = matrix[0].length;
-
-		int[][] transposedMatrix = new int[n][m];
-
-		for (int x = 0; x < n; x++) {
-			for (int y = 0; y < m; y++) {
-				transposedMatrix[x][y] = matrix[y][x];
-			}
-		}
-
-		return transposedMatrix;
-	}
-
-	// TODO actually implement transpose1d
-	public static byte[] transpose1dAs2d(byte[] arr, int oldx, int oldy) {
-		return array2dToArray1d(transpose(array1dToArray2d(arr, oldx, oldy)), oldy, oldx);
-	}
-	
-	public static int[] transpose1dAs2d(int[] arr, int oldx, int oldy) {
-		return array2dToArray1d(transpose(array1dToArray2d(arr, oldx, oldy)), oldy, oldx);
-	}
-	
 }

@@ -19,7 +19,7 @@ Add subimage insertion/extraction to IImage and implement each
 List a bunch of comparison tasks to do with ImageOperators
 
 Figure out how to track Type I - II error. Do it in tasks on ImageOperators?
-
+	
 Add RGBAImage constructor to HSIImage, CMYKImage, YCbCrImage
 
 

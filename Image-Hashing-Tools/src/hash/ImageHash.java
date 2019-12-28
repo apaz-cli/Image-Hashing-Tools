@@ -94,10 +94,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return 0;
 	}
 
-	// For easy serialization
-	// 1. length,bits
-	// 2. length,bits,source
-	// 3. type,length,bits,source
+	// type,length,bits,source
 	@Override
 	public String toString() {
 		// BitSet to String of 1-0s
@@ -117,8 +114,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return this.type + "," + this.bitLength + "," + hexStr + "," + (this.source != null ? this.source : "null");
 	}
 
-	// For easy serialization
-	// 3. type,length,bits,source
+	// Same as above, but overwrites source
 	public String toString(String source) throws IllegalArgumentException {
 
 		if (source != null) {
@@ -209,7 +205,8 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 	@Override
 	public boolean equals(Object h) {
 		if (h instanceof ImageHash) {
-			return this.bits.equals(((ImageHash) h).getBits());
+			ImageHash o = (ImageHash) h;
+			return this.bits.equals(o.getBits()) && this.type == o.type && this.bitLength == o.getLength();
 		}
 		return false;
 	}

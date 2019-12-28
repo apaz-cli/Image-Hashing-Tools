@@ -18,10 +18,6 @@ public interface IHashAlgorithm {
 
 	abstract boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode);
 
-	default boolean matches(ImageHash hash1, ImageHash hash2) {
-		return this.matches(hash1, hash2, MatchMode.NORMAL);
-	}
-
 	// Using IImage guarantees that nothing must be changed, even if more IImage
 	// implementations are added.
 	abstract ImageHash hash(IImage<?> img);
@@ -31,6 +27,34 @@ public interface IHashAlgorithm {
 	// example, RGBHistogramHash uses RGBImage as its preferred type, whereas
 	// AverageHash uses GreyscaleImage.
 	abstract ImageHash hash(BufferedImage img);
+
+	default boolean matches(ImageHash hash1, ImageHash hash2) {
+		return this.matches(hash1, hash2, MatchMode.NORMAL);
+	}
+
+	default boolean matches(IImage<?> img1, IImage<?> img2) {
+		return this.matches(this.hash(img1), this.hash(img2));
+	}
+
+	default boolean matches(IImage<?> img1, IImage<?> img2, MatchMode mode) {
+		return this.matches(this.hash(img1), this.hash(img2), mode);
+	}
+
+	default boolean matches(BufferedImage img1, BufferedImage img2) {
+		return this.matches(this.hash(img1), this.hash(img2));
+	}
+
+	default boolean matches(BufferedImage img1, BufferedImage img2, MatchMode mode) {
+		return this.matches(this.hash(img1), this.hash(img2), mode);
+	}
+
+	default boolean matches(SourcedImage img1, SourcedImage img2) {
+		return this.matches(this.hash(img1), this.hash(img2));
+	}
+
+	default boolean matches(SourcedImage img1, SourcedImage img2, MatchMode mode) {
+		return this.matches(this.hash(img1), this.hash(img2), mode);
+	}
 
 	default ImageHash hash(IImage<?> img, String source) {
 		ImageHash hash = this.hash(img);
@@ -44,15 +68,16 @@ public interface IHashAlgorithm {
 		return hash;
 	}
 
+	default ImageHash hash(SourcedImage img) {
+		return this.hash(img.unwrap(), img.getSource());
+	}
+
 	default ImageHash hash(File imgFile) throws IOException {
-		return this.hash(ImageIO.read(imgFile));
+		return this.hash(ImageUtils.openImage(imgFile));
 	}
 
 	default ImageHash hash(URL imgURL) throws IOException {
 		return this.hash(ImageUtils.openImage(imgURL));
 	}
 
-	default ImageHash hash(SourcedImage img) {
-		return this.hash(img.unwrap(), img.getSource());
-	}
 }

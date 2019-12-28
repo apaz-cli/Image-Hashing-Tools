@@ -12,12 +12,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
-
 import pipeline.sources.ImageSource;
 import pipeline.sources.SourcedImage;
 import pipeline.sources.TerminalImage;
@@ -31,7 +29,8 @@ public class URLCollectionDownloader implements ImageSource {
 
 	private List<URL> urls = new ArrayList<>();
 	private SynchronousQueue<SourcedImage> imageBuffer = new SynchronousQueue<>();
-	private Object bufferAccessFlag = new Object();
+
+	private CountDownLatch latch;
 
 	private List<String> failedDownloads = new ArrayList<>();
 
@@ -73,7 +72,9 @@ public class URLCollectionDownloader implements ImageSource {
 			throw new IllegalArgumentException("The collection of urls was empty.");
 		}
 
-		for (int i = 0; i < 6; i++) {
+		this.latch = new CountDownLatch(this.urls.size());
+
+		for (int i = 0; i < 25; i++) {
 			loadThread.execute(new DownloadTask(this));
 		}
 	}
@@ -105,6 +106,9 @@ public class URLCollectionDownloader implements ImageSource {
 		if (this.urls.isEmpty()) {
 			throw new IllegalArgumentException("No URLs could be constructed from the collection.");
 		}
+
+		this.latch = new CountDownLatch(this.urls.size());
+
 		for (int i = 0; i < 6; i++) {
 			loadThread.execute(new DownloadTask(this));
 		}
@@ -119,66 +123,43 @@ public class URLCollectionDownloader implements ImageSource {
 	}
 
 	void downloadImage() {
-		// Get file, handle if can't.
-		URL u;
-		synchronized (urls) {
-			if (!urls.isEmpty()) {
-				u = urls.remove(0);
-			} else {
-				// If it's null, we're done. We should inform the buffer.
+
+		URL url = null;
+		synchronized (this) {
+			synchronized (latch) {
+				synchronized (this.urls) {
+					if (!this.urls.isEmpty()) {
+						url = this.urls.get(0);
+						this.latch.countDown();
+					} else {
+						return;
+					}
+				}
+			}
+		}
+
+		BufferedImage f = null;
+		try {
+			f = ImageUtils.openImage(url);
+		} catch (IOException e) {
+
+		}
+
+		if (f == null) {
+			return;
+		}
+
+		synchronized (this) {
+			synchronized (latch) {
 				try {
-					// Since we've synchronized, this should be the last one in.
-					synchronized (this) {
-						new DownloaderShutdownThread(this).start();
-					}
-					synchronized (bufferAccessFlag) {
-						System.out.println("Adding to buffer: " + TERMINALIMAGE);
-						imageBuffer.put(TERMINALIMAGE);
-					}
+					this.imageBuffer.put(new SourcedImage(f, url));
 				} catch (InterruptedException e) {
 				}
-				return;
+				latch.notify();
 			}
 		}
 
-		// Beyond this point, we have a valid file.
-		// Get image by loading that file, handle if can't.
-		BufferedImage img = null;
-		try {
-			img = ImageUtils.openImage(u);
-			if (img == null) {
-				synchronized (failedDownloads) {
-					// Now that we've failed gracefully, we can try again.
-					this.failedDownloads.add(u.toString());
-					this.downloadImage();
-					return;
-				}
-			}
-		} catch (Exception e) {
-			// Now that we've failed gracefully, we can try again.
-			// TODO replace image error thingy
-			System.err.println(
-					"Lost image to Error: " + "Link" + " Reason: " + e.getClass().getName() + ": " + e.getMessage());
-			e.printStackTrace();
-			synchronized (failedDownloads) {
-				this.failedDownloads.add(u.toString());
-				this.downloadImage();
-				return;
-			}
-		}
-
-		// Now that we have a non-null image we can add it to the buffer and inform one
-		// waiting nextImage() method that it's ready.
-		try {
-			synchronized (bufferAccessFlag) {
-				if (imageBuffer != null) {
-					System.out.println("Adding to buffer: " + "Link");
-					imageBuffer.put(new SourcedImage(img, u));
-				}
-			}
-		} catch (InterruptedException e) {
-		}
-
+		return;
 	}
 
 	public List<String> getFailedDownloads() {
@@ -187,61 +168,16 @@ public class URLCollectionDownloader implements ImageSource {
 
 	@Override
 	public SourcedImage nextImage() {
-		synchronized (this) {
-			if (this.urls == null) {
-				return null;
-			}
-			try {
-				loadThread.execute(new DownloadTask(this));
-			} catch (RejectedExecutionException e) {
-				return null;
-			}
-
-		}
-
-		synchronized (this) {
-			SourcedImage img = null;
-			try {
-				if (this.imageBuffer == null) {
-					return null;
-				}
-				img = imageBuffer.take();
-			} catch (InterruptedException e) {
-			}
-			return img != TERMINALIMAGE ? img : null;
-		}
+		return null;
 	}
 
 	void shutdownPool() {
-		synchronized (this) {
-			synchronized (loadThread) {
-				if (!loadThread.isShutdown()) {
-					try {
-						loadThread.shutdown();
-						loadThread.awaitTermination(1, TimeUnit.MINUTES);
-					} catch (InterruptedException e) {
-					}
-				}
-			}
-		}
+
 	}
 
 	@Override
 	public void close() {
-		synchronized (this) {
-			synchronized (this) {
-				this.shutdownPool();
-			}
-			synchronized (urls) {
-				this.urls = null;
-			}
-			synchronized (bufferAccessFlag) {
-				this.imageBuffer = null;
-			}
-			synchronized (failedDownloads) {
-				this.failedDownloads = null;
-			}
-		}
+
 	}
 
 }
