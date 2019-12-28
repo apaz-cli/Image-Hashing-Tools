@@ -72,11 +72,13 @@ public class ImageUtils {
 	}
 
 	public static SourcedImage openImageSourced(URL imgURL) throws IOException {
-		return new SourcedImage(openImage(imgURL), imgURL);
+		BufferedImage img = openImage(imgURL);
+		return img == null ? null : new SourcedImage(img, imgURL);
 	}
 
 	public static SourcedImage openImageSourced(File imgFile) throws IOException {
-		return new SourcedImage(openImage(imgFile), imgFile);
+		BufferedImage img = openImage(imgFile);
+		return img == null ? null : new SourcedImage(img, imgFile);
 	}
 
 	public static void showImage(SourcedImage img) {
