@@ -43,15 +43,14 @@ import attack.implementations.*;
 @SuppressWarnings("unused")
 public class BenchmarkRunner {
 
-	private static List<URL> images = null;
+	public static List<URL> images = null;
 
 	static {
 		// Lenna, x, serafuku, Astolfo
 		String[] urls = new String[] { "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png",
 				"https://images3.alphacoders.com/836/83635.jpg",
 				"https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png",
-				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=medium",
-				"https://threejsfundamentals.org/threejs/resources/images/tree-02.png" };
+				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=large" };
 		images = new ArrayList<URL>(
 				Arrays.asList(urls).stream().map(BenchmarkRunner::urlConstructor).collect(Collectors.toList()));
 	}
@@ -71,6 +70,14 @@ public class BenchmarkRunner {
 	// ********//
 
 	public static void main(String[] args) {
+		RGBAImage transp = null;
+		try {
+			transp = new RGBAImage(images.get(2));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		System.out.println(transp.deepClone().equals(transp));
 
 	}
 

@@ -181,7 +181,8 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 	public void writeToNewFile(File imageHash) throws IOException, FileNotFoundException {
 		if (!imageHash.exists()) {
-			File parent = new File(imageHash.getParent());
+			String p = imageHash.getParent();
+			File parent = p == null ? null : new File(p);
 			if (parent != null) {
 				if (!parent.exists()) {
 					if (!parent.mkdirs()) {
