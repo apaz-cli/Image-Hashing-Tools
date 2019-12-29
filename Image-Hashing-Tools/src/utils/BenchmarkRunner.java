@@ -3,9 +3,16 @@ package utils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DecimalFormat;
@@ -29,12 +36,15 @@ import hash.*;
 import hash.implementations.*;
 import image.*;
 import image.implementations.*;
+import pipeline.hasher.HasherOutput;
 import pipeline.hasher.ImageHasher;
 import pipeline.sources.*;
 import pipeline.sources.impl.*;
 import pipeline.sources.impl.downloader.URLCollectionDownloader;
 import pipeline.sources.impl.loader.ImageLoader;
+import pipeline.sources.impl.safebooruscraper.SafebooruScraper;
 import pipeline.sources.ops.IImageOperation;
+import pipeline.sources.ops.ImageOperation;
 import pipeline.sources.ops.ImageOperator;
 import pipeline.sources.ops.SourcedImageOperation;
 import attack.IAttack;
@@ -50,7 +60,8 @@ public class BenchmarkRunner {
 		String[] urls = new String[] { "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png",
 				"https://images3.alphacoders.com/836/83635.jpg",
 				"https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png",
-				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=large" };
+				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=large",
+				"https://safebooru.org/images/2855/5b462269fa06bbb9e249698f3153140a110f44be.png" };
 		images = new ArrayList<URL>(
 				Arrays.asList(urls).stream().map(BenchmarkRunner::urlConstructor).collect(Collectors.toList()));
 	}
@@ -70,16 +81,17 @@ public class BenchmarkRunner {
 	// ********//
 
 	public static void main(String[] args) {
-		RGBAImage transp = null;
-		try {
-			transp = new RGBAImage(images.get(2));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		IHashAlgorithm dhash = new DifferenceHash();
+		/*
+		 * ImageOperator op = new ImageOperator(new SafebooruScraper(), 25,
+		 * (SourcedImageOperation) (img) -> { System.out.println(dhash.hash(img));
+		 * return img; }); op.invokeAll(); op.close();
+		 */
 
-		System.out.println(transp.deepClone().equals(transp));
-
+		new ImageHasher(new SafebooruScraper(), dhash, 5, System.out).hashAll();
 	}
+
+	// TODO write test for RGBAImage transparency
 
 	// For testing ImageHash serialization
 	/*
