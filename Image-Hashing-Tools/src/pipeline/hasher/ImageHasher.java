@@ -2,12 +2,8 @@
 package pipeline.hasher;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -102,8 +98,9 @@ public class ImageHasher {
 			if (!readable) {
 				throw new IllegalArgumentException("The source file must be a readable directory. Readable: " + readable
 						+ ". If the file is not readable, this could possibly be because it does not exist, "
-						+ "or may alternatively be due to insufficient permissions. "
-						+ "If you want to read only one file, use ImageUtils.openImage.");
+						+ "or may alternatively be due to insufficient permissions. \n"
+						+ "If you want to read only one file, first load it with ImageUtils.openImage(), "
+						+ "or use a SingleImageSource.");
 			}
 			src = new ImageLoader(s);
 		} else if (input instanceof Collection<?>) {

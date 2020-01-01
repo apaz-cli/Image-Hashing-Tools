@@ -1,4 +1,4 @@
-package pipeline.sources.ops;
+package pipeline.sources.operator;
 
 import java.util.Arrays;
 import java.util.Objects;

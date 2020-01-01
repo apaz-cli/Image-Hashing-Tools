@@ -53,6 +53,9 @@ public class DifferenceHash implements IHashAlgorithm {
 		img = img.resizeBilinear(9, 8);
 		byte[] thumbnail = img.toGreyscale().getPixels();
 
+		// Also worth noting is that resizing first is more efficient. You wouldn't
+		// think that it would work this way, but for some reason it does.
+
 		// Set each bit of the hash depending on value adjacent
 		BitSet bs = new BitSet(64);
 

@@ -43,10 +43,10 @@ import pipeline.sources.impl.*;
 import pipeline.sources.impl.downloader.URLCollectionDownloader;
 import pipeline.sources.impl.loader.ImageLoader;
 import pipeline.sources.impl.safebooruscraper.SafebooruScraper;
-import pipeline.sources.ops.IImageOperation;
-import pipeline.sources.ops.ImageOperation;
-import pipeline.sources.ops.ImageOperator;
-import pipeline.sources.ops.SourcedImageOperation;
+import pipeline.sources.operator.IImageOperation;
+import pipeline.sources.operator.ImageOperation;
+import pipeline.sources.operator.ImageOperator;
+import pipeline.sources.operator.SourcedImageOperation;
 import attack.IAttack;
 import attack.implementations.*;
 
@@ -81,14 +81,7 @@ public class BenchmarkRunner {
 	// ********//
 
 	public static void main(String[] args) {
-		IHashAlgorithm dhash = new DifferenceHash();
-		/*
-		 * ImageOperator op = new ImageOperator(new SafebooruScraper(), 25,
-		 * (SourcedImageOperation) (img) -> { System.out.println(dhash.hash(img));
-		 * return img; }); op.invokeAll(); op.close();
-		 */
-
-		new ImageHasher(new SafebooruScraper(), dhash, 5, System.out).hashAll();
+		new ImageHasher(new SafebooruScraper(), new DifferenceHash(), 5, System.out).hashAll();
 	}
 
 	// TODO write test for RGBAImage transparency
@@ -129,6 +122,14 @@ public class BenchmarkRunner {
 	 * operator.executeAll(); System.out.println("All Executed");
 	 * System.out.println(s.getFailedDownloads()); operator.close();
 	 * System.out.println("closed");
+	 */
+
+	// Also for testing Pipeline
+	/*
+	 * IHashAlgorithm dhash = new DifferenceHash(); ImageOperator op = new
+	 * ImageOperator(new SafebooruScraper(), 25, (SourcedImageOperation) (img) -> {
+	 * System.out.println(dhash.hash(img)); return img; }); op.invokeAll();
+	 * op.close();
 	 */
 
 	// For testing ImageHash to/fromString
