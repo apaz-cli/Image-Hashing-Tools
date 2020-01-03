@@ -1,7 +1,6 @@
 package hash.implementations;
 
 import java.awt.image.BufferedImage;
-import java.util.BitSet;
 
 import hash.IHashAlgorithm;
 import hash.ImageHash;
@@ -12,7 +11,16 @@ import image.implementations.GreyscaleImage;
 public class DifferenceHash implements IHashAlgorithm {
 
 	public DifferenceHash() {
+		this(8);
 	}
+
+	public DifferenceHash(int sideLength) {
+		this.sideLength = sideLength;
+		this.hashLength = sideLength * sideLength;
+	}
+
+	private int sideLength;
+	private int hashLength;
 
 	@Override
 	public String getHashName() {
@@ -21,7 +29,7 @@ public class DifferenceHash implements IHashAlgorithm {
 
 	@Override
 	public int getHashLength() {
-		return 64;
+		return this.hashLength;
 	}
 
 	@Override
@@ -40,75 +48,56 @@ public class DifferenceHash implements IHashAlgorithm {
 			return hash1.hammingDistance(hash2) < 5;
 		} else if (mode == MatchMode.STRICT) {
 			return hash1.hammingDistance(hash2) < 2;
+		} else if (mode == MatchMode.EXACT) {
+			return hash1.hammingDistance(hash2) == 0;
+		} else {
+			throw new IllegalArgumentException("Invalid MatchMode: " + mode);
 		}
-
-		// MatchMode.EXACT
-		return hash1.hammingDistance(hash2) == 0;
 	}
 
 	@Override
 	public ImageHash hash(IImage<?> img) {
 		// This size seems odd, but we're averaging the pixels next to each other
-		// horizontally, and end up with an 8x8 hash.
-		img = img.resizeBilinear(9, 8);
+		// horizontally, and end up with an sideLength x sideLength -length hash.
+		int rowLength = this.sideLength + 1;
+		img = img.resizeBilinear(rowLength, this.sideLength);
 		byte[] thumbnail = img.toGreyscale().getPixels();
 
-		// Also worth noting is that resizing first is more efficient. You wouldn't
-		// think that it would work this way, but for some reason it does.
+		int thumbnailPixelNum = rowLength * this.sideLength;
+
+		// Also worth noting is that resizing before greyscaling is more efficient. You
+		// wouldn't think that it would work this way, but for some reason it does.
+
+		int hashLongLength = (this.hashLength + 63) / 64;
+		long[] finishedHash = new long[hashLongLength];
+		int finishedIndex = -1, thumbnailAccumulator = 0;
+		int longPos = 0;
 
 		// Set each bit of the hash depending on value adjacent
-		BitSet bs = new BitSet(64);
+		for (; thumbnailAccumulator < thumbnailPixelNum; thumbnailAccumulator++) {
 
-		// For efficiency, hardcode the inner loop.
-		int fullAccumulator = 0, hashRowAccumulator = 0;
-		int pixel1, pixel2, pixel3, pixel4, pixel5, pixel6, pixel7, pixel8, pixel9;
-		for (; fullAccumulator < thumbnail.length;) {
-			// For each row,
-			pixel1 = thumbnail[fullAccumulator++] & 0xff;
-			pixel2 = thumbnail[fullAccumulator++] & 0xff;
-			pixel3 = thumbnail[fullAccumulator++] & 0xff;
-			pixel4 = thumbnail[fullAccumulator++] & 0xff;
-			pixel5 = thumbnail[fullAccumulator++] & 0xff;
-			pixel6 = thumbnail[fullAccumulator++] & 0xff;
-			pixel7 = thumbnail[fullAccumulator++] & 0xff;
-			pixel8 = thumbnail[fullAccumulator++] & 0xff;
-			pixel9 = thumbnail[fullAccumulator++] & 0xff;
+			if (thumbnailAccumulator % rowLength == this.sideLength) {
+				// If there's a beginning of a next row, skip this one.
+				continue;
+			}
 
-			if (pixel1 < pixel2) {
-				bs.set(hashRowAccumulator);
+			if (longPos % 64 == 0) {
+				// -1 will immediately be incremented to 0, and it will spill over into new
+				// longs when necessary.
+				finishedIndex++;
+				longPos = 0;
 			}
-			hashRowAccumulator++;
-			if (pixel2 < pixel3) {
-				bs.set(hashRowAccumulator);
-			}
-			hashRowAccumulator++;
-			if (pixel3 < pixel4) {
-				bs.set(hashRowAccumulator);
-			}
-			hashRowAccumulator++;
-			if (pixel4 < pixel5) {
-				bs.set(hashRowAccumulator);
-			}
-			hashRowAccumulator++;
-			if (pixel5 < pixel6) {
-				bs.set(hashRowAccumulator);
-			}
-			hashRowAccumulator++;
-			if (pixel6 < pixel7) {
-				bs.set(hashRowAccumulator);
-			}
-			hashRowAccumulator++;
-			if (pixel7 < pixel8) {
-				bs.set(hashRowAccumulator);
-			}
-			hashRowAccumulator++;
-			if (pixel8 < pixel9) {
-				bs.set(hashRowAccumulator);
-			}
-			hashRowAccumulator++;
+
+			// Set the current bit of the hash
+			finishedHash[finishedIndex] <<= 1;
+			finishedHash[finishedIndex] |= (thumbnail[thumbnailAccumulator]
+					& 0xff) < (thumbnail[thumbnailAccumulator + 1] & 0xff) ? 1 : 0;
+			longPos++;
 		}
 
-		return new ImageHash(this.getHashName(), bs, 64);
+		finishedHash[finishedIndex] <<= 64 - longPos;
+
+		return new ImageHash(this.getHashName(), finishedHash, this.hashLength);
 	}
 
 	@Override

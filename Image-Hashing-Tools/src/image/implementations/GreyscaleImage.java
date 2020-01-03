@@ -111,6 +111,14 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	public byte[] getPixels() {
 		return this.pixels;
 	}
+	
+	public int[] getIntPixels() {
+		int[] intPixels = new int[this.pixels.length];
+		for (int i = 0; i < intPixels.length; i++) {
+			intPixels[i] = this.pixels[i] & 0xff;
+		}
+		return intPixels;
+	}
 
 	public byte[][] get2dPixels() {
 		byte[][] pixel2d = new byte[this.width][this.height];

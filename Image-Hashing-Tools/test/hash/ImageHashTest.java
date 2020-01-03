@@ -1,3 +1,4 @@
+package hash;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.File;
@@ -17,7 +18,7 @@ class ImageHashTest {
 
 		ImageHash h1 = null, h2 = null;
 		try {
-			h1 = new DifferenceHash().hash(BenchmarkRunner.images.get(0));
+			h1 = new DifferenceHash().hash(BenchmarkRunner.IMAGES.get(0));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -40,7 +41,7 @@ class ImageHashTest {
 	void toFromStringTest() {
 		ImageHash h = null;
 		try {
-			h = new DifferenceHash().hash(BenchmarkRunner.images.get(0));
+			h = new DifferenceHash().hash(BenchmarkRunner.IMAGES.get(0));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

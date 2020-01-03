@@ -53,16 +53,16 @@ import attack.implementations.*;
 @SuppressWarnings("unused")
 public class BenchmarkRunner {
 
-	public static List<URL> images = null;
+	public static List<URL> IMAGES = null;
 
 	static {
 		// Lenna, x, serafuku, Astolfo
 		String[] urls = new String[] { "https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png",
 				"https://images3.alphacoders.com/836/83635.jpg",
-				"https://safebooru.org//images/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png",
+				"https://safebooru.org//IMAGES/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png",
 				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=large",
-				"https://safebooru.org/images/2855/5b462269fa06bbb9e249698f3153140a110f44be.png" };
-		images = new ArrayList<URL>(
+				"https://safebooru.org/IMAGES/2855/5b462269fa06bbb9e249698f3153140a110f44be.png" };
+		IMAGES = new ArrayList<URL>(
 				Arrays.asList(urls).stream().map(BenchmarkRunner::urlConstructor).collect(Collectors.toList()));
 	}
 
@@ -89,7 +89,7 @@ public class BenchmarkRunner {
 	// For testing ImageHash serialization
 	/*
 	 * IHashAlgorithm dhash = new DifferenceHash(); ImageHash h1 = null, h2 = null;
-	 * try { h1 = dhash.hash(images.get(0)); } catch (IOException e) {
+	 * try { h1 = dhash.hash(IMAGES.get(0)); } catch (IOException e) {
 	 * e.printStackTrace(); }
 	 * 
 	 * System.out.println(h1.toString());
@@ -136,7 +136,7 @@ public class BenchmarkRunner {
 	/*
 	 * IHashAlgorithm dhash = new DifferenceHash();
 	 * 
-	 * ImageHash h = null; try { h = dhash.hash(images.get(0)); } catch (Exception
+	 * ImageHash h = null; try { h = dhash.hash(IMAGES.get(0)); } catch (Exception
 	 * e) { e.printStackTrace(); }
 	 * 
 	 * System.out.println(h);
