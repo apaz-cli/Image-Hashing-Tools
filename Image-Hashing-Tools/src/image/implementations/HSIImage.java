@@ -9,6 +9,7 @@ import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 import image.IImage;
+import utils.ImageUtils;
 
 public class HSIImage implements IImage<HSIImage> {
 
@@ -31,11 +32,11 @@ public class HSIImage implements IImage<HSIImage> {
 	}
 
 	public HSIImage(File imgFile) throws IOException {
-		this(ImageIO.read(imgFile));
+		this(ImageUtils.openImage(imgFile));
 	}
 
 	public HSIImage(URL imgURL) throws IOException {
-		this(ImageIO.read(imgURL));
+		this(ImageUtils.openImage(imgURL));
 	}
 
 	@Override
