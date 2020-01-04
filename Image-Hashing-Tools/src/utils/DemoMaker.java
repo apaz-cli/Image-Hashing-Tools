@@ -46,7 +46,7 @@ public class DemoMaker {
 		greyNineByEight = greyNineByEight.rescaleNearest(64, 64);
 
 		ImageHash LennaHash = dhash.hash(Lenna);
-		IImage<?> rep = ImageUtils.imageRepresentation(LennaHash);
+		IImage<?> rep = ImageUtils.imageRepresentation(LennaHash, 8, 8);
 		rep = rep.rescaleNearest(64, 64);
 
 		File destFolder = new File(folderPath);
@@ -87,7 +87,7 @@ public class DemoMaker {
 		// BenchmarkRunner.showImage(greyNineByEight);
 
 		ImageHash LennaHash = dhash.hash(Lenna);
-		IImage<?> rep = ImageUtils.imageRepresentation(LennaHash);
+		IImage<?> rep = ImageUtils.imageRepresentation(LennaHash, 8, 8);
 		rep = rep.rescaleNearest(64, 64);
 		// BenchmarkRunner.showImage(rep);
 
