@@ -358,4 +358,34 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 		return new RGBAImage(this.toRGB(), alpha);
 	}
 
+	@Override
+	public YCbCrImage flipHorizontal() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public YCbCrImage flipVertical() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public YCbCrImage rotate90CW() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public YCbCrImage rotate90CCW() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public YCbCrImage rotate180() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
