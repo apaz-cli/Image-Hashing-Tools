@@ -2,6 +2,7 @@ package hash;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.URL;
 import java.util.Random;
@@ -19,20 +20,31 @@ public class DHashTest {
 			GreyscaleImage img = new GreyscaleImage(new URL("https://homepages.cae.wisc.edu/~ece533/images/cat.png"));
 
 			Random r = new Random();
+
+			ImageHash h1, h2;
 			
 			for (int i = 0; i < 500; i++) {
 				int sideLength = 0;
 				while (sideLength == 0) {
-					sideLength = r.nextInt(10000);
+					sideLength = r.nextInt(1000);
 				}
 
-				ImageHash h = new DifferenceHash(sideLength).hash(img);
-				assertEquals(h, ImageHash.fromString(h.toString()));
+				h1 = new DifferenceHash(sideLength).hash(img);
+				h2 = ImageHash.fromString(h1.toString());
+				assertEquals(h1, h2);
 			}
-
+			
+			h1 = new DifferenceHash(46340).hash(img);
+			h2 = ImageHash.fromString(h1.toString());
+			assertEquals(h1, h2);
+			
+			assertThrows(java.lang.IllegalArgumentException.class, () -> {
+				new DifferenceHash(90213).hash(img);
+			});
+			
 		} catch (Exception e) {
-			fail();
 			e.printStackTrace();
+			fail();
 		}
 	}
 }
