@@ -15,6 +15,22 @@ public class PixelUtils {
 		}
 	}
 	
+	public static int[] byteArrayToInt(byte[] arr) {
+		int[] intArr = new int[arr.length];
+		for (int i = 0; i < arr.length; i++) {
+			intArr[i] = arr[i] & 0xff;
+		}
+		return intArr;
+	}
+	
+	public static byte[] intArrayToByte(int[] arr) {
+		byte[] intArr = new byte[arr.length];
+		for (int i = 0; i < arr.length; i++) {
+			intArr[i] = (byte) arr[i];
+		}
+		return intArr;
+	}
+	
 	public static int[][] array1dToArray2d(int[] arr, int x, int y) {
 		int[][] array2d = new int[y][x];
 		int index = 0;
