@@ -360,32 +360,27 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 
 	@Override
 	public YCbCrImage flipHorizontal() {
-		// TODO Auto-generated method stub
-		return null;
+		return new YCbCrImage(Y.flipHorizontal(), Cb.flipHorizontal(), Cr.flipHorizontal());
 	}
 
 	@Override
 	public YCbCrImage flipVertical() {
-		// TODO Auto-generated method stub
-		return null;
+		return new YCbCrImage(Y.flipVertical(), Cb.flipVertical(), Cr.flipVertical());
 	}
 
 	@Override
 	public YCbCrImage rotate90CW() {
-		// TODO Auto-generated method stub
-		return null;
+		return new YCbCrImage(Y.rotate90CW(), Cb.rotate90CW(), Cr.rotate90CW());
 	}
 
 	@Override
 	public YCbCrImage rotate90CCW() {
-		// TODO Auto-generated method stub
-		return null;
+		return new YCbCrImage(Y.rotate90CCW(), Cb.rotate90CCW(), Cr.rotate90CCW());
 	}
 
 	@Override
 	public YCbCrImage rotate180() {
-		// TODO Auto-generated method stub
-		return null;
+		return new YCbCrImage(Y.rotate180(), Cb.rotate180(), Cr.rotate180());
 	}
 
 }
