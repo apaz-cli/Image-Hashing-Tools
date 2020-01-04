@@ -159,7 +159,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 		// If in normal form, it begins with the name. If it was just the hex bits, then
 		// give it a name.
-		return new ImageHash(type, longs, Integer.parseInt(length), source == "null" ? null : source);
+		return new ImageHash(type, longs, Integer.parseInt(length), source.equals("null") ? null : source);
 	}
 
 	public static ImageHash fromFile(File imageHash) throws IOException {
@@ -285,13 +285,25 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		if (this.hashLength != hash.getLength()) {
 			return this.hashLength > hash.getLength() ? 1 : -1;
 		}
-
-		if (this.source.compareTo(hash.getSource()) > 0) {
+		
+		String hSource = hash.getSource();
+		if (this.source != null && hSource != null) {
+			if (this.source.compareTo(hash.getSource()) > 0) {
+				return 1;
+			}
+			if (this.source.compareTo(hash.getSource()) < 0) {
+				return -1;
+			}
+		}
+		
+		// null sources are considered less than.
+		if (this.source == null && hSource != null) {
+			return -1;
+		} else if (hSource==null && this.source != null) {
 			return 1;
 		}
-		if (this.source.compareTo(hash.getSource()) < 0) {
-			return -1;
-		}
+
+		// If both are null, continue on and sort by hash.
 
 		long[] other = hash.getBitArray();
 
