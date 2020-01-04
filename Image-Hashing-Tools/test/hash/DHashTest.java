@@ -34,7 +34,8 @@ public class DHashTest {
 				assertEquals(h1, h2);
 			}
 			
-			h1 = new DifferenceHash(46340).hash(img);
+			// Now try with a relatively large prime.
+			h1 = new DifferenceHash(23197).hash(img);
 			h2 = ImageHash.fromString(h1.toString());
 			assertEquals(h1, h2);
 			
