@@ -24,12 +24,12 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		this.height = height;
 		// All arrays in java have default value null for objects and 0 for primitives.
 		// Therefore, the default will be all black.
-		this.pixels = new byte[width * height];
+		this.pixels = new byte[checkOverflow(width, height)];
 	}
 
 	// Pixel array is not copied. It becomes the backing array.
 	public GreyscaleImage(byte[] pixels, int width, int height) throws IllegalArgumentException {
-		if (pixels.length != width * height) {
+		if (pixels.length != checkOverflow(width, height)) {
 			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
 					+ width + "  Height: " + height + "  Pixel length: " + pixels.length);
 		}
@@ -40,14 +40,14 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		this.height = height;
 		this.pixels = pixels;
 	}
-	
+
 	public GreyscaleImage(int[] pixels, int width, int height) throws IllegalArgumentException {
 		byte[] bytepixels = new byte[pixels.length];
-		for(int i = 0; i < bytepixels.length; i++) {
+		for (int i = 0; i < bytepixels.length; i++) {
 			bytepixels[i] = (byte) pixels[i];
 		}
 		// this(bytepixels, width, height);
-		if (bytepixels.length != width * height) {
+		if (bytepixels.length != checkOverflow(width, height)) {
 			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
 					+ width + "  Height: " + height + "  Pixel length: " + bytepixels.length);
 		}
@@ -58,13 +58,12 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		this.height = height;
 		this.pixels = bytepixels;
 	}
-	
 
 	public GreyscaleImage(byte[][] pixels, int width, int height) throws IllegalArgumentException {
 		this.width = width;
 		this.height = height;
 
-		this.pixels = new byte[width * height];
+		this.pixels = new byte[checkOverflow(width, height)];
 		for (int y = 0; y < this.height; y++) {
 			byte[] currentArray = pixels[y];
 			if (currentArray.length != this.width) {
@@ -111,7 +110,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	public byte[] getPixels() {
 		return this.pixels;
 	}
-	
+
 	public int[] getIntPixels() {
 		int[] intPixels = new int[this.pixels.length];
 		for (int i = 0; i < intPixels.length; i++) {
@@ -139,8 +138,9 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		byte[] green = new byte[this.pixels.length];
 		byte[] blue = new byte[this.pixels.length];
 
+		int pixelValue;
 		for (int i = 0; i < this.pixels.length; i++) {
-			int pixelValue = (this.pixels[i] & 0xff);
+			pixelValue = (this.pixels[i] & 0xff);
 			red[i] = (byte) Math.round(pixelValue * redFactor);
 			green[i] = (byte) Math.round(pixelValue * greenFactor);
 			blue[i] = (byte) Math.round(pixelValue * blueFactor);
@@ -177,16 +177,17 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		if (widthFactor == 1 && heightFactor == 1) {
 			return this.deepClone();
 		}
-		
+
 		// Throws when new width * new height overflows int.maxvalue
 		int newWidth = Math.toIntExact(Math.round(this.width * widthFactor));
 		int newHeight = Math.toIntExact(Math.round(this.height * heightFactor));
-		byte[] newPixels = new byte[newWidth * newHeight];
+		byte[] newPixels = new byte[checkOverflow(newWidth, newHeight)];
 
+		int xSample, ySample;
 		for (int x = 0; x < newWidth; x++) {
 			for (int y = 0; y < newHeight; y++) {
-				int xSample = (int) (x / widthFactor);
-				int ySample = (int) (y / heightFactor);
+				xSample = (int) (x / widthFactor);
+				ySample = (int) (y / heightFactor);
 				newPixels[y * newWidth + x] = this.pixels[ySample * this.width + xSample];
 			}
 		}
@@ -199,8 +200,8 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		if (this.width == width && this.height == height) {
 			return this.deepClone();
 		}
-		
-		byte[] scaled = new byte[width * height];
+
+		byte[] scaled = new byte[checkOverflow(width, height)];
 
 		float xRatio = ((float) (this.width - 1)) / width;
 		float yRatio = ((float) (this.height - 1)) / height;
@@ -250,8 +251,9 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	@Override
 	public String toString() {
 		String str = "";
-		for (int y = 0; y < this.height; y++) {
-			for (int x = 0; x < this.width; x++) {
+		int x, y;
+		for (y = 0; y < this.height; y++) {
+			for (x = 0; x < this.width; x++) {
 				String element = "" + (this.pixels[y * width + x] & 0xff);
 				if (element.length() == 1) {
 					element = "  " + element;
@@ -303,5 +305,77 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 			return java.util.Arrays.equals(this.pixels, other.getPixels()) && this.width == other.getWidth();
 		}
 		return false;
+	}
+
+	private int checkOverflow(int a, int b) throws IllegalArgumentException {
+		if (b == 0) {
+			return 0;
+		}
+
+		int product = a * b;
+		if (a == product / b) {
+			return product;
+		} else {
+			throw new IllegalArgumentException("Width and height of new GreyscaleImage would overflow int.");
+		}
+	}
+
+	public GreyscaleImage flipHorizontal() {
+
+		byte[] pixels = new byte[this.pixels.length];
+		int row, column;
+		for (int i = 0; i < this.pixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = this.pixels[(row + 1) * width - column - 1];
+		}
+
+		return new GreyscaleImage(pixels, this.width, this.height);
+	}
+
+	public GreyscaleImage flipVertical() {
+		int[] pixels = new int[this.pixels.length];
+		int row, column;
+		for (int i = 0; i < this.pixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = this.pixels[(height - row - 1) * width + column];
+		}
+
+		return new GreyscaleImage(pixels, this.width, this.height);
+	}
+
+	public GreyscaleImage rotateCW() {
+		byte[] pixels = new byte[this.pixels.length];
+		int row, column;
+		for (int i = 0; i < this.pixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = this.pixels[(height - 1) * width
+					- (((row * width + column) % height) * width) + (row * width + column) / height];
+		}
+
+		return new GreyscaleImage(pixels, this.height, this.width);
+	}
+
+	public GreyscaleImage rotateCCW() {
+		byte[] pixels = new byte[this.pixels.length];
+		int row, column;
+		for (int i = 0; i < this.pixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = this.pixels[(width - 1) + (((row * width + column) % height) * width)
+					- (row * width + column) / height];
+		}
+
+		return new GreyscaleImage(pixels, this.height, this.width);
+	}
+
+	public GreyscaleImage rotate180() {
+		byte[] pixels = new byte[this.pixels.length];
+		for (int i = 0; i < this.pixels.length; i++) {
+			pixels[i] = this.pixels[pixels.length - i - 1];
+		}
+		return new GreyscaleImage(pixels, this.width, this.height);
 	}
 }
