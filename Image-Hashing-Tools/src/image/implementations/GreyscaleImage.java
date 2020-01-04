@@ -43,21 +43,16 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	}
 
 	public GreyscaleImage(int[] pixels, int width, int height) throws IllegalArgumentException {
-		byte[] bytepixels = new byte[pixels.length];
-		for (int i = 0; i < bytepixels.length; i++) {
-			bytepixels[i] = (byte) pixels[i];
-		}
-		// this(bytepixels, width, height);
-		if (bytepixels.length != PixelUtils.checkOverflow(width, height)) {
+		if (pixels.length != PixelUtils.checkOverflow(width, height)) {
 			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
-					+ width + "  Height: " + height + "  Pixel length: " + bytepixels.length);
+					+ width + "  Height: " + height + "  Pixel length: " + pixels.length);
 		}
-		if (bytepixels.length == 0) {
+		if (pixels.length == 0) {
 			throw new IllegalArgumentException("Width/Height may not be zero.");
 		}
 		this.width = width;
 		this.height = height;
-		this.pixels = bytepixels;
+		this.pixels = PixelUtils.intArrayToByte(pixels);
 	}
 
 	public GreyscaleImage(byte[][] pixels, int width, int height) throws IllegalArgumentException {
