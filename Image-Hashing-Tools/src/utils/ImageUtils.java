@@ -116,41 +116,23 @@ public class ImageUtils {
 		return imageRepresentation(hash.getBits(), width, height);
 	}
 
-	public static GreyscaleImage imageRepresentation(ImageHash hash) throws IllegalArgumentException {
-		return imageRepresentation(hash.getBits());
-	}
-
 	public static GreyscaleImage imageRepresentation(BitSet bs, int width, int height) throws IllegalArgumentException {
-		if (bs.length() != width * height) {
-			throw new IllegalArgumentException("The length of the BitSet must be equal to width * height. Expected: "
+		if (bs.length() > width * height) {
+			throw new IllegalArgumentException("The length of the BitSet must be less than or equal to width * height. BS length: "
 					+ bs.length() + " width * height was: " + width * height);
 		}
 
-		byte[] pixels = new byte[bs.length()];
+		byte[] pixels = new byte[width * height];
 		for (int i = 0; i < bs.length(); i++) {
 			// Represent 1 as black, 0 as white
 			pixels[i] = bs.get(i) == true ? (byte) 0 : (byte) 255;
+		}
+		
+		for (int i = bs.length(); i < width * height; i++) {
+			pixels[i] = (byte) 255;
 		}
 
 		return new GreyscaleImage(pixels, width, height);
-	}
-
-	public static GreyscaleImage imageRepresentation(BitSet bs) throws IllegalArgumentException {
-		// Version without width, height arguments only works for perfect squares.
-		double sqrt = Math.sqrt(bs.length());
-		int rounded = (int) Math.round(Math.floor(sqrt));
-		if (sqrt - rounded != 0) {
-			throw new IllegalArgumentException(
-					"The length of the BitSet must be a perfect square. Got: " + bs.length());
-		}
-
-		byte[] pixels = new byte[bs.length()];
-		for (int i = 0; i < bs.length(); i++) {
-			// Represent 1 as black, 0 as white
-			pixels[i] = bs.get(i) == true ? (byte) 0 : (byte) 255;
-		}
-
-		return new GreyscaleImage(pixels, rounded, rounded);
 	}
 
 	// Returns an image packed with noise 0-255
