@@ -94,8 +94,18 @@ public class DifferenceHash implements IHashAlgorithm {
 					& 0xff) < (thumbnail[thumbnailAccumulator + 1] & 0xff) ? 1 : 0;
 			longPos++;
 		}
-
+		
+		// Shift in
 		finishedHash[finishedIndex] <<= 64 - longPos;
+
+		/*
+		// Reverse in place
+		for (int i = 0; i < finishedHash.length / 2; i++) {
+			long temp = finishedHash[i];
+			finishedHash[i] = Long.reverse(finishedHash[finishedHash.length - i - 1]);
+			finishedHash[finishedHash.length - i - 1] = Long.reverse(temp);
+		}
+		*/
 
 		return new ImageHash(this.getHashName(), finishedHash, this.hashLength);
 	}
