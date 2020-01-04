@@ -234,4 +234,29 @@ public class RGBAImage implements IImage<RGBAImage> {
 		}
 		return false;
 	}
+
+	@Override
+	public RGBAImage flipHorizontal() {
+		return new RGBAImage(this.rgb.flipHorizontal(), this.a.flipHorizontal());
+	}
+
+	@Override
+	public RGBAImage flipVertical() {
+		return new RGBAImage(this.rgb.flipVertical(), this.a.flipVertical());
+	}
+
+	@Override
+	public RGBAImage rotate90CW() {
+		return new RGBAImage(this.rgb.rotate90CW(), this.a.rotate90CW());
+	}
+
+	@Override
+	public RGBAImage rotate90CCW() {
+		return new RGBAImage(this.rgb.rotate90CCW(), this.a.rotate90CCW());
+	}
+
+	@Override
+	public RGBAImage rotate180() {
+		return new RGBAImage(this.rgb.rotate180(), this.a.rotate180());
+	}
 }

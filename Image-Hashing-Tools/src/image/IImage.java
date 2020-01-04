@@ -66,6 +66,16 @@ public interface IImage<T extends IImage<T>> {
 		return new HSIImage(this.toRGB());
 	}
 
+	abstract public T flipHorizontal();
+
+	abstract public T flipVertical();
+
+	abstract public T rotate90CW();
+
+	abstract public T rotate90CCW();
+
+	abstract public T rotate180();
+
 	/*
 	 * abstract public T extractSubimage(int x1, int y1, int x2, int y2);
 	 * 

@@ -1,6 +1,20 @@
 package utils;
 
 public class PixelUtils {
+	
+	public static int checkOverflow(int a, int b) throws IllegalArgumentException {
+		if (b == 0) {
+			return 0;
+		}
+
+		int product = a * b;
+		if (a == product / b) {
+			return product;
+		} else {
+			throw new IllegalArgumentException("Width and height of new GreyscaleImage would overflow int.");
+		}
+	}
+	
 	public static int[][] array1dToArray2d(int[] arr, int x, int y) {
 		int[][] array2d = new int[y][x];
 		int index = 0;

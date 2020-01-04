@@ -196,4 +196,34 @@ public class CMYKImage implements IImage<CMYKImage> {
 				&& Arrays.equals(this.y, other.getY()) && Arrays.equals(this.k, other.getK());
 	}
 
+	@Override
+	public CMYKImage flipHorizontal() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CMYKImage flipVertical() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CMYKImage rotate90CW() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CMYKImage rotate90CCW() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CMYKImage rotate180() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

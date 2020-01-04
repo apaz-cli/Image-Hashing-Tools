@@ -81,7 +81,19 @@ public class BenchmarkRunner {
 	// ********//
 
 	public static void main(String[] args) {
-		new ImageHasher(new SafebooruScraper(), new DifferenceHash(), 5, System.out).hashAll();
+		GreyscaleImage lenna = null;
+		try {
+			lenna = new GreyscaleImage(IMAGES.get(0));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		
+		
+		// new ImageHasher(new SafebooruScraper(), new DifferenceHash(), 5,
+		// System.out).hashAll();
+
 	}
 
 	// TODO write test for RGBAImage transparency
@@ -131,18 +143,4 @@ public class BenchmarkRunner {
 	 * System.out.println(dhash.hash(img)); return img; }); op.invokeAll();
 	 * op.close();
 	 */
-
-	// For testing ImageHash to/fromString
-	/*
-	 * IHashAlgorithm dhash = new DifferenceHash();
-	 * 
-	 * ImageHash h = null; try { h = dhash.hash(IMAGES.get(0)); } catch (Exception
-	 * e) { e.printStackTrace(); }
-	 * 
-	 * System.out.println(h);
-	 * 
-	 * ImageHash j = ImageHash.fromString(h.toString()); System.out.println(j);
-	 * System.out.println(h.equals(j));
-	 */
-
 }

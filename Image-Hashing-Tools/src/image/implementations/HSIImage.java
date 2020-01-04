@@ -123,4 +123,34 @@ public class HSIImage implements IImage<HSIImage> {
 				&& Arrays.equals(this.i, other.getI());
 	}
 
+	@Override
+	public HSIImage flipHorizontal() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public HSIImage flipVertical() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public HSIImage rotate90CW() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public HSIImage rotate90CCW() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public HSIImage rotate180() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

@@ -261,4 +261,29 @@ public class RGBImage implements IImage<RGBImage> {
 		return false;
 	}
 
+	@Override
+	public RGBImage flipHorizontal() {
+		return new RGBImage(this.r.flipHorizontal(), this.g.flipHorizontal(), this.b.flipHorizontal());
+	}
+
+	@Override
+	public RGBImage flipVertical() {
+		return new RGBImage(this.r.flipVertical(), this.g.flipVertical(), this.b.flipVertical());
+	}
+
+	@Override
+	public RGBImage rotate90CW() {
+		return new RGBImage(this.r.rotate90CW(), this.g.rotate90CW(), this.b.rotate90CW());
+	}
+
+	@Override
+	public RGBImage rotate90CCW() {
+		return new RGBImage(this.r.rotate90CCW(), this.g.rotate90CCW(), this.b.rotate90CCW());
+	}
+
+	@Override
+	public RGBImage rotate180() {
+		return new RGBImage(this.r.rotate180(), this.g.rotate180(), this.b.rotate180());
+	}
+
 }
