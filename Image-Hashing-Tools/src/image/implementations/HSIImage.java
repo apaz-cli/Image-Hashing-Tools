@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 
-import javax.imageio.ImageIO;
-
 import image.IImage;
 import utils.ImageUtils;
 
