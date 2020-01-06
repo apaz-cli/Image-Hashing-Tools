@@ -1,6 +1,7 @@
 package image.implementations;
 
 import java.awt.Color;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
@@ -305,65 +306,33 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 
 	@Override
 	public GreyscaleImage flipHorizontal() {
-
-		byte[] pixels = new byte[this.pixels.length];
-		int row, column;
-		for (int i = 0; i < this.pixels.length; i++) {
-			row = (i / width);
-			column = (i % width);
-			pixels[row * width + column] = this.pixels[(row + 1) * width - column - 1];
-		}
-
-		return new GreyscaleImage(pixels, this.width, this.height);
+		return new GreyscaleImage(PixelUtils.flipHorizontal(this.pixels, this.width, this.height), this.width,
+				this.height);
 	}
 
 	@Override
 	public GreyscaleImage flipVertical() {
-		int[] pixels = new int[this.pixels.length];
-		int row, column;
-		for (int i = 0; i < this.pixels.length; i++) {
-			row = (i / width);
-			column = (i % width);
-			pixels[row * width + column] = this.pixels[(height - row - 1) * width + column];
-		}
-
-		return new GreyscaleImage(pixels, this.width, this.height);
+		return new GreyscaleImage(PixelUtils.flipVertical(this.pixels, this.width, this.height), this.width,
+				this.height);
 	}
 
 	@Override
 	public GreyscaleImage rotate90CW() {
-		byte[] pixels = new byte[this.pixels.length];
-		int row, column;
-		for (int i = 0; i < this.pixels.length; i++) {
-			row = (i / width);
-			column = (i % width);
-			pixels[row * width + column] = this.pixels[(height - 1) * width
-					- (((row * width + column) % height) * width) + (row * width + column) / height];
-		}
-
-		return new GreyscaleImage(pixels, this.height, this.width);
+		return new GreyscaleImage(PixelUtils.rotate90CW(pixels, this.width, this.height), this.height, this.width);
 	}
 
 	@Override
 	public GreyscaleImage rotate90CCW() {
-		byte[] pixels = new byte[this.pixels.length];
-		int row, column;
-		for (int i = 0; i < this.pixels.length; i++) {
-			row = (i / width);
-			column = (i % width);
-			pixels[row * width + column] = this.pixels[(width - 1) + (((row * width + column) % height) * width)
-					- (row * width + column) / height];
-		}
-
-		return new GreyscaleImage(pixels, this.height, this.width);
+		return new GreyscaleImage(PixelUtils.rotate90CCW(this.pixels, this.width, this.height), this.height,
+				this.width);
 	}
 
 	@Override
 	public GreyscaleImage rotate180() {
-		byte[] pixels = new byte[this.pixels.length];
-		for (int i = 0; i < this.pixels.length; i++) {
-			pixels[i] = this.pixels[pixels.length - i - 1];
-		}
-		return new GreyscaleImage(pixels, this.width, this.height);
+		return new GreyscaleImage(PixelUtils.rotate180(this.pixels), this.width, this.height);
+	}
+	
+	public GreyscaleImage extractSubImage(Point p1, Point p2) {
+		return PixelUtils.extractSubimage(this.pixels, this.width, this.height, p1, p2);
 	}
 }

@@ -1,7 +1,11 @@
 package utils;
 
+import java.awt.Point;
+
+import image.implementations.GreyscaleImage;
+
 public class PixelUtils {
-	
+
 	public static int checkOverflow(int a, int b) throws IllegalArgumentException {
 		if (b == 0) {
 			return 0;
@@ -11,10 +15,10 @@ public class PixelUtils {
 		if (a == product / b) {
 			return product;
 		} else {
-			throw new IllegalArgumentException("Width and height of new GreyscaleImage would overflow int.");
+			throw new IllegalArgumentException("Width and height of new byte[] would overflow int.");
 		}
 	}
-	
+
 	public static int[] byteArrayToInt(byte[] arr) {
 		int[] intArr = new int[arr.length];
 		for (int i = 0; i < arr.length; i++) {
@@ -22,7 +26,7 @@ public class PixelUtils {
 		}
 		return intArr;
 	}
-	
+
 	public static byte[] intArrayToByte(int[] arr) {
 		byte[] intArr = new byte[arr.length];
 		for (int i = 0; i < arr.length; i++) {
@@ -30,7 +34,7 @@ public class PixelUtils {
 		}
 		return intArr;
 	}
-	
+
 	public static int[][] array1dToArray2d(int[] arr, int x, int y) {
 		int[][] array2d = new int[y][x];
 		int index = 0;
@@ -143,6 +147,117 @@ public class PixelUtils {
 		}
 
 		return transposed;
+	}
+
+	public static byte[] flipHorizontal(byte[] imagePixels, int width, int height) {
+		byte[] pixels = new byte[imagePixels.length];
+		int row, column;
+		for (int i = 0; i < imagePixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = imagePixels[(row + 1) * width - column - 1];
+		}
+
+		return pixels;
+	}
+
+	public static byte[] flipVertical(byte[] imagePixels, int width, int height) {
+		byte[] pixels = new byte[imagePixels.length];
+		int row, column;
+		for (int i = 0; i < imagePixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = imagePixels[(height - row - 1) * width + column];
+		}
+
+		return pixels;
+	}
+
+	public static byte[] rotate90CW(byte[] imagePixels, int width, int height) {
+		byte[] pixels = new byte[imagePixels.length];
+		int row, column;
+		for (int i = 0; i < imagePixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = imagePixels[(height - 1) * width
+					- (((row * width + column) % height) * width) + (row * width + column) / height];
+		}
+
+		return pixels;
+	}
+
+	public static byte[] rotate90CCW(byte[] imagePixels, int width, int height) {
+		byte[] pixels = new byte[imagePixels.length];
+		int row, column;
+		for (int i = 0; i < imagePixels.length; i++) {
+			row = (i / width);
+			column = (i % width);
+			pixels[row * width + column] = imagePixels[(width - 1) + (((row * width + column) % height) * width)
+					- (row * width + column) / height];
+		}
+
+		return pixels;
+	}
+
+	public static byte[] rotate180(byte[] imagePixels) {
+		byte[] pixels = new byte[imagePixels.length];
+		for (int i = 0; i < imagePixels.length; i++) {
+			pixels[i] = imagePixels[pixels.length - i - 1];
+		}
+		return pixels;
+	}
+
+	public static GreyscaleImage extractSubimage(byte[] imagePixels, int width, int height, Point p1, Point p2) {
+		return PixelUtils.extractSubimage(imagePixels, width, height, p1.x, p1.y, p2.x, p2.y);
+	}
+
+	public static GreyscaleImage extractSubimage(byte[] imagePixels, int width, int height, int x1, int y1, int x2,
+			int y2) {
+		int subWidth = Math.abs(x1 - x2) + 1, subHeight = Math.abs(y1 - y2) + 1;
+		int subArea = subWidth * subHeight;
+		
+		// Rearrange so that (x1, y1) represents the top-left corner and (x2, y2)
+		// represents the bottom-right. That is to say, swap if the first point is
+		// greater.
+		int tempInt;
+		if (x1 > x2) {
+			tempInt = x1;
+			x1 = x2;
+			x2 = tempInt;
+		}
+		if (y1 > y2) {
+			tempInt = y1;
+			y1 = y2;
+			y2 = tempInt;
+		}
+
+		// More bounds checking.
+		if (x1 < 0 || x2 > width - 1 || y1 < 0 || y2 > height - 1) {
+			throw new IllegalArgumentException("Points must be inside the image. Note that indexes start at zero, "
+					+ "so pixel (" + width + "," + height + ") of a " + width + "x" + height
+					+ "image will actually fall just outside of the image.");
+		}
+
+		// Now extract the actual subimage.
+		tempInt = 0;
+		byte[] subImage = new byte[subArea];
+		for (int y = y1; y <= y2; y++) {
+			for (int x = x1; x <= x2; x++) {
+				subImage[tempInt++] = imagePixels[y * width + x];
+			}
+		}
+
+		return new GreyscaleImage(subImage, subWidth, subHeight);
+	}
+
+	public static byte[] emplaceSubimage(byte[] imagePixels, int width, int height, byte[] subimage, Point p1,
+			Point p2) {
+		return PixelUtils.emplaceSubimage(imagePixels, width, height, subimage, p1.x, p1.y, p1.x, p1.y);
+	}
+
+	public static byte[] emplaceSubimage(byte[] imagePixels, int width, int height, byte[] subimage, int x1, int y1,
+			int x2, int y2) {
+		return null;
 	}
 
 }
