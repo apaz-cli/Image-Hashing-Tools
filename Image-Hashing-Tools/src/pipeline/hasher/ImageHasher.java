@@ -87,7 +87,7 @@ public class ImageHasher {
 		this.threadNum = threadNum;
 	}
 
-	private ImageSource createSource(Object input) {
+	private static ImageSource createSource(Object input) {
 		// Create ImageSource out of input
 		ImageSource src = null;
 		if (input instanceof ImageSource) {
