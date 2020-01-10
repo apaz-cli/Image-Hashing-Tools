@@ -1,7 +1,6 @@
 package image.implementations;
 
 import java.awt.Color;
-import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
@@ -331,8 +330,17 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	public GreyscaleImage rotate180() {
 		return new GreyscaleImage(PixelUtils.rotate180(this.pixels), this.width, this.height);
 	}
-	
-	public GreyscaleImage extractSubImage(Point p1, Point p2) {
-		return PixelUtils.extractSubimage(this.pixels, this.width, this.height, p1, p2);
+
+	@Override
+	public GreyscaleImage extractSubimage(int x1, int y1, int x2, int y2) {
+		return PixelUtils.extractSubimage(this.pixels, this.width, this.height, x1, y1, x2, y2);
 	}
+
+	@Override
+	public GreyscaleImage emplaceSubimage(GreyscaleImage subImage, int x1, int y1, int x2, int y2) {
+		return new GreyscaleImage(
+				PixelUtils.emplaceSubimage(this.pixels, this.width, this.height, subImage.getPixels(), x1, y1, x2, y2),
+				this.width, this.height);
+	}
+
 }

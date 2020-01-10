@@ -96,8 +96,8 @@ public class ImageHasher {
 			File s = (File) input;
 			boolean readable = s.canRead();
 			if (!readable) {
-				throw new IllegalArgumentException("The source file must be a readable directory. Readable: " + readable
-						+ ". If the file is not readable, this could possibly be because it does not exist, "
+				throw new IllegalArgumentException("The source file must be a readable directory. "
+						+ "If the file is not readable, this could possibly be because it does not exist, "
 						+ "or may alternatively be due to insufficient permissions. \n"
 						+ "If you want to read only one file, first load it with ImageUtils.openImage(), "
 						+ "or use a SingleImageSource.");

@@ -259,4 +259,15 @@ public class RGBAImage implements IImage<RGBAImage> {
 	public RGBAImage rotate180() {
 		return new RGBAImage(this.rgb.rotate180(), this.a.rotate180());
 	}
+
+	@Override
+	public RGBAImage extractSubimage(int x1, int y1, int x2, int y2) {
+		return new RGBAImage(this.rgb.extractSubimage(x1, y1, x2, y2), this.a.extractSubimage(x1, y1, x2, y2));
+	}
+
+	@Override
+	public RGBAImage emplaceSubimage(RGBAImage subImage, int x1, int y1, int x2, int y2) {
+		return new RGBAImage(this.rgb.emplaceSubimage(subImage.getRGB(), x1, y1, x2, y2),
+				this.a.emplaceSubimage(subImage.getAlpha(), x1, y1, x2, y2));
+	}
 }

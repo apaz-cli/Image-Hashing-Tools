@@ -1,6 +1,6 @@
 package utils;
 
-import java.awt.Point;
+import java.util.Arrays;
 
 import image.implementations.GreyscaleImage;
 
@@ -207,15 +207,11 @@ public class PixelUtils {
 		return pixels;
 	}
 
-	public static GreyscaleImage extractSubimage(byte[] imagePixels, int width, int height, Point p1, Point p2) {
-		return PixelUtils.extractSubimage(imagePixels, width, height, p1.x, p1.y, p2.x, p2.y);
-	}
-
 	public static GreyscaleImage extractSubimage(byte[] imagePixels, int width, int height, int x1, int y1, int x2,
 			int y2) {
-		int subWidth = Math.abs(x1 - x2) + 1, subHeight = Math.abs(y1 - y2) + 1;
-		int subArea = subWidth * subHeight;
-		
+
+		// This block of code is duplicated below.
+
 		// Rearrange so that (x1, y1) represents the top-left corner and (x2, y2)
 		// represents the bottom-right. That is to say, swap if the first point is
 		// greater.
@@ -238,9 +234,13 @@ public class PixelUtils {
 					+ "image will actually fall just outside of the image.");
 		}
 
+		int subWidth = (x2 - x1) + 1, subHeight = (y2 - y1) + 1;
+		
+		// End of duplicated block
+
 		// Now extract the actual subimage.
 		tempInt = 0;
-		byte[] subImage = new byte[subArea];
+		byte[] subImage = new byte[subWidth * subHeight];
 		for (int y = y1; y <= y2; y++) {
 			for (int x = x1; x <= x2; x++) {
 				subImage[tempInt++] = imagePixels[y * width + x];
@@ -250,14 +250,52 @@ public class PixelUtils {
 		return new GreyscaleImage(subImage, subWidth, subHeight);
 	}
 
-	public static byte[] emplaceSubimage(byte[] imagePixels, int width, int height, byte[] subimage, Point p1,
-			Point p2) {
-		return PixelUtils.emplaceSubimage(imagePixels, width, height, subimage, p1.x, p1.y, p1.x, p1.y);
-	}
-
 	public static byte[] emplaceSubimage(byte[] imagePixels, int width, int height, byte[] subimage, int x1, int y1,
 			int x2, int y2) {
-		return null;
+
+		// Rearrange so that (x1, y1) represents the top-left corner and (x2, y2)
+		// represents the bottom-right. That is to say, swap if the first point is
+		// greater.
+		int tempInt;
+		if (x1 > x2) {
+			tempInt = x1;
+			x1 = x2;
+			x2 = tempInt;
+		}
+		if (y1 > y2) {
+			tempInt = y1;
+			y1 = y2;
+			y2 = tempInt;
+		}
+
+		// More bounds checking.
+		if (x1 < 0 || x2 > width - 1 || y1 < 0 || y2 > height - 1) {
+			throw new IllegalArgumentException("Points must be inside the image. Note that indexes start at zero, "
+					+ "so pixel (" + width + "," + height + ") of a " + width + "x" + height
+					+ " image will actually fall just outside of the image.");
+		}
+
+		int subWidth = (x2 - x1) + 1, subHeight = (y2 - y1) + 1;
+
+		// End of duplicated block
+
+		// Now check to make sure that the subimage is actually the right size.
+		if (subWidth * subHeight != subimage.length) {
+			throw new IllegalArgumentException("Subimage is not the right size. Got width: " + subWidth + " by height: "
+					+ subHeight + " and needed area of: " + subWidth * subHeight);
+		}
+
+		byte[] newPixels = Arrays.copyOf(imagePixels, imagePixels.length);
+		tempInt = 0;
+
+		// Now emplace the actual subimage.
+		for (int y = y1; y <= y2; y++) {
+			for (int x = x1; x <= x2; x++) {
+				newPixels[y * width + x] = subimage[tempInt++];
+			}
+		}
+
+		return newPixels;
 	}
 
 }

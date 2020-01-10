@@ -1,5 +1,6 @@
 package image;
 
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 
 import image.implementations.CMYKImage;
@@ -76,9 +77,16 @@ public interface IImage<T extends IImage<T>> {
 
 	abstract public T rotate180();
 
-	/*
-	 * abstract public T extractSubimage(int x1, int y1, int x2, int y2);
-	 * 
-	 * abstract public T emplaceSubimage(int x1, int y1, int x2, int y2);
-	 */
+	default public T extractSubimage(Point p1, Point p2) {
+		return this.extractSubimage(p1.x, p1.y, p2.x, p2.y);
+	}
+
+	abstract public T extractSubimage(int x1, int y1, int x2, int y2);
+
+	default public T emplaceSubimage(T subImage, Point p1, Point p2) {
+		return this.emplaceSubimage(subImage, p1.x, p1.y, p2.x, p2.y);
+	}
+
+	abstract public T emplaceSubimage(T subImage, int x1, int y1, int x2, int y2);
+
 }

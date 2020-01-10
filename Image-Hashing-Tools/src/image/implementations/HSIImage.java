@@ -152,4 +152,16 @@ public class HSIImage implements IImage<HSIImage> {
 		return null;
 	}
 
+	@Override
+	public HSIImage extractSubimage(int x1, int y1, int x2, int y2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public HSIImage emplaceSubimage(HSIImage subImage, int x1, int y1, int x2, int y2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

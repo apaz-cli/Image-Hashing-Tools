@@ -226,4 +226,16 @@ public class CMYKImage implements IImage<CMYKImage> {
 		return null;
 	}
 
+	@Override
+	public CMYKImage extractSubimage(int x1, int y1, int x2, int y2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CMYKImage emplaceSubimage(CMYKImage subImage, int x1, int y1, int x2, int y2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

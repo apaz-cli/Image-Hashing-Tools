@@ -6,6 +6,7 @@ import java.awt.Point;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +28,7 @@ class GreyscaleTests {
 	}
 
 	@Test
-	void rotationFlipEquivalenceTests() {
+	void rotationFlipEquivalenceTest() {
 		assertEquals(testImage, testImage.flipHorizontal().flipHorizontal());
 		assertEquals(testImage, testImage.flipVertical().flipVertical());
 		assertEquals(testImage, testImage.rotate90CCW().rotate90CW());
@@ -37,13 +38,32 @@ class GreyscaleTests {
 	}
 
 	@Test
-	void extractSubImageTests() {
+	void extractSubImageTest() {
 		int a = 3, b = 7, c = 337, d = 250;
 		Point p1 = new Point(a, b), p2 = new Point(c, d);
 		Point p3 = new Point(a, d), p4 = new Point(c, b);
-		assertEquals(testImage.extractSubImage(p2, p1), testImage.extractSubImage(p1, p2));
-		assertEquals(testImage.extractSubImage(p1, p2), testImage.extractSubImage(p3, p4));
-		assertEquals(testImage, testImage.extractSubImage(new Point(0, 0),
+		assertEquals(testImage.extractSubimage(p2, p1), testImage.extractSubimage(p1, p2));
+		assertEquals(testImage.extractSubimage(p1, p2), testImage.extractSubimage(p3, p4));
+		assertEquals(testImage, testImage.extractSubimage(new Point(0, 0),
 				new Point(testImage.getWidth() - 1, testImage.getHeight() - 1)));
+	}
+
+	@Test
+	void emplaceSubImageTest() {
+		int a = 10, b = 15, c = 17, d = 20;
+		Point p1 = new Point(a, b), p2 = new Point(c, d);
+		Point p3 = new Point(a, d), p4 = new Point(c, b);
+
+		int[] barr = IntStream.rangeClosed(1, 48).toArray();
+		byte[] pixels = new byte[barr.length];
+		int offset = 0;
+		for (int by : barr) {
+			pixels[offset++] = (byte) by;
+		}
+		GreyscaleImage g = new GreyscaleImage(pixels, 8, 6);
+
+		assertEquals(testImage.emplaceSubimage(g, p1, p2), testImage.emplaceSubimage(g, p3, p4));
+
+		assertEquals(g, testImage.emplaceSubimage(g, p1, p2).extractSubimage(p1, p2));
 	}
 }

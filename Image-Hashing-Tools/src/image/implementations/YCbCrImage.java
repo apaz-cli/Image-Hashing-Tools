@@ -383,4 +383,17 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 		return new YCbCrImage(Y.rotate180(), Cb.rotate180(), Cr.rotate180());
 	}
 
+	@Override
+	public YCbCrImage extractSubimage(int x1, int y1, int x2, int y2) {
+		return new YCbCrImage(Y.extractSubimage(x1, y1, x2, y2), Cb.extractSubimage(x1, y1, x2, y2),
+				Cr.extractSubimage(x1, y1, x2, y2));
+	}
+
+	@Override
+	public YCbCrImage emplaceSubimage(YCbCrImage subImage, int x1, int y1, int x2, int y2) {
+		return new YCbCrImage(Y.emplaceSubimage(subImage.getY(), x1, y1, x2, y2),
+				Cb.emplaceSubimage(subImage.getCb(), x1, y1, x2, y2),
+				Cr.emplaceSubimage(subImage.getCr(), x1, y1, x2, y2));
+	}
+
 }

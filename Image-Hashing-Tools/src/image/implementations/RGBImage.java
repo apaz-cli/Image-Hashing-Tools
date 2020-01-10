@@ -241,7 +241,7 @@ public class RGBImage implements IImage<RGBImage> {
 	public RGBImage toRGB() {
 		return this;
 	}
-	
+
 	// Uses self to back RGBAImage
 	@Override
 	public RGBAImage toRGBA() {
@@ -284,6 +284,19 @@ public class RGBImage implements IImage<RGBImage> {
 	@Override
 	public RGBImage rotate180() {
 		return new RGBImage(this.r.rotate180(), this.g.rotate180(), this.b.rotate180());
+	}
+
+	@Override
+	public RGBImage extractSubimage(int x1, int y1, int x2, int y2) {
+		return new RGBImage(this.r.extractSubimage(x1, y1, x2, y2), this.g.extractSubimage(x1, y1, x2, y2),
+				this.b.extractSubimage(x1, y1, x2, y2));
+	}
+
+	@Override
+	public RGBImage emplaceSubimage(RGBImage subImage, int x1, int y1, int x2, int y2) {
+		return new RGBImage(this.r.emplaceSubimage(subImage.getRed(), x1, y1, x2, y2),
+				this.g.emplaceSubimage(subImage.getGreen(), x1, y1, x2, y2),
+				this.b.emplaceSubimage(subImage.getBlue(), x1, y1, x2, y2));
 	}
 
 }
