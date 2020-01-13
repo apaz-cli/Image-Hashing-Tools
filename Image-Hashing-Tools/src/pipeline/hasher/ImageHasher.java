@@ -155,7 +155,7 @@ public class ImageHasher {
 			pool.execute(() -> {
 				@SuppressWarnings("unused")
 				ImageHash hash;
-				while ((hash = this.hash()) != null) {
+				while ((hash = this.hashUnsourced()) != null) {
 				}
 			});
 		}
