@@ -14,13 +14,30 @@ import java.util.concurrent.SynchronousQueue;
 
 import javax.imageio.ImageIO;
 
+import image.implementations.GreyscaleImage;
 import pipeline.sources.ImageSource;
 import pipeline.sources.SourcedImage;
-import pipeline.sources.TerminalImage;
 
 public class ImageLoader implements ImageSource {
 
-	private static SourcedImage TERMINALIMAGE = new TerminalImage(null);
+	static class TerminalImage extends SourcedImage {
+
+		public TerminalImage() {
+			super(new GreyscaleImage(1, 1), "TERMINALIMAGE");
+		}
+
+		@Override
+		public String toString() {
+			return "TERMINALIMAGE";
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			return o instanceof TerminalImage;
+		}
+	}
+
+	private static TerminalImage TERMINALIMAGE = new TerminalImage();
 
 	private ExecutorService loadThread = Executors.newWorkStealingPool(3);
 

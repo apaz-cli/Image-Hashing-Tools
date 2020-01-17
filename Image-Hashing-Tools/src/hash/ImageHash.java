@@ -212,6 +212,52 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return this.bits;
 	}
 
+	public double[] getBitArrayAsDouble() {
+		double[] dbits = new double[this.bits.length];
+		for (int i = 0; i < this.bits.length; i++) {
+			dbits[i] = java.lang.Double.longBitsToDouble(this.bits[i]);
+		}
+		return dbits;
+	}
+
+	public float[] getBitArrayAsFloat() {
+		int[] ibits = this.getBitArrayAsInt();
+		float[] fbits = new float[ibits.length];
+		
+		for (int i = 0; i < ibits.length; i++) {
+			fbits[i] = java.lang.Float.intBitsToFloat(ibits[i]);
+		}
+		
+		return fbits;
+	}
+
+	public int[] getBitArrayAsInt() {
+		int[] ibits = new int[this.bits.length * 2];
+		int currentInt;
+		for (int i = 0; i < this.bits.length; i++) {
+			currentInt = i * 2;
+			ibits[currentInt] = (int) this.bits[i];
+			ibits[currentInt + 1] = (int) (this.bits[i] >> 32);
+		}
+		return ibits;
+	}
+	
+	public byte[] getBitArrayAsByte() {
+		byte[] bbits = new byte[this.bits.length * 8];
+		int currentByte;
+		for (int i = 0; i < this.bits.length; i++) {
+			currentByte = i * 8; 
+			long workingLong = this.bits[i];
+			
+			bbits[currentByte] = (byte) workingLong;
+			for (int j = 1; j < 8; j++) {
+				workingLong <<= 8;
+				bbits[currentByte + j] = (byte) workingLong;
+			}
+		}
+		return bbits;
+	}
+
 	public boolean getBit(int bitIndex) throws ArrayIndexOutOfBoundsException {
 		// Taken from BitSet docs
 		// https://docs.oracle.com/javase/7/docs/api/java/util/BitSet.html#toLongArray%28%29
@@ -285,7 +331,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		if (this.hashLength != hash.getLength()) {
 			return this.hashLength > hash.getLength() ? 1 : -1;
 		}
-		
+
 		String hSource = hash.getSource();
 		if (this.source != null && hSource != null) {
 			if (this.source.compareTo(hash.getSource()) > 0) {
@@ -295,11 +341,11 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 				return -1;
 			}
 		}
-		
+
 		// null sources are considered less than.
 		if (this.source == null && hSource != null) {
 			return -1;
-		} else if (hSource==null && this.source != null) {
+		} else if (hSource == null && this.source != null) {
 			return 1;
 		}
 

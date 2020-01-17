@@ -3,7 +3,9 @@ package pipeline.hasher;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.Vector;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -109,26 +111,70 @@ public class ImageHasher {
 		return src;
 	}
 
-	public ImageHash hashUnsourced() {
-		IImage<?> img = source.nextIImage();
-		if (img == null) {
-			return null;
-		} else {
-			ImageHash h = algorithm.hash(img);
-			outputLambda.output(h);
-			return h;
-		}
+	public ImageHash hash() {
+		return this.hash(true);
 	}
 
-	public ImageHash hash() {
-		SourcedImage img = source.nextImage();
-		if (img == null) {
-			return null;
+	public ImageHash hash(boolean sourced) {
+		// TODO rewrite SourcedImage to implement IImage<SourcedImage>, then redo code
+		// below.
+		// TODO rename hashAllUnsourced and rewrite method signature with boolean
+		// sourced.
+		if (sourced) {
+			SourcedImage img = source.nextImage();
+			if (img == null) {
+				return null;
+			} else {
+				ImageHash h = algorithm.hash(img);
+				outputLambda.output(h);
+				return h;
+			}
 		} else {
-			ImageHash h = algorithm.hash(img);
-			outputLambda.output(h);
-			return h;
+			IImage<?> img = source.nextIImage();
+			if (img == null) {
+				return null;
+			} else {
+				ImageHash h = algorithm.hash(img);
+				outputLambda.output(h);
+				return h;
+			}
 		}
+
+	}
+
+	public List<ImageHash> hash(int iterations) {
+		final int hashesPerThread = iterations / this.threadNum;
+		final int hashesNotCovered = iterations - (hashesPerThread * this.threadNum);
+
+		List<ImageHash> completedHashes = new Vector<>();
+
+		ExecutorService pool = Executors.newWorkStealingPool(this.threadNum);
+		for (int i = 0; i < this.threadNum; i++) {
+			final boolean extra = i < hashesNotCovered;
+			pool.execute(() -> {
+
+				int its = extra ? hashesPerThread + 1 : hashesPerThread;
+				boolean cont = true;
+
+				ImageHash hash;
+				for (int it = 0; cont && it < its; it++) {
+					hash = this.hash();
+					if (hash == null) {
+						cont = false;
+					} else {
+						completedHashes.add(hash);
+					}
+				}
+			});
+		}
+
+		try {
+			pool.shutdown();
+			pool.awaitTermination(7, TimeUnit.DAYS);
+		} catch (InterruptedException e) {
+		}
+
+		return completedHashes;
 	}
 
 	public void hashAll() {
@@ -155,7 +201,7 @@ public class ImageHasher {
 			pool.execute(() -> {
 				@SuppressWarnings("unused")
 				ImageHash hash;
-				while ((hash = this.hashUnsourced()) != null) {
+				while ((hash = this.hash(false)) != null) {
 				}
 			});
 		}

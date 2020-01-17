@@ -18,12 +18,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import pipeline.sources.ImageSource;
 import pipeline.sources.SourcedImage;
-import pipeline.sources.TerminalImage;
 import utils.ImageUtils;
 
 public class URLCollectionDownloader implements ImageSource {
-
-	private static SourcedImage TERMINALIMAGE = new TerminalImage(null);
 
 	private ExecutorService loadThread = Executors.newWorkStealingPool(25);
 

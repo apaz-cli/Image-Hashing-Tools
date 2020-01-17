@@ -9,10 +9,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 
-import javax.imageio.ImageIO;
-
 import image.IImage;
-import utils.PixelUtils;
+import image.PixelUtils;
+import utils.ImageUtils;
 
 public class GreyscaleImage implements IImage<GreyscaleImage> {
 
@@ -80,11 +79,11 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	}
 
 	public GreyscaleImage(File imgFile) throws IOException {
-		this(ImageIO.read(imgFile));
+		this(ImageUtils.openImage(imgFile));
 	}
 
 	public GreyscaleImage(URL imgURL) throws IOException {
-		this(ImageIO.read(imgURL));
+		this(ImageUtils.openImage(imgURL));
 	}
 
 	public int getPixel(int index) throws ArrayIndexOutOfBoundsException {

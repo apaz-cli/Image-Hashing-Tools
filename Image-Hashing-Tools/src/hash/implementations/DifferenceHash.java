@@ -34,11 +34,10 @@ public class DifferenceHash implements IHashAlgorithm {
 
 	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
-		// This assertion assures that
-		if (!hash1.getType().equals(this.getHashName())) {
+		// This assertion assures that the hashes are actually comparable.
+		if (!hash1.getType().equals(this.getHashName()) || hash1.getLength() != hash2.getLength()) {
 			throw new IllegalArgumentException(
-					"Another method must be used to compare nonstandard variations of this hash. "
-							+ "Also, make sure you are comparing to hashes of the same type.");
+					"These hashes are not comparable. The hashes being compared must be of the same type and length.");
 		}
 
 		// No need to assert comparable, Hamming distance method does this.
@@ -58,7 +57,7 @@ public class DifferenceHash implements IHashAlgorithm {
 	@Override
 	public ImageHash hash(IImage<?> img) {
 		// This size seems odd, but we're averaging the pixels next to each other
-		// horizontally, and end up with an sideLength x sideLength -length hash.
+		// horizontally, and end up with an sideLength x sideLength length hash.
 		int rowLength = this.sideLength + 1;
 		img = img.resizeBilinear(rowLength, this.sideLength);
 		byte[] thumbnail = img.toGreyscale().getPixels();
@@ -94,18 +93,16 @@ public class DifferenceHash implements IHashAlgorithm {
 					& 0xff) < (thumbnail[thumbnailAccumulator + 1] & 0xff) ? 1 : 0;
 			longPos++;
 		}
-		
+
 		// Shift in
 		finishedHash[finishedIndex] <<= 64 - longPos;
 
 		/*
-		// Reverse in place
-		for (int i = 0; i < finishedHash.length / 2; i++) {
-			long temp = finishedHash[i];
-			finishedHash[i] = Long.reverse(finishedHash[finishedHash.length - i - 1]);
-			finishedHash[finishedHash.length - i - 1] = Long.reverse(temp);
-		}
-		*/
+		 * // Reverse in place for (int i = 0; i < finishedHash.length / 2; i++) { long
+		 * temp = finishedHash[i]; finishedHash[i] =
+		 * Long.reverse(finishedHash[finishedHash.length - i - 1]);
+		 * finishedHash[finishedHash.length - i - 1] = Long.reverse(temp); }
+		 */
 
 		return new ImageHash(this.getHashName(), finishedHash, this.hashLength);
 	}

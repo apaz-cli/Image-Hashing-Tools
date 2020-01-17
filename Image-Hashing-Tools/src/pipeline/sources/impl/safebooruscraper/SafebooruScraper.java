@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
+import java.util.Vector;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -32,7 +32,7 @@ public class SafebooruScraper implements ImageSource {
 	private static String apiRequestURL = "https://safebooru.org/index.php?page=dapi&s=post&q=index&limit=100&pid=";
 	private String attribute = null;
 
-	private List<String> imageURLs = new ArrayList<>();
+	private List<String> imageURLs = new Vector<>();
 	private int currentPage = 0;
 
 	/** uses "file_url" */
@@ -43,7 +43,7 @@ public class SafebooruScraper implements ImageSource {
 	public SafebooruScraper(String attribute) {
 		this.attribute = attribute;
 	}
-
+	
 	@Override
 	public SourcedImage nextImage() {
 		String surl = null;
@@ -79,6 +79,7 @@ public class SafebooruScraper implements ImageSource {
 			e.printStackTrace();
 		}
 
+		// If the download fails, try again from the beginning with a new link.
 		return img == null ? this.nextImage() : img;
 	}
 
@@ -145,6 +146,9 @@ public class SafebooruScraper implements ImageSource {
 			} else {
 				// If it isn't one of these things, at least for the purposes of debugging, I
 				// want to make it explode.
+
+				// In this way, this method is guaranteed to return a page, overflow the
+				// function stack, or otherwise halt the entire program.
 				System.err.println("An unknown error has occurred. "
 						+ "Please create an issue at https://github.com/Aaron-Pazdera/Open-Image-Hashing-Tools "
 						+ "with the following stack trace:");

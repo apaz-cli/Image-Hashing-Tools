@@ -8,9 +8,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import javax.imageio.ImageIO;
-
 import image.IImage;
+import utils.ImageUtils;
 
 public class RGBAImage implements IImage<RGBAImage> {
 
@@ -115,11 +114,11 @@ public class RGBAImage implements IImage<RGBAImage> {
 	}
 
 	public RGBAImage(File imgFile) throws IOException {
-		this(ImageIO.read(imgFile));
+		this(ImageUtils.openImage(imgFile));
 	}
 
 	public RGBAImage(URL imgURL) throws IOException {
-		this(ImageIO.read(imgURL));
+		this(ImageUtils.openImage(imgURL));
 	}
 
 	@Override

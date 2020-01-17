@@ -11,7 +11,7 @@ import hash.ImageHash;
 import hash.implementations.DifferenceHash;
 import utils.BenchmarkRunner;
 
-class ImageHashTest {
+public class ImageHashTest {
 
 	@Test
 	void serializeTest() {

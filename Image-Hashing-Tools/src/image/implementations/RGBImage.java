@@ -9,9 +9,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 
-import javax.imageio.ImageIO;
-
 import image.IImage;
+import utils.ImageUtils;
 
 public class RGBImage implements IImage<RGBImage> {
 
@@ -131,11 +130,11 @@ public class RGBImage implements IImage<RGBImage> {
 	}
 
 	public RGBImage(File imgFile) throws IOException {
-		this(ImageIO.read(imgFile));
+		this(ImageUtils.openImage(imgFile));
 	}
 
 	public RGBImage(URL imgURL) throws IOException {
-		this(ImageIO.read(imgURL));
+		this(ImageUtils.openImage(imgURL));
 	}
 
 	public GreyscaleImage getRed() {

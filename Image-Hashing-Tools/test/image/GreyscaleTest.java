@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import image.implementations.GreyscaleImage;
 
-class GreyscaleTests {
+public class GreyscaleTest {
 
 	private static GreyscaleImage testImage = null;
 	private static URL testImageURL = null;

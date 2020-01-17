@@ -3,13 +3,8 @@ package pipeline.sources;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import image.IImage;
-import pipeline.sources.impl.SourceUtil;
 
 public interface ImageSource extends Closeable {
 	public abstract SourcedImage nextImage();
