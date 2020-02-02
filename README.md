@@ -2,13 +2,13 @@
 A general purpose framework for finding near-duplicate images, which provides an image library for fast pixel comparisons, along with extensible implementations and tools for image hashing and attacking image hashes, including simulating jpg/jpeg compression.
 
 ## Supported Colorspaces (Entire project is WIP, finished items will have a ✓)
-Greyscale ✓
+### Greyscale ✓
 
-RGB (Red, Green, Blue) ✓
+### RGB (Red, Green, Blue) ✓
 
-RGBA (RGB with alpha/transparency channel) ✓
+### RGBA (RGB with alpha/transparency channel) ✓
 
-YCbCr (Luminance, Chrominance toward blue, Chrominance toward red) 
+### YCbCr (Luminance, Chrominance toward blue, Chrominance toward red) 
 
 ## Supported Hash Algorithms
 
@@ -21,8 +21,6 @@ YCbCr (Luminance, Chrominance toward blue, Chrominance toward red)
 ### Block Mean Value Hash (blockHash)
 
 ### RGB Histogram Hash 
-
-### Machine-Learned Hash (WIP, will require external dependencies.)
 
 All of these different hashing algorithms are going to have their own unique tradeoffs in terms of computation time, robustness, and fitness for the purpose of identifying different sorts of images. 
 
@@ -37,7 +35,9 @@ PHash, for example, has been proven to be extremely robust for real photographs,
 I suggest that you learn more about these algorithms, and choose the one that's best for your use case. Papers are cited down below.
 
 
-Soon I'm going to begin work on a machine learning model-based hash. The idea is that, at the same time, the model learns both how to compress and decompress images to/from a very small latent space, and make sure that said latent space when interpreted as a vector is very close to other similar images in Euclidean space. I'll post updates as work is completed.
+### Machine-Learned Hash (WIP, will require external dependencies.)
+
+Soon I'm going to begin work on a machine learning model-based hash. My idea is that, at the same time, the model can learn both how to compress and decompress images to/from a very small latent space, and make sure that said latent space when interpreted as a vector is very close to other similar images in Euclidean space. By feeding in both normal and tampered images, hopefully it will be possible to create a network that provides a very robust hash, even against flips and rotations. I'll post updates as work is completed.
 
 
 ## Supported Operations
@@ -68,22 +68,28 @@ IImage<?> img1 = null, img2 = null;
 			// Try copy/pasting all sorts of image files/links here.
 			img1 = new RGBImage(new URL("https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png"));
 			img2 = img1
-					// 1.1x width, 1.2x height
-					.rescaleBilinear(1.1f, 1.2f)
-					// Kernel side length, blur intensity
-					.convolveWith(KernelFactory.gaussianBlurKernel(7, 5f))
-					// Mean, Standard Deviation
-					.apply(new GaussianNoiseAttack(3f, 7f)).toGreyscale();
+				// 1.1x width, 1.2x height
+				.rescaleBilinear(1.1f, 1.2f)
+				// Kernel side length, blur intensity
+				.convolveWith(KernelFactory.gaussianBlurKernel(7, 5f))
+				// Mean, Standard Deviation
+				.apply(new GaussianNoiseAttack(3f, 7f)).toGreyscale();
 
 		} catch (IOException e) {
 			System.err.println("Failed to load the image.");
 			e.printStackTrace();
 			System.exit(1);
 		}
-
-		IHashAlgorithm h = new PerceptualHash();
-		boolean matches = h.matches(img1, img2);
-
+		
+		IHashAlgorithm pHash = new PerceptualHash();
+		boolean matches = pHash.matches(img1, img2);
+		
+		// This is another equivalent way to do it
+		ImageHash h1, h2;
+		h1 = pHash.hash(img1);
+		h2 = pHash.hash(img2);
+		matches = pHash.matches(h1, h2);
+		
 		// The images match, even though we did all the things above to one of them.
 		System.out.println(matches ? "MATCH" : "FAILED TO MATCH");
 
