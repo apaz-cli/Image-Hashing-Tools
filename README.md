@@ -1,26 +1,29 @@
 # Image-Hashing-Tools
 A general purpose framework for finding near-duplicate images, which provides an image library for fast pixel comparisons, along with extensible implementations and tools for image hashing and attacking image hashes, including simulating jpg/jpeg compression.
 
+
 ## Supported Colorspaces (Entire project is WIP, finished items will have a ✓)
-### Greyscale ✓
+#### Greyscale ✓
 
-### RGB (Red, Green, Blue) ✓
+#### RGB (Red, Green, Blue) ✓
 
-### RGBA (RGB with alpha/transparency channel) ✓
+#### RGBA (RGB with alpha/transparency channel) ✓
 
-### YCbCr (Luminance, Chrominance toward blue, Chrominance toward red) 
+#### YCbCr (Luminance, Chrominance toward blue, Chrominance toward red) 
+
+
 
 ## Supported Hash Algorithms
 
-### Average Hash (aHash) ✓
+#### Average Hash (aHash) ✓
 
-### Difference Hash (dHash) ✓
+#### Difference Hash (dHash) ✓
 
-### Perceptual Hash (pHash) ✓
+#### Perceptual Hash (pHash) ✓
 
-### Block Mean Value Hash (blockHash)
+#### Block Mean Value Hash (blockHash)
 
-### RGB Histogram Hash 
+#### RGB Histogram Hash 
 
 All of these different hashing algorithms are going to have their own unique tradeoffs in terms of computation time, robustness, and fitness for the purpose of identifying different sorts of images. 
 
@@ -35,7 +38,7 @@ PHash, for example, has been proven to be extremely robust for real photographs,
 I suggest that you learn more about these algorithms, and choose the one that's best for your use case. Papers are cited down below.
 
 
-### Machine-Learned Hash (WIP, will require external dependencies.)
+#### Machine-Learned Hash (WIP, will require external dependencies.)
 
 Soon I'm going to begin work on a machine learning model-based hash. My idea is that, at the same time, the model can learn both how to compress and decompress images to/from a very small latent space, and make sure that said latent space when interpreted as a vector is very close to other similar images in Euclidean space. By feeding in both normal and tampered images, hopefully it will be possible to create a network that provides a very robust hash, even against flips and rotations. I'll post updates as work is completed.
 
