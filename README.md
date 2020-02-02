@@ -8,122 +8,101 @@ RGB (Red, Green, Blue) ✓
 
 RGBA (RGB with alpha/transparency channel) ✓
 
-YCbCr (Luminance, Chrominance toward blue, Chrominance toward red) ✓
-
-CMYK (Cyan, Magenta, Yellow, Black)
-
-HSI (Hue, Saturation, Intensity. A cartesian transformation of RGB colorspace)
-
+YCbCr (Luminance, Chrominance toward blue, Chrominance toward red) 
 
 ## Supported Hash Algorithms
 
-All examples will use Lena:
-
-
-<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/lena.png" width="250" height="250">
-
-
 ### Average Hash (aHash) ✓
-Inspiration: [Hacker Factor](http://www.hackerfactor.com/blog/?/archives/529-Kind-of-Like-That.html)
 
-Pros: Very fast
+### Difference Hash (dHash) ✓
 
-Cons: Not extremely accurate
-
-Description:
-
-
-### Difference Hash (dHash)
-Inspiration: [Hacker Factor](http://www.hackerfactor.com/blog/?/archives/529-Kind-of-Like-That.html)
-
-Pros: A good general hash. Almost as fast as aHash, and doesn't care much about changes of background.
-
-Cons: Not robust against flips/rotations
-
-Description:
-
-1. Resize to 9x8
-
-<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/dHash/lena%209x8.png">
-
-2. Reduce to Greyscale
-
-<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/dHash/lena%209x8%20greyscale.png">
-
-3. Set the bits of the hash row by row, depending on if the pixel to the left is less than the pixel to the right. If it is, set it to 1. If not, set to 0. This results in an 8x8, laid out into a 64 bit hash.
-
-<img src="https://github.com/Aaron-Pazdera/Image-Hashing-Tools/blob/master/Examples/dHash/lena%20dhash.png">
-
-
-### Perceptual Hash (pHash)
-Inspiration: [Hacker Factor](http://hackerfactor.com/blog/index.php%3F/archives/432-Looks-Like-It.html) [PHash.org](https://www.phash.org/)
-
-Pros: 
-
-Cons: Slow
-
-Description:
-
-### RGB Histogram Hash
-Inspiration: ["Image Hashing Based on Color Histogram" by Bian Yang, Fan Gu and Xiamu Niu](http://manu35.magtech.com.cn/Jwk_ics/CN/abstract/abstract1269.shtml)
-
-Pros: Invariant to flips and rotations
-
-Cons: 
-
-Description:
-
-### Greyscale Histogram Hash
-Inspiration: "Image Hashing Based on Color Histogram" by Bian Yang, Fan Gu and Xiamu Niu
-
-Pros: 
-
-Cons:
-
-Description: I figured that if an RGB histogram could be used to match images, then a Greyscale Implementation would also be useful for Greyscale Images.
-
-
-### Slice Hash (My own original algorithm)✓
-Inspiration: Shower thoughts
-
-Pros: Faster than pHash, resulting hash is extremely small
-
-Cons: As a result of such a small hash, collisions are more common. Best used in together with other algorithms like pHash.
-
-Description:
-
+### Perceptual Hash (pHash) ✓
 
 ### Block Mean Value Hash (blockHash)
 
-Inspiration: ["Block Mean Value Based Image Perceptual Hashing by Bian Yang, Fan Gu and Xiamu Niu"](https://ieeexplore.ieee.org/document/4041692)
+### RGB Histogram Hash 
 
-Pros:
+### Machine-Learned Hash (WIP, will require external dependencies.)
 
-Cons:
+All of these different hashing algorithms are going to have their own unique tradeoffs in terms of computation time, robustness, and fitness for the purpose of identifying different sorts of images. 
 
-Description:
+Average Hash is extremely fast, and the hashes are small, but it's not particularly robust.
+
+Difference Hash is only slightly slower than aHash, and still not extremely robust, but generates much fewer false positives.
+
+RGB Histogram Hash is perfectly robust against flips, rotations, resizing, and some other transforms, which makes it stand out. Many other algorithms can't do that. However the hashes take up a lot of space, and it fails completely against any sort of recoloring.
+
+PHash, for example, has been proven to be extremely robust for real photographs, but takes longer to complete than other hashes and may be less exact for the hard pixel borders in digital illustrations.
+
+I suggest that you learn more about these algorithms, and choose the one that's best for your use case. Papers are cited down below.
 
 
-## Supported Attacks (Not all yet implemented)
+Soon I'm going to begin work on a machine learning model-based hash. The idea is that, at the same time, the model learns both how to compress and decompress images to/from a very small latent space, and make sure that said latent space when interpreted as a vector is very close to other similar images in Euclidean space. I'll post updates as work is completed.
+
+
+## Supported Operations
 JPEG Compression Simulation
 
-Flip Vertical L/R
+Flip Vertical/Horizontal ✓
 
-Random Noise
+Random Noise ✓
 
 Gaussian Noise ✓
 
-Subimage Insertion
+Subimage Insertion ✓
+
+Gaussian Blur ✓
+
+Sharpen
+
+Laplace of Gaussian Edge Detection
 
 ## Example Usage
 
-Create and match two hashes:
+Create images and check if they match robustly:
 ```Java
-IHashAlgorithm h = HashFactory.AVERAGE_HASH;
-ImageHash hash1 = HashFactory.hash(img1, h);
-ImageHash hash2 = HashFactory.hash(img2, h);
-boolean matchesNormal = h.matches(img1, img2);
-boolean matchesStrict = h.matches(img1, img2, MatchMode.STRICT);
+IImage<?> img1 = null, img2 = null;
+		URL imageURL = null;
+		try {
+			// Download image from file/url.
+			// Try copy/pasting all sorts of image files/links here.
+			img1 = new RGBImage(new URL("https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png"));
+			img2 = img1
+					// 1.1x width, 1.2x height
+					.rescaleBilinear(1.1f, 1.2f)
+					// Kernel side length, blur intensity
+					.convolveWith(KernelFactory.gaussianBlurKernel(7, 5f))
+					// Mean, Standard Deviation
+					.apply(new GaussianNoiseAttack(3f, 7f)).toGreyscale();
+
+		} catch (IOException e) {
+			System.err.println("Failed to load the image.");
+			e.printStackTrace();
+			System.exit(1);
+		}
+
+		IHashAlgorithm h = new PerceptualHash();
+		boolean matches = h.matches(img1, img2);
+
+		// The images match, even though we did all the things above to one of them.
+		System.out.println(matches ? "MATCH" : "FAILED TO MATCH");
+
+		// Display the images
+		ImageUtils.showImage(img1);
+		ImageUtils.showImage(img2);
 ```
 
+## Inspiration, Citations, And Cool Papers to Read
+RGBHistogramHash
+["Image Hashing Based on Color Histogram" by Bian Yang, Fan Gu and Xiamu Niu](http://manu35.magtech.com.cn/Jwk_ics/CN/abstract/abstract1269.shtml)
+
+BlockHash
+["Block Mean Value Based Image Perceptual Hashing by Bian Yang, Fan Gu and Xiamu Niu"](https://ieeexplore.ieee.org/document/4041692)
+
+AHash/PHash:
+[Hacker Factor](http://hackerfactor.com/blog/index.php%3F/archives/432-Looks-Like-It.html),
+[PHash.org](https://www.phash.org/)
+
+DHash:
+[Hacker Factor](http://www.hackerfactor.com/blog/?/archives/529-Kind-of-Like-That.html)
 
