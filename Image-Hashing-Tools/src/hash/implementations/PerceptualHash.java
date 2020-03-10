@@ -2,6 +2,7 @@ package hash.implementations;
 
 import java.awt.image.BufferedImage;
 
+import hash.ComparisonType;
 import hash.DCTUtils;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
@@ -18,9 +19,14 @@ public class PerceptualHash implements IHashAlgorithm {
 		this(32);
 	}
 
-	public PerceptualHash(int thumbnailSideLength) {
-		this.size = thumbnailSideLength;
-		this.DCTCoefficients = DCTUtils.createHalfDCTCoefficients(thumbnailSideLength);
+	public PerceptualHash(int sideLength) {
+		this.size = sideLength;
+		this.DCTCoefficients = DCTUtils.createHalfDCTCoefficients(sideLength);
+	}
+
+	@Override
+	public ComparisonType getComparisonType() {
+		return ComparisonType.HAMMING;
 	}
 
 	@Override
@@ -31,6 +37,20 @@ public class PerceptualHash implements IHashAlgorithm {
 	@Override
 	public int getHashLength() {
 		return this.size * this.size;
+	}
+
+	@Override
+	public String serialize() {
+		return "" + this.size;
+	}
+
+	@Override
+	public IHashAlgorithm deserialize(String serialized) throws IllegalArgumentException {
+		try {
+			return new PerceptualHash(Integer.parseInt(serialized.trim()));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Expected one integer value.");
+		}
 	}
 
 	@Override
@@ -73,7 +93,7 @@ public class PerceptualHash implements IHashAlgorithm {
 
 		// Now we put the bits of the hash into a long[], and make an ImageHash object
 		// out of it.
-		return new ImageHash(this, constructHash(transformedTrimmedDCT));
+		return new ImageHash(this, constructHash(transformedTrimmedDCT), this.findSource(img));
 	}
 
 	private static double[][] packPixels(IImage<?> img, int size) {

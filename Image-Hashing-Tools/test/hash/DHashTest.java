@@ -4,20 +4,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.net.URL;
 import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
 import hash.implementations.DifferenceHash;
 import image.implementations.GreyscaleImage;
+import utils.TestUtils;
 
 public class DHashTest {
 
 	@Test
 	void DifferenceHashToFromStringTest() {
 		try {
-			GreyscaleImage img = new GreyscaleImage(new URL("https://homepages.cae.wisc.edu/~ece533/images/cat.png"));
+			GreyscaleImage img = new GreyscaleImage(TestUtils.safeScraper.nextImage().toGreyscale());
 
 			Random r = new Random();
 

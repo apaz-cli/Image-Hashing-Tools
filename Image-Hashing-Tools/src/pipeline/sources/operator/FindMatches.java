@@ -7,9 +7,9 @@ import hash.ImageHash;
 import hash.MatchMode;
 import image.IImage;
 import image.implementations.RGBAImage;
-import pipeline.sources.SourcedImage;
+import image.implementations.SourcedImage;
 
-public class FindMatches implements SourcedImageOperation {
+public class FindMatches implements IImageOperation {
 
 	public FindMatches(IHashAlgorithm algorithm, ImageHash hash) {
 		this(algorithm, MatchMode.NORMAL, hash);
@@ -56,18 +56,6 @@ public class FindMatches implements SourcedImageOperation {
 
 	private HashSet<String> matches = new HashSet<>();
 
-	@Override
-	public SourcedImage operate(SourcedImage img) {
-		ImageHash h = alg.hash(img);
-		boolean match = alg.matches(this.referenceHash, h, this.mm);
-		if (match) {
-			synchronized (this.matches) {
-				this.matches.add(img.getSource());
-			}
-		}
-		return img;
-	}
-
 	public HashSet<String> getMatches() {
 		synchronized (this.matches) {
 			return this.matches;
@@ -84,5 +72,22 @@ public class FindMatches implements SourcedImageOperation {
 		synchronized (this.matches) {
 			this.matches = new HashSet<String>();
 		}
+	}
+
+	@Override
+	public IImage<?> operate(IImage<?> img) {
+		if (!(img instanceof SourcedImage)) {
+			throw new IllegalArgumentException("This Operation only accepts SourcedImages.");
+		}
+		SourcedImage si = (SourcedImage) img;
+
+		ImageHash h = alg.hash(si);
+		boolean match = alg.matches(this.referenceHash, h, this.mm);
+		if (match) {
+			synchronized (this.matches) {
+				this.matches.add(si.getSource());
+			}
+		}
+		return si;
 	}
 }

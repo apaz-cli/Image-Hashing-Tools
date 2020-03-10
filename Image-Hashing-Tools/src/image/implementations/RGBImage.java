@@ -49,16 +49,18 @@ public class RGBImage implements IImage<RGBImage> {
 		this.b = new GreyscaleImage(blue, width, height);
 	}
 
-	public RGBImage(GreyscaleImage img) {
+	public RGBImage(IImage<?> img) {
 		this.width = img.getWidth();
 		this.height = img.getHeight();
-		this.r = img.deepClone();
-		this.g = img.deepClone();
-		this.b = img.deepClone();
+		RGBImage rgb = img.toRGB();
+		this.r = rgb.getRed();
+		this.g = rgb.getGreen();
+		this.b = rgb.getBlue();
 	}
 
 	// r, g, b, become backing
 	public RGBImage(GreyscaleImage red, GreyscaleImage green, GreyscaleImage blue) {
+		// TODO check height/width.
 		int len = red.getPixels().length;
 		if (len != green.getPixels().length || len != blue.getPixels().length) {
 			throw new IllegalArgumentException("All three images must be the same size.");
@@ -69,6 +71,18 @@ public class RGBImage implements IImage<RGBImage> {
 		this.r = red;
 		this.g = green;
 		this.b = blue;
+	}
+
+	public RGBImage(GreyscaleImage[] rgb) {
+		if (rgb.length != 3) {
+			throw new IllegalArgumentException("Array must contain exactly three color channels.");
+		}
+		RGBImage self = new RGBImage(rgb[0], rgb[1], rgb[2]);
+		this.width = self.getWidth();
+		this.height = self.getHeight();
+		this.r = self.getRed();
+		this.g = self.getGreen();
+		this.b = self.getBlue();
 	}
 
 	public RGBImage(BufferedImage img) throws IllegalArgumentException {
@@ -157,6 +171,11 @@ public class RGBImage implements IImage<RGBImage> {
 	@Override
 	public int getHeight() {
 		return this.height;
+	}
+
+	@Override
+	public GreyscaleImage[] getChannels() {
+		return new GreyscaleImage[] { this.r, this.g, this.b };
 	}
 
 	@Override

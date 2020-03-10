@@ -13,8 +13,8 @@ import java.util.concurrent.TimeUnit;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import image.IImage;
+import image.implementations.SourcedImage;
 import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
 import pipeline.sources.impl.collection.ImageCollection;
 import pipeline.sources.impl.loader.ImageLoader;
 
@@ -116,33 +116,20 @@ public class ImageHasher {
 	}
 
 	public ImageHash hash(boolean sourced) {
-		// TODO rewrite SourcedImage to implement IImage<SourcedImage>, then redo code
-		// below.
-		// TODO rename hashAllUnsourced and rewrite method signature with boolean
-		// sourced.
-		if (sourced) {
-			SourcedImage img = source.nextImage();
-			if (img == null) {
-				return null;
-			} else {
-				ImageHash h = algorithm.hash(img);
-				outputLambda.output(h);
-				return h;
-			}
-		} else {
-			IImage<?> img = source.nextIImage();
-			if (img == null) {
-				return null;
-			} else {
-				ImageHash h = algorithm.hash(img);
-				outputLambda.output(h);
-				return h;
-			}
+		IImage<?> img = source.nextImage();
+		if (img == null) {
+			return null;
 		}
-
+		ImageHash h = img instanceof SourcedImage ? algorithm.hash((SourcedImage) img) : algorithm.hash(img);
+		outputLambda.accept(h);
+		return h;
 	}
 
 	public List<ImageHash> hash(int iterations) {
+		return this.hash(iterations, true);
+	}
+
+	public List<ImageHash> hash(int iterations, boolean sourced) {
 		final int hashesPerThread = iterations / this.threadNum;
 		final int hashesNotCovered = iterations - (hashesPerThread * this.threadNum);
 
@@ -158,7 +145,7 @@ public class ImageHasher {
 
 				ImageHash hash;
 				for (int it = 0; cont && it < its; it++) {
-					hash = this.hash();
+					hash = this.hash(sourced);
 					if (hash == null) {
 						cont = false;
 					} else {
@@ -178,30 +165,16 @@ public class ImageHasher {
 	}
 
 	public void hashAll() {
-		ExecutorService pool = Executors.newWorkStealingPool(this.threadNum);
-		for (int i = 0; i < this.threadNum; i++) {
-			pool.execute(() -> {
-				@SuppressWarnings("unused")
-				ImageHash hash;
-				while ((hash = this.hash()) != null) {
-				}
-			});
-		}
-
-		try {
-			pool.shutdown();
-			pool.awaitTermination(7, TimeUnit.DAYS);
-		} catch (InterruptedException e) {
-		}
+		this.hashAll(true);
 	}
 
-	public void hashAllUnsourced() {
+	public void hashAll(boolean sourced) {
 		ExecutorService pool = Executors.newWorkStealingPool(this.threadNum);
 		for (int i = 0; i < this.threadNum; i++) {
 			pool.execute(() -> {
 				@SuppressWarnings("unused")
 				ImageHash hash;
-				while ((hash = this.hash(false)) != null) {
+				while ((hash = this.hash(sourced)) != null) {
 				}
 			});
 		}

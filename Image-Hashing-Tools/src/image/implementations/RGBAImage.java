@@ -113,6 +113,25 @@ public class RGBAImage implements IImage<RGBAImage> {
 		this.a = new GreyscaleImage(alpha, this.width, this.height);
 	}
 
+	public RGBAImage(IImage<?> img) {
+		RGBAImage rgba = img.toRGBA();
+		this.width = rgba.getWidth();
+		this.height = rgba.getHeight();
+		this.rgb = rgba.getRGB();
+		this.a = rgba.getAlpha();
+	}
+	
+	public RGBAImage(GreyscaleImage[] rgba) {
+		if (rgba.length != 4) {
+			throw new IllegalArgumentException("Array must contain exactly four color channels.");
+		}
+		RGBAImage self = new RGBAImage(rgba[0], rgba[1], rgba[2], rgba[3]);
+		this.width = self.getWidth();
+		this.height = self.getHeight();
+		this.rgb = self.getRGB();
+		this.a = self.getAlpha();
+	}
+	
 	public RGBAImage(File imgFile) throws IOException {
 		this(ImageUtils.openImage(imgFile));
 	}
@@ -129,6 +148,12 @@ public class RGBAImage implements IImage<RGBAImage> {
 	@Override
 	public int getHeight() {
 		return this.height;
+	}
+	
+	@Override
+	public GreyscaleImage[] getChannels() {
+		GreyscaleImage[] rgbChannels = this.rgb.getChannels();
+		return new GreyscaleImage[] { rgbChannels[0], rgbChannels[1], rgbChannels[2], this.a};
 	}
 
 	public RGBImage getRGB() {

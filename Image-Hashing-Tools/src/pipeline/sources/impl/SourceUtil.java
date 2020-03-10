@@ -4,7 +4,7 @@ import java.awt.image.BufferedImage;
 
 import image.IImage;
 import image.implementations.RGBAImage;
-import pipeline.sources.SourcedImage;
+import image.implementations.SourcedImage;
 
 public class SourceUtil {
 	public static SourcedImage castToSourced(Object obj) {

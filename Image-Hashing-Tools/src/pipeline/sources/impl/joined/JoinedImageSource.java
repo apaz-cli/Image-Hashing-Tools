@@ -3,8 +3,8 @@ package pipeline.sources.impl.joined;
 import java.util.Arrays;
 import java.util.List;
 
+import image.IImage;
 import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
 
 public class JoinedImageSource implements ImageSource {
 
@@ -45,9 +45,9 @@ public class JoinedImageSource implements ImageSource {
 		return true;
 	}
 
-	public SourcedImage nextImage() {
+	public IImage<?> nextImage() {
 		synchronized (sources) {
-			SourcedImage img = null;
+			IImage<?> img = null;
 			while (img == null) {
 				if (sources.isEmpty()) {
 					return null;

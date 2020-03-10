@@ -2,6 +2,7 @@ package pipeline;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Vector;
 import java.util.List;
@@ -11,17 +12,17 @@ import org.junit.jupiter.api.Test;
 import hash.ImageHash;
 import hash.implementations.PerceptualHash;
 import pipeline.hasher.ImageHasher;
-import pipeline.sources.impl.safebooruscraper.SafebooruScraper;
+import utils.TestUtils;
 
 public class ImageHasherTest {
 
 	@Test
-	void safeSourceHasherTest() {
+	void safeBooruSourceAndHasherTest() {
 
-		int hashnum = 37;
+		int hashnum = 27;
 		List<ImageHash> completedHashes = new Vector<>();
-		
-		ImageHasher safeHasher = new ImageHasher(new SafebooruScraper(), new PerceptualHash(), 5, (hash) -> {
+
+		ImageHasher safeHasher = new ImageHasher(TestUtils.safeScraper, new PerceptualHash(), 5, (hash) -> {
 			completedHashes.add(hash);
 		});
 
@@ -30,10 +31,14 @@ public class ImageHasherTest {
 		try {
 			assertEquals(hashhashes, completedHashes);
 			assertTrue(completedHashes.size() == hashnum);
+			for (ImageHash hash : hashhashes) {
+				assertTrue(hash.getSource() != null);
+			}
 		} catch (AssertionError e) {
 			System.err.println("CompletedHashes size: " + completedHashes.size());
 			System.err.println("HashHashes size: " + hashhashes.size());
-			throw e;
+			e.printStackTrace(System.err);
+			fail();
 		}
 	}
 }

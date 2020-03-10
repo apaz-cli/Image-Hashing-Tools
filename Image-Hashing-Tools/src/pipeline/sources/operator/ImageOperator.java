@@ -8,24 +8,23 @@ import java.util.concurrent.TimeUnit;
 
 import image.IImage;
 import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
 
 public class ImageOperator implements ImageSource {
 
 	private ImageSource source;
-	private ImageOperation[] imageOperations;
+	private IImageOperation[] imageOperations;
 	private int threadNum = 5;
 
 	private Object closeLock = new Object();
 
-	public ImageOperator(ImageSource source, ImageOperation operation) {
-		this(source, new ImageOperation[] { operation });
+	public ImageOperator(ImageSource source, IImageOperation operation) {
+		this(source, new IImageOperation[] { operation });
 	}
 
-	public ImageOperator(ImageSource source, ImageOperation... operations) {
+	public ImageOperator(ImageSource source, IImageOperation... operations) {
 		Objects.requireNonNull(source);
 		Objects.requireNonNull(operations);
-		for (ImageOperation op : operations) {
+		for (IImageOperation op : operations) {
 			Objects.requireNonNull(op);
 		}
 
@@ -33,21 +32,21 @@ public class ImageOperator implements ImageSource {
 		this.imageOperations = operations;
 	}
 
-	public ImageOperator(ImageSource source, int threadNum, ImageOperation operation) {
+	public ImageOperator(ImageSource source, int threadNum, IImageOperation operation) {
 		this(source, operation);
 		this.threadNum = threadNum;
 	}
 
-	public ImageOperator(ImageSource source, int threadNum, ImageOperation... operations) {
+	public ImageOperator(ImageSource source, int threadNum, IImageOperation... operations) {
 		this(source, operations);
 		this.threadNum = threadNum;
 	}
 
 	@Override
-	public SourcedImage nextImage() {
+	public IImage<?> nextImage() {
 
 		// Get image from backing source
-		SourcedImage img = null;
+		IImage<?> img = null;
 		synchronized (this) {
 			if (this.source == null) {
 				return null;
@@ -62,9 +61,9 @@ public class ImageOperator implements ImageSource {
 		return applyOperations(img);
 	}
 
-	public SourcedImage applyOperations(SourcedImage img) {
+	public IImage<?> applyOperations(IImage<?> img) {
 
-		ImageOperation[] ops = null;
+		IImageOperation[] ops = null;
 		synchronized (this) {
 			// Synchronized so that it can't be closed during copy.
 
@@ -79,16 +78,12 @@ public class ImageOperator implements ImageSource {
 		}
 
 		// Apply all the operations. Since we copied, this is now thread-safe.
-		for (ImageOperation op : ops) {
-			if (op instanceof IImageOperation) {
-				IImage<?> operated = ((IImageOperation) op).operate(img.unwrap());
-				img = new SourcedImage(operated, img.getSource(), img.isURL());
-			} else if (op instanceof SourcedImageOperation) {
-				img = ((SourcedImageOperation) op).operate(img);
-			}
+		IImage<?> operated = null;
+		for (IImageOperation op : ops) {
+			operated = op.operate(img);
 		}
 
-		return img;
+		return operated;
 	}
 
 	/**
@@ -102,7 +97,7 @@ public class ImageOperator implements ImageSource {
 			for (int i = 0; i < this.threadNum; i++) {
 				pool.execute(() -> {
 					@SuppressWarnings("unused")
-					SourcedImage img;
+					IImage<?> img;
 					while ((img = this.nextImage()) != null) {
 					}
 				});

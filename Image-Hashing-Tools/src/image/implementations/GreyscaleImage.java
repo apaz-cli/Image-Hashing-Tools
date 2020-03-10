@@ -24,12 +24,12 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		this.height = height;
 		// All arrays in java have default value null for objects and 0 for primitives.
 		// Therefore, the default will be all black.
-		this.pixels = new byte[PixelUtils.checkOverflow(width, height)];
+		this.pixels = new byte[PixelUtils.safeMult(width, height)];
 	}
 
 	// Pixel array is not copied. It becomes the backing array.
 	public GreyscaleImage(byte[] pixels, int width, int height) throws IllegalArgumentException {
-		if (pixels.length != PixelUtils.checkOverflow(width, height)) {
+		if (pixels.length != PixelUtils.safeMult(width, height)) {
 			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
 					+ width + "  Height: " + height + "  Pixel length: " + pixels.length);
 		}
@@ -42,7 +42,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	}
 
 	public GreyscaleImage(int[] pixels, int width, int height) throws IllegalArgumentException {
-		if (pixels.length != PixelUtils.checkOverflow(width, height)) {
+		if (pixels.length != PixelUtils.safeMult(width, height)) {
 			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
 					+ width + "  Height: " + height + "  Pixel length: " + pixels.length);
 		}
@@ -58,7 +58,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		this.width = width;
 		this.height = height;
 
-		this.pixels = new byte[PixelUtils.checkOverflow(width, height)];
+		this.pixels = new byte[PixelUtils.safeMult(width, height)];
 		for (int y = 0; y < this.height; y++) {
 			byte[] currentArray = pixels[y];
 			if (currentArray.length != this.width) {
@@ -71,8 +71,24 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		}
 	}
 
+	public GreyscaleImage(IImage<?> img) {
+		this.width = img.getWidth();
+		this.height = img.getHeight();
+		this.pixels = img.toGreyscale().getPixels();
+	}
+
 	public GreyscaleImage(BufferedImage img) {
 		GreyscaleImage self = new RGBImage(img).toGreyscale();
+		this.width = self.getWidth();
+		this.height = self.getHeight();
+		this.pixels = self.getPixels();
+	}
+
+	public GreyscaleImage(GreyscaleImage[] g) {
+		if (g.length != 1) {
+			throw new IllegalArgumentException("Array must contain exactly one color channel.");
+		}
+		GreyscaleImage self = new GreyscaleImage(g[0]);
 		this.width = self.getWidth();
 		this.height = self.getHeight();
 		this.pixels = self.getPixels();
@@ -154,6 +170,11 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	}
 
 	@Override
+	public GreyscaleImage[] getChannels() {
+		return new GreyscaleImage[] { this };
+	}
+
+	@Override
 	public GreyscaleImage deepClone() {
 		return new GreyscaleImage(Arrays.copyOf(this.pixels, this.pixels.length), this.width, this.height);
 	}
@@ -176,7 +197,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		// Throws when new width * new height overflows int.maxvalue
 		int newWidth = Math.toIntExact(Math.round(this.width * widthFactor));
 		int newHeight = Math.toIntExact(Math.round(this.height * heightFactor));
-		byte[] newPixels = new byte[PixelUtils.checkOverflow(newWidth, newHeight)];
+		byte[] newPixels = new byte[PixelUtils.safeMult(newWidth, newHeight)];
 
 		int xSample, ySample;
 		for (int x = 0; x < newWidth; x++) {
@@ -196,7 +217,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 			return this.deepClone();
 		}
 
-		byte[] scaled = new byte[PixelUtils.checkOverflow(width, height)];
+		byte[] scaled = new byte[PixelUtils.safeMult(width, height)];
 
 		float xRatio = ((float) (this.width - 1)) / width;
 		float yRatio = ((float) (this.height - 1)) / height;

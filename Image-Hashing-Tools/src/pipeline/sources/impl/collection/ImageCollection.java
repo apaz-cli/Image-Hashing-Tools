@@ -5,8 +5,8 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import image.implementations.SourcedImage;
 import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
 import pipeline.sources.impl.SourceUtil;
 
 public class ImageCollection implements ImageSource {

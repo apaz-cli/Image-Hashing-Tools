@@ -3,9 +3,9 @@ package image;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
 
-import image.implementations.CMYKImage;
+import attack.IAttack;
+import attack.convolutions.ConvolutionKernel;
 import image.implementations.GreyscaleImage;
-import image.implementations.HSIImage;
 import image.implementations.RGBAImage;
 import image.implementations.RGBImage;
 import image.implementations.YCbCrImage;
@@ -26,6 +26,8 @@ public interface IImage<T extends IImage<T>> {
 	abstract public int getWidth();
 
 	abstract public int getHeight();
+
+	abstract public GreyscaleImage[] getChannels();
 
 	abstract public T deepClone();
 
@@ -53,20 +55,6 @@ public interface IImage<T extends IImage<T>> {
 		return new YCbCrImage(this.toRGB());
 	}
 
-	default public CMYKImage toCMYK() {
-		if (this instanceof CMYKImage) {
-			return (CMYKImage) this;
-		}
-		return new CMYKImage(this.toRGB());
-	}
-
-	default public HSIImage toHSI() {
-		if (this instanceof HSIImage) {
-			return (HSIImage) this;
-		}
-		return new HSIImage(this.toRGB());
-	}
-
 	abstract public T flipHorizontal();
 
 	abstract public T flipVertical();
@@ -88,5 +76,25 @@ public interface IImage<T extends IImage<T>> {
 	}
 
 	abstract public T emplaceSubimage(T subImage, int x1, int y1, int x2, int y2);
+
+	default public IImage<?> convolveWith(ConvolutionKernel kernel) {
+		@SuppressWarnings("unchecked")
+		T self = (T) kernel.applyTo(this);
+		return self;
+	}
+	
+	
+	default public T apply(IAttack attack) {
+		@SuppressWarnings("unchecked")
+		T self = (T) attack.applyTo(this);
+		return self;
+	}
+
+	default public T printDimensions() {
+		System.out.println("Width: " + this.getWidth() + " Height: " + this.getHeight());
+		@SuppressWarnings("unchecked")
+		T self = (T) this;
+		return self;
+	}
 
 }

@@ -17,8 +17,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import image.implementations.SourcedImage;
 import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
 import utils.ImageUtils;
 
 public class SafebooruScraper implements ImageSource {
@@ -43,7 +43,7 @@ public class SafebooruScraper implements ImageSource {
 	public SafebooruScraper(String attribute) {
 		this.attribute = attribute;
 	}
-	
+
 	@Override
 	public SourcedImage nextImage() {
 		String surl = null;
@@ -121,8 +121,7 @@ public class SafebooruScraper implements ImageSource {
 			// The logic of the method is finished, handling errors gets a little bit
 			// unruly.
 		} catch (IOException e) {
-			// If windows is shitting the bed when it goes to sleep, try again. I got these
-			// when I closed my laptop.
+			// If windows is screwing up, try again. I got these when I closed my laptop.
 			if (e instanceof java.net.UnknownHostException) {
 				try {
 					Thread.sleep(5000L);
@@ -147,7 +146,7 @@ public class SafebooruScraper implements ImageSource {
 				// If it isn't one of these things, at least for the purposes of debugging, I
 				// want to make it explode.
 
-				// In this way, this method is guaranteed to return a page, overflow the
+				// In this way, this method is guaranteed to somehow work, overflow the
 				// function stack, or otherwise halt the entire program.
 				System.err.println("An unknown error has occurred. "
 						+ "Please create an issue at https://github.com/Aaron-Pazdera/Open-Image-Hashing-Tools "
@@ -160,11 +159,11 @@ public class SafebooruScraper implements ImageSource {
 		catch (ParserConfigurationException e) {
 			System.err.println("Unrecoverable error configuring parser.");
 			e.printStackTrace();
-			System.exit(1);
+			System.exit(2);
 		} catch (SAXException e) {
 			System.err.println("Unrecoverable error parsing SAX DOM tree.");
 			e.printStackTrace();
-			System.exit(1);
+			System.exit(2);
 		}
 	}
 

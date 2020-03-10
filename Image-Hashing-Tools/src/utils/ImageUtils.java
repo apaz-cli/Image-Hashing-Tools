@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.BitSet;
+import java.util.Arrays;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
@@ -23,7 +23,7 @@ import image.IImage;
 import image.implementations.GreyscaleImage;
 import image.implementations.RGBAImage;
 import image.implementations.RGBImage;
-import pipeline.sources.SourcedImage;
+import image.implementations.SourcedImage;
 
 public class ImageUtils {
 
@@ -33,7 +33,7 @@ public class ImageUtils {
 	// Returns null if isn't an image, or it's a gif
 	public static BufferedImage openImage(URL imgURL) throws IOException {
 
-		// TODO Due to a Java 8 bug in ImageIO, cannot read animated gifs.
+		// Due to a Java 8 bug in ImageIO, cannot read animated gifs.
 		if (imgURL.getPath().contains(".gif")) {
 			return null;
 		}
@@ -68,7 +68,9 @@ public class ImageUtils {
 		if (!imgFile.canRead()) {
 			throw new IllegalArgumentException("Insufficient permission to read file.");
 		}
-		return ImageIO.read(imgFile);
+		
+		// Cannot read gifs due to ImageIO bug.
+		return imgFile.toString().endsWith(".gif") ? null : ImageIO.read(imgFile);
 	}
 
 	public static SourcedImage openImageSourced(URL imgURL) throws IOException {
@@ -82,11 +84,11 @@ public class ImageUtils {
 	}
 
 	public static void showImage(SourcedImage img) {
-		showImage(img.unwrap());
+		showImage(img.unwrap(), img.getSource());
 	}
 
 	public static void showImage(IImage<?> img) {
-		showImage(img.toBufferedImage(), "");
+		showImage(img.toBufferedImage(), (img instanceof SourcedImage) ? ((SourcedImage) img).getSource() : "");
 	}
 
 	public static void showImage(IImage<?> img, String name) {
@@ -113,23 +115,25 @@ public class ImageUtils {
 
 	public static GreyscaleImage imageRepresentation(ImageHash hash, int width, int height)
 			throws IllegalArgumentException {
-		return imageRepresentation(hash.getBits(), width, height);
+		return imageRepresentation(hash.getBitArray(), width, height);
 	}
 
-	public static GreyscaleImage imageRepresentation(BitSet bs, int width, int height) throws IllegalArgumentException {
-		if (bs.length() > width * height) {
-			throw new IllegalArgumentException("The length of the BitSet must be less than or equal to width * height. BS length: "
-					+ bs.length() + " width * height was: " + width * height);
-		}
+	public static GreyscaleImage imageRepresentation(long[] hashBits, int width, int height)
+			throws IllegalArgumentException {
+
+		// Copy the array so that we don't screw up the original
+		hashBits = Arrays.copyOfRange(hashBits, 0, hashBits.length);
+		int pixelOffset = 0, hashIndex = 0;
 
 		byte[] pixels = new byte[width * height];
-		for (int i = 0; i < bs.length(); i++) {
-			// Represent 1 as black, 0 as white
-			pixels[i] = bs.get(i) == true ? (byte) 0 : (byte) 255;
-		}
-		
-		for (int i = bs.length(); i < width * height; i++) {
-			pixels[i] = (byte) 255;
+		for (int i = 0; i < hashBits.length; i++) {
+			for (int j = 0; j < 64; j++) {
+				if (pixelOffset < width * height) {
+					pixels[pixelOffset++] = (hashBits[hashIndex] & 0x1) == 0x1 ? (byte) 0 : (byte) 255;
+					hashBits[hashIndex] >>= 1;
+				}
+			}
+			hashIndex++;
 		}
 
 		return new GreyscaleImage(pixels, width, height);
@@ -155,11 +159,11 @@ public class ImageUtils {
 
 	// Returns an array containing normally distributed noise, rounded to the
 	// nearest integer.
-	public static int[] gaussianNoise(int length, int mean, int sd) {
+	public static float[] gaussianNoise(int length, float mean, float sd) {
 		Random r = new Random();
-		int[] gaussNoise = new int[length];
+		float[] gaussNoise = new float[length];
 		for (int i = 0; i < length; i++) {
-			gaussNoise[i] = (int) Math.round((r.nextGaussian() * sd) + mean);
+			gaussNoise[i] = (float) ((r.nextGaussian() * sd) + mean);
 		}
 		return gaussNoise;
 	}

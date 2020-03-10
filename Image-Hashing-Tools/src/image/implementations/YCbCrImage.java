@@ -142,6 +142,18 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 		this.Cr = ycbcr.getCr();
 	}
 
+	public YCbCrImage(GreyscaleImage[] YCbCr) {
+		if (YCbCr.length != 3) {
+			throw new IllegalArgumentException("Array must contain exactly three color channels.");
+		}
+		YCbCrImage self = new YCbCrImage(YCbCr[0], YCbCr[1], YCbCr[2]);
+		this.width = self.getWidth();
+		this.height = self.getHeight();
+		this.Y = self.getY();
+		this.Cb = self.getCb();
+		this.Cr = self.getCr();
+	}
+
 	public YCbCrImage(File imgFile) throws IOException {
 		this(ImageIO.read(imgFile));
 	}
@@ -158,6 +170,11 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 	@Override
 	public int getHeight() {
 		return this.height;
+	}
+
+	@Override
+	public GreyscaleImage[] getChannels() {
+		return new GreyscaleImage[] { this.Y, this.Cb, this.Cr };
 	}
 
 	public GreyscaleImage getY() {
@@ -215,8 +232,6 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 	// Inverse conversion
 	@Override
 	public RGBImage toRGB() {
-		// Only call the function once, save a reference to avoid function overhead.
-		// This is not copying the array object.
 		byte[] luminance = Y.getPixels();
 		byte[] chrominanceBlue = Cb.getPixels();
 		byte[] chrominanceRed = Cr.getPixels();
@@ -233,19 +248,19 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 			int cr = chrominanceRed[i] & 0xff;
 			
 			j = ((int) (
-					298.082f * (y - 16) + 408.583 *
-					(cr - 128))
+					298.082f * (y - 16) +
+					408.583 * (cr - 128))
 					) >> 8;
 
 			k = ((int)(
-					298.082 * (y - 16) + -100.291 *
-					(cb - 128) + -208.120 *
-					(cr - 128))
+					298.082 * (y - 16) + 
+					-100.291 * (cb - 128) + 
+					-208.120 * (cr - 128))
 					) >> 8;
 
 			l = ((int) 
-					(298.082 * (y - 16) + 516.411 *
-					(cb - 128))
+					(298.082 * (y - 16) + 
+					516.411 * (cb - 128))
 					) >> 8;
 			
 			// Validate arrays

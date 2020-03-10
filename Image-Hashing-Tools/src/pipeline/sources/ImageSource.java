@@ -5,25 +5,25 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import image.IImage;
+import image.implementations.SourcedImage;
 
 public interface ImageSource extends Closeable {
-	public abstract SourcedImage nextImage();
-
-	public default IImage<?> nextIImage() {
-		SourcedImage img = this.nextImage();
-		return img == null ? null : img.unwrap();
-	}
+	public abstract IImage<?> nextImage();
 
 	public default BufferedImage nextBufferedImage() {
-		SourcedImage img = this.nextImage();
-		return img == null ? null : img.unwrapBufferedImage();
+		IImage<?> img = this.nextImage();
+		return img == null ? null : img.toBufferedImage();
 	}
 
 	public default List<SourcedImage> toSourcedList() {
 		ArrayList<SourcedImage> list = new ArrayList<>();
-		SourcedImage img;
+		IImage<?> img;
 		while ((img = this.nextImage()) != null) {
-			list.add(img);
+			if (img instanceof SourcedImage) {
+				list.add((SourcedImage) img);
+			} else {
+				list.add(new SourcedImage(img));
+			}
 		}
 		return list;
 	}
@@ -31,7 +31,7 @@ public interface ImageSource extends Closeable {
 	public default List<IImage<?>> toIImageList() {
 		ArrayList<IImage<?>> list = new ArrayList<>();
 		IImage<?> img;
-		while ((img = this.nextIImage()) != null) {
+		while ((img = this.nextImage()) != null) {
 			list.add(img);
 		}
 		return list;

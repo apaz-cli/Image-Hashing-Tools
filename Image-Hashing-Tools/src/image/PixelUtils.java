@@ -6,7 +6,11 @@ import image.implementations.GreyscaleImage;
 
 public class PixelUtils {
 
-	public static int checkOverflow(int a, int b) throws IllegalArgumentException {
+	public static int safeSquare(int a) throws ArithmeticException {
+		return safeMult(a, a);
+	}
+
+	public static int safeMult(int a, int b) throws ArithmeticException {
 		if (b == 0) {
 			return 0;
 		}
@@ -15,8 +19,40 @@ public class PixelUtils {
 		if (a == product / b) {
 			return product;
 		} else {
-			throw new IllegalArgumentException("Width and height of new byte[] would overflow int.");
+			throw new ArithmeticException(
+					"int multiplication would overflow or underflow on safeMult(" + a + "," + b + ").");
 		}
+	}
+
+	public static int safeMult(int... a) {
+		if (a == null) {
+			throw new IllegalArgumentException("Null not allowed.");
+		}
+		if (a.length < 3) {
+			if (a.length == 1) {
+				return safeSquare(a[0]);
+			}
+			if (a.length == 2) {
+				return safeMult(a[0], a[1]);
+			}
+			if (a.length == 0) {
+				throw new IllegalArgumentException("No arguments were given, just an empty array.");
+			}
+		}
+
+		int product = safeMult(a[0], a[1]);
+		for (int i = 2; i < a.length; i++) {
+			product = safeMult(product, a[i]);
+		}
+
+		return product;
+	}
+
+	public static int safeAdd(int a, int b) throws ArithmeticException {
+		int r = a + b;
+		if (((a & b & ~r) | (~a & ~b & r)) < 0)
+			throw new ArithmeticException("int addition overflow or underflow on safeAdd(" + a + ", " + b + ").");
+		return r;
 	}
 
 	public static int[] byteArrayToInt(byte[] arr) {
@@ -28,9 +64,17 @@ public class PixelUtils {
 	}
 
 	public static byte[] intArrayToByte(int[] arr) {
-		byte[] intArr = new byte[arr.length];
+		byte[] byteArr = new byte[arr.length];
 		for (int i = 0; i < arr.length; i++) {
-			intArr[i] = (byte) arr[i];
+			byteArr[i] = (byte) arr[i];
+		}
+		return byteArr;
+	}
+
+	public static int[] floatArrayToInt(float[] arr) {
+		int[] intArr = new int[arr.length];
+		for (int i = 0; i < arr.length; i++) {
+			intArr[i] = (int) arr[i];
 		}
 		return intArr;
 	}
@@ -49,6 +93,18 @@ public class PixelUtils {
 
 	public static byte[][] array1dToArray2d(byte[] arr, int x, int y) {
 		byte[][] array2d = new byte[y][x];
+		int index = 0;
+		for (int i = 0; i < array2d.length; i++) {
+			for (int j = 0; j < array2d[i].length; j++) {
+				array2d[i][j] = arr[index];
+				index++;
+			}
+		}
+		return array2d;
+	}
+
+	public static float[][] array1dToArray2d(float[] arr, int x, int y) {
+		float[][] array2d = new float[y][x];
 		int index = 0;
 		for (int i = 0; i < array2d.length; i++) {
 			for (int j = 0; j < array2d[i].length; j++) {
@@ -80,6 +136,21 @@ public class PixelUtils {
 		byte[] array1d = new byte[x * y];
 		for (int i = 0; i < x; i++) {
 			byte[] currentArray = arr[i];
+			if (currentArray.length != y) {
+				throw new IllegalArgumentException("All subarrays of pixels must be of length equal to the width.");
+			}
+
+			for (int j = 0; j < y; j++) {
+				array1d[i * y + j] = currentArray[j];
+			}
+		}
+		return array1d;
+	}
+
+	public static float[] array2dToArray1d(float[][] arr, int x, int y) {
+		float[] array1d = new float[x * y];
+		for (int i = 0; i < x; i++) {
+			float[] currentArray = arr[i];
 			if (currentArray.length != y) {
 				throw new IllegalArgumentException("All subarrays of pixels must be of length equal to the width.");
 			}
@@ -235,7 +306,7 @@ public class PixelUtils {
 		}
 
 		int subWidth = (x2 - x1) + 1, subHeight = (y2 - y1) + 1;
-		
+
 		// End of duplicated block
 
 		// Now extract the actual subimage.

@@ -3,29 +3,16 @@ package image;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.awt.Point;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
 
 import image.implementations.GreyscaleImage;
+import utils.TestUtils;
 
 public class GreyscaleTest {
 
-	private static GreyscaleImage testImage = null;
-	private static URL testImageURL = null;
-	static {
-		try {
-			testImageURL = new URL("https://safebooru.org//images/1266/9b3bc732bfa59cc8427951c280d584a868bdd1d5.png");
-			testImage = new GreyscaleImage(testImageURL);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+	private static GreyscaleImage testImage = TestUtils.safeScraper.nextImage().toGreyscale();
 
 	@Test
 	void rotationFlipEquivalenceTest() {

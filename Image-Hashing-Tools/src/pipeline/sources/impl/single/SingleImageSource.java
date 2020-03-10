@@ -5,8 +5,8 @@ import java.io.File;
 import java.net.URL;
 
 import image.IImage;
+import image.implementations.SourcedImage;
 import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
 
 public class SingleImageSource implements ImageSource {
 

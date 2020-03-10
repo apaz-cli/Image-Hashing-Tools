@@ -17,23 +17,11 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 	private final long[] bits;
 	private final String type; // name null is not legal. Name also cannot contain certain characters. (,|\")
-	private final int hashLength; // Will still work if not a multiple of 64. Just don't mess with those bits.
-	private String source = null; // null appends as "null" with StringBuilder.
+	private final int hashLength; // Will still work if not a multiple of 64. We just don't mess with those bits.
+	private String source = null; // null appends as "null" with StringBuilder in toString(), which effectively
+									// serializes hashes.
 
 	final protected static char[] intToHexChar = "0123456789ABCDEF".toCharArray();// Convenience for toString()
-
-	public ImageHash(IHashAlgorithm creator, BitSet hash) throws IllegalArgumentException {
-		this.type = creator.getHashName();
-		this.bits = hash.toLongArray();
-		this.hashLength = creator.getHashLength();
-	}
-
-	public ImageHash(IHashAlgorithm creator, BitSet hash, String source) throws IllegalArgumentException {
-		this.type = creator.getHashName();
-		this.bits = hash.toLongArray();
-		this.hashLength = creator.getHashLength();
-		this.source = source;
-	}
 
 	public ImageHash(IHashAlgorithm creator, long[] hash) throws IllegalArgumentException {
 		this.type = creator.getHashName();
@@ -45,21 +33,6 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		this.type = creator.getHashName();
 		this.bits = Arrays.copyOf(hash, hash.length);
 		this.hashLength = creator.getHashLength();
-		this.source = source;
-	}
-
-	public ImageHash(String hashName, BitSet hash, int hashLength) throws IllegalArgumentException {
-		checkName(hashName);
-		this.type = hashName;
-		this.bits = hash.toLongArray();
-		this.hashLength = hashLength;
-	}
-
-	public ImageHash(String hashName, BitSet hash, int hashLength, String source) throws IllegalArgumentException {
-		checkName(hashName);
-		this.type = hashName;
-		this.bits = hash.toLongArray();
-		this.hashLength = hashLength;
 		this.source = source;
 	}
 
@@ -212,6 +185,8 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return this.bits;
 	}
 
+	/* Euclidean */
+
 	public double[] getBitArrayAsDouble() {
 		double[] dbits = new double[this.bits.length];
 		for (int i = 0; i < this.bits.length; i++) {
@@ -223,11 +198,9 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 	public float[] getBitArrayAsFloat() {
 		int[] ibits = this.getBitArrayAsInt();
 		float[] fbits = new float[ibits.length];
-		
 		for (int i = 0; i < ibits.length; i++) {
 			fbits[i] = java.lang.Float.intBitsToFloat(ibits[i]);
 		}
-		
 		return fbits;
 	}
 
@@ -239,16 +212,16 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			ibits[currentInt] = (int) this.bits[i];
 			ibits[currentInt + 1] = (int) (this.bits[i] >> 32);
 		}
-		return ibits;
+		return (this.hashLength % 2 == 0) ? ibits : Arrays.copyOf(ibits, (this.bits.length * 2) - 1);
 	}
-	
+
 	public byte[] getBitArrayAsByte() {
 		byte[] bbits = new byte[this.bits.length * 8];
 		int currentByte;
 		for (int i = 0; i < this.bits.length; i++) {
-			currentByte = i * 8; 
+			currentByte = i * 8;
 			long workingLong = this.bits[i];
-			
+
 			bbits[currentByte] = (byte) workingLong;
 			for (int j = 1; j < 8; j++) {
 				workingLong <<= 8;
@@ -260,7 +233,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 
 	public boolean getBit(int bitIndex) throws ArrayIndexOutOfBoundsException {
 		// Taken from BitSet docs
-		// https://docs.oracle.com/javase/7/docs/api/java/util/BitSet.html#toLongArray%28%29
+		// https://docs.oracle.com/javase/7/docs/api/java/utils/BitSet.html#toLongArray%28%29
 		return ((this.bits[bitIndex / 64] & (1L << (bitIndex % 64))) != 0);
 	}
 
@@ -280,13 +253,13 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		// it away. Most hashes are a multiple of 64 long, and it isn't worth checking.
 		long[] other = hash.getBitArray();
 		int distance = 0;
-
-		for (int arr = 0; arr < this.bits.length; arr++) {
-			long x = this.bits[arr] ^ other[arr];
-			for (int i = 0; i < 64; i++) {
-				distance += x & 1;
-				x >>= 1;
-			}
+		long b;
+		for (int idx = 0; idx < this.bits.length; idx++) {
+			b = this.bits[idx] ^ other[idx];
+			b -= (b >> 1) & 0x5555555555555555L;
+			b = (b & 0x3333333333333333L) + ((b >> 2) & 0x3333333333333333L);
+			b = (b + (b >> 4)) & 0x0f0f0f0f0f0f0f0fL;
+			distance += (b * 0x0101010101010101L) >> 56;
 		}
 
 		return distance;

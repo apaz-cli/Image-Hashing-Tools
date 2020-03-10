@@ -15,8 +15,8 @@ import java.util.concurrent.SynchronousQueue;
 import javax.imageio.ImageIO;
 
 import image.implementations.GreyscaleImage;
+import image.implementations.SourcedImage;
 import pipeline.sources.ImageSource;
-import pipeline.sources.SourcedImage;
 
 public class ImageLoader implements ImageSource {
 

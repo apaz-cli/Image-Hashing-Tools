@@ -21,16 +21,13 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.ImageWriter;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.WindowConstants;
 
 import hash.*;
 import hash.implementations.*;
@@ -44,11 +41,10 @@ import pipeline.sources.impl.downloader.URLCollectionDownloader;
 import pipeline.sources.impl.loader.ImageLoader;
 import pipeline.sources.impl.safebooruscraper.SafebooruScraper;
 import pipeline.sources.operator.IImageOperation;
-import pipeline.sources.operator.ImageOperation;
 import pipeline.sources.operator.ImageOperator;
-import pipeline.sources.operator.SourcedImageOperation;
-import attack.IAttack;
-import attack.implementations.*;
+import attack.*;
+import attack.convolutions.*;
+import attack.other.*;
 
 @SuppressWarnings("unused")
 public class BenchmarkRunner {
@@ -61,7 +57,7 @@ public class BenchmarkRunner {
 				"https://images3.alphacoders.com/836/83635.jpg",
 				"https://safebooru.org//IMAGES/2824/c7f88eef1dda8cf4a5d06c6f732da9e14d08fb38.png",
 				"https://pbs.twimg.com/media/D8s6grBU0AAADD3?format=jpg&name=large",
-				"https://safebooru.org/IMAGES/2855/5b462269fa06bbb9e249698f3153140a110f44be.png" };
+				"https://safebooru.org//IMAGES/2855/5b462269fa06bbb9e249698f3153140a110f44be.png" };
 		IMAGES = new ArrayList<URL>(
 				Arrays.asList(urls).stream().map(BenchmarkRunner::urlConstructor).collect(Collectors.toList()));
 	}
@@ -72,6 +68,7 @@ public class BenchmarkRunner {
 			u = new URL(url);
 		} catch (Exception e) {
 			e.printStackTrace();
+			System.exit(1);
 		}
 		return u;
 	}
@@ -81,39 +78,35 @@ public class BenchmarkRunner {
 	// ********//
 
 	public static void main(String[] args) {
-		GreyscaleImage lenna = null;
-		try {
-			lenna = new GreyscaleImage(IMAGES.get(0));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		/*
+		 * SeperableKernel ker1 = KernelFactory.averageBlurKernel(3, EdgeMode.WRAP);
+		 * InseperableKernel ker2 = ker1.toInseperable();
+		 * 
+		 * RGBImage img = TestUtils.safeScraper.nextImage().toRGB();
+		 * 
+		 * IImage<?> img1 = img.convolveWith(ker1); IImage<?> img2 =
+		 * img.convolveWith(ker2);
+		 * 
+		 * ImageUtils.showImage(img, "Original"); ImageUtils.showImage(img1,
+		 * "Seperable"); ImageUtils.showImage(img2, "Inseperable");
+		 */
 
+		@SuppressWarnings("resource")
+		IImage<?> img = new SafebooruScraper().nextImage();
 		
 		
-		// new ImageHasher(new SafebooruScraper(), new DifferenceHash(), 5,
-		// System.out).hashAll();
+		ImageUtils.showImage(img.deepClone().resizeBilinear(32, 32).resizeNearest(512, 512), "32");
+		ImageUtils.showImage(img.deepClone().resizeBilinear(40, 40).resizeNearest(512, 512), "40");
+		ImageUtils.showImage(img.deepClone().resizeBilinear(64, 64).resizeNearest(512, 512), "64");
+		ImageUtils.showImage(img.deepClone().resizeBilinear(128, 128).resizeNearest(512, 512), "128");
+		
+		/*
+		 * SafebooruScraper s = new SafebooruScraper(); int found = 0; while (found <
+		 * 100) { SourcedImage img = s.nextImage(); if (img.getWidth() ==
+		 * img.getHeight()) { ImageUtils.showImage(img); } } s.close();
+		 */
 
 	}
-
-	// TODO write test for RGBAImage transparency
-
-	// For testing ImageHash serialization
-	/*
-	 * IHashAlgorithm dhash = new DifferenceHash(); ImageHash h1 = null, h2 = null;
-	 * try { h1 = dhash.hash(IMAGES.get(0)); } catch (IOException e) {
-	 * e.printStackTrace(); }
-	 * 
-	 * System.out.println(h1.toString());
-	 * 
-	 * try { File serialized = new File(
-	 * "C:\\Users\\PazderaAaron\\Downloads\\Image Hashing Related\\Examples\\dhash\\serialized.hash"
-	 * ); h1.writeToNewFile(serialized); h2 = ImageHash.fromFile(serialized); }
-	 * catch (FileNotFoundException e) { e.printStackTrace(); } catch (IOException
-	 * e) { e.printStackTrace(); }
-	 * 
-	 * System.out.println("Hashes are equal: " + h1.equals(h2));
-	 */
 
 	// For testing pipeline
 	/*

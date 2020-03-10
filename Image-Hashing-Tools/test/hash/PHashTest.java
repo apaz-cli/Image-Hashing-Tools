@@ -13,10 +13,11 @@ import hash.implementations.PerceptualHash;
 import image.IImage;
 import image.implementations.GreyscaleImage;
 import image.implementations.RGBAImage;
+import image.implementations.SourcedImage;
 import image.implementations.YCbCrImage;
-import pipeline.sources.impl.safebooruscraper.SafebooruScraper;
 import pipeline.sources.operator.IImageOperation;
 import pipeline.sources.operator.ImageOperator;
+import utils.TestUtils;
 
 public class PHashTest {
 
@@ -69,8 +70,7 @@ public class PHashTest {
 	void toFromStringTest() {
 
 		try {
-			RGBAImage img = new RGBAImage(
-					new URL("https://safebooru.org//images/2867/d28bda344a786beacd9bd515f01b0e69550c2870.png?2986248"));
+			RGBAImage img = TestUtils.safeScraper.nextImage().toRGBA();
 
 			int sideLength = 53;
 
@@ -95,20 +95,26 @@ public class PHashTest {
 			double[] fullDCTCoefficients = DCTUtils.createDCTCoefficients(size);
 			double[] halfDCTCoefficients = DCTUtils.createHalfDCTCoefficients(size);
 
-			SafebooruScraper scraper = new SafebooruScraper();
-			ImageOperator op = new ImageOperator(scraper, (IImageOperation) (img) -> {
+			
+			ImageOperator op = new ImageOperator(TestUtils.safeScraper, new IImageOperation() {
+				@Override
+				public IImage<?> operate(IImage<?> img) {
+					if (img instanceof SourcedImage) {
+						return this.handleSourced((SourcedImage) img, this);
+					}
 
-				double[][] original = packPixels(YCbCrImage.computeY(img), size);
+					double[][] original = packPixels(YCbCrImage.computeY(img), size);
 
-				double[][] fulltrimmed = trimDCT(DCTUtils.DCTII(original, size, fullDCTCoefficients));
-				double[][] half = DCTUtils.halfDCTII(original, size, halfDCTCoefficients);
-				assertTrue(Arrays.deepEquals(fulltrimmed, half));
-				
-				return img;
+					double[][] fulltrimmed = trimDCT(DCTUtils.DCTII(original, size, fullDCTCoefficients));
+					double[][] half = DCTUtils.halfDCTII(original, size, halfDCTCoefficients);
+					assertTrue(Arrays.deepEquals(fulltrimmed, half));
+
+					return img;
+				}
 			});
 
 			for (int i = 0; i < imgnum; i++) {
-				op.nextIImage();
+				op.nextImage();
 			}
 			op.close();
 

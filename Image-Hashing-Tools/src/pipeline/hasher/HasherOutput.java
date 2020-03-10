@@ -2,6 +2,7 @@ package pipeline.hasher;
 
 import hash.ImageHash;
 
+@FunctionalInterface
 public interface HasherOutput {
-	public abstract void output(ImageHash hash);
+	public abstract void accept(ImageHash hash);
 }

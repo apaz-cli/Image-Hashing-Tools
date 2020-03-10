@@ -1,4 +1,5 @@
 package hash;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.File;
@@ -9,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import hash.ImageHash;
 import hash.implementations.DifferenceHash;
-import utils.BenchmarkRunner;
+import utils.TestUtils;
 
 public class ImageHashTest {
 
@@ -17,11 +18,7 @@ public class ImageHashTest {
 	void serializeTest() {
 
 		ImageHash h1 = null, h2 = null;
-		try {
-			h1 = new DifferenceHash().hash(BenchmarkRunner.IMAGES.get(0));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		h1 = new DifferenceHash().hash(TestUtils.safeScraper.nextImage());
 
 		try {
 			File serialized = new File("serialized.hash");
@@ -39,13 +36,7 @@ public class ImageHashTest {
 
 	@Test
 	void toFromStringTest() {
-		ImageHash h = null;
-		try {
-			h = new DifferenceHash().hash(BenchmarkRunner.IMAGES.get(0));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
+		ImageHash h = new DifferenceHash().hash(TestUtils.safeScraper.nextImage());
 		assertEquals(h, ImageHash.fromString(h.toString()));
 	}
 
