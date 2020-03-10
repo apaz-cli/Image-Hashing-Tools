@@ -9,6 +9,7 @@ import java.io.IOException;
 
 import hash.IHashAlgorithm;
 
+// TODO Implement hash stores
 public abstract class BaseHashStore implements HashStore {
 
 	// Anatomy of Hash Store:
