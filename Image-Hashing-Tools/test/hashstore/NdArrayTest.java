@@ -42,16 +42,15 @@ public class NdArrayTest {
 	}
 
 	@Test
-	@SuppressWarnings(value = { "unused" })
 	void throwTests() {
 		assertThrows(java.lang.IllegalArgumentException.class, () -> {
-			NdArray<Float> nd = new NdArray<>(99999, 99999, 99999);
+			new NdArray<>(99999, 99999, 99999);
 		});
 		assertThrows(java.lang.IllegalArgumentException.class, () -> {
-			NdArray<Float> nd = new NdArray<>(-1, 5, 6, 3, 2, 4);
+			new NdArray<>(-1, 5, 6, 3, 2, 4);
 		});
 		assertThrows(java.lang.IllegalArgumentException.class, () -> {
-			NdArray<Float> nd = new NdArray<>(null);
+			new NdArray<>(null);
 		});
 		assertThrows(java.lang.NullPointerException.class, () -> {
 			new NdArray<>(5, 5, 5).get(null);

@@ -1,6 +1,5 @@
 package hashstore;
 
-import java.io.File;
 import java.util.List;
 
 import hash.ImageHash;
@@ -47,12 +46,6 @@ public class LinearStore extends BaseHashStore {
 	public void accept(ImageHash hash) {
 		// TODO Auto-generated method stub
 
-	}
-
-	@Override
-	public File getRootFolder() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

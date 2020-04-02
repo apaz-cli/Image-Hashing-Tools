@@ -18,7 +18,7 @@ public interface IHashAlgorithm {
 	//		// You can should usually create non-anonymous class with a constructor that will make
 	//		// IHashAlgorithms with various sizes or other parameters.
 	//		
-	//		// Everything is up to you however, although it's recommended to convert to one type of image.
+	//		// Everything is up to you, although it's recommended to convert to one type of image.
 	// 		// Also worth noting is that for some reason it's generally faster to resize before converting.
 	//		// This holds true when what you're resizing to is smaller in memory than what you had originally.
 	//
@@ -30,7 +30,8 @@ public interface IHashAlgorithm {
 	//		long[] emptyHash = new long[1]
 	//  	
 	//		// return a new ImageHash this way. If img is a SourcedImage, then this will return a source. 
-	//		// If SourcedImages are nested, then this gets the topmost source.
+	//		// If SourcedImages are nested, then this gets the topmost source. Regardless, it's your job to
+	//      // 
 	//	  	return new ImageHash(this, emptyHash, this.findSource(img));
 	//	}
 

@@ -6,6 +6,18 @@ import image.implementations.GreyscaleImage;
 
 public class PixelUtils {
 
+	public static void assertNotNull(Object... objects) throws NullPointerException {
+		if (objects == null) {
+			throw new NullPointerException("Array of objects is null.");
+		}
+		
+		for (int i = 0; i < objects.length; i++) {
+			if(objects[i] == null) {
+				throw new NullPointerException("Array item " + i + " is null.");
+			}
+		}
+	}
+	
 	public static int safeSquare(int a) throws ArithmeticException {
 		return safeMult(a, a);
 	}
@@ -19,8 +31,7 @@ public class PixelUtils {
 		if (a == product / b) {
 			return product;
 		} else {
-			throw new ArithmeticException(
-					"int multiplication would overflow or underflow on safeMult(" + a + "," + b + ").");
+			throw new ArithmeticException("Integer multiplication would overflow or underflow on safeMult(" + a + "," + b + ").");
 		}
 	}
 
@@ -28,20 +39,8 @@ public class PixelUtils {
 		if (a == null) {
 			throw new IllegalArgumentException("Null not allowed.");
 		}
-		if (a.length < 3) {
-			if (a.length == 1) {
-				return safeSquare(a[0]);
-			}
-			if (a.length == 2) {
-				return safeMult(a[0], a[1]);
-			}
-			if (a.length == 0) {
-				throw new IllegalArgumentException("No arguments were given, just an empty array.");
-			}
-		}
-
-		int product = safeMult(a[0], a[1]);
-		for (int i = 2; i < a.length; i++) {
+		int product = a.length == 0 ? 0 : 1;
+		for (int i = 0; i < a.length; i++) {
 			product = safeMult(product, a[i]);
 		}
 

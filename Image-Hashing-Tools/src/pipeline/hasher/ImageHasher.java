@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import image.IImage;
+import image.PixelUtils;
 import image.implementations.SourcedImage;
 import pipeline.sources.ImageSource;
 import pipeline.sources.impl.collection.ImageCollection;
@@ -33,11 +34,10 @@ public class ImageHasher {
 
 	public ImageHasher(Object input, IHashAlgorithm algorithm, HasherOutput outputLambda)
 			throws IllegalArgumentException {
+		PixelUtils.assertNotNull(input, algorithm, outputLambda);
 		this.source = createSource(input);
 		this.algorithm = algorithm;
-		this.outputLambda = outputLambda == null ? (hash) -> {
-			System.out.println(hash);
-		} : outputLambda;
+		this.outputLambda = outputLambda;
 	}
 
 	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, PrintStream output)
@@ -46,11 +46,10 @@ public class ImageHasher {
 	}
 
 	public ImageHasher(Object input, IHashAlgorithm algorithm, PrintStream output) throws IllegalArgumentException {
+		PixelUtils.assertNotNull(input, algorithm, output);
 		this.source = createSource(input);
 		this.algorithm = algorithm;
-		this.outputLambda = output == null ? (hash) -> {
-			System.out.println(hash);
-		} : (hash) -> {
+		this.outputLambda = (hash) -> {
 			output.println(hash);
 		};
 	}
@@ -63,11 +62,10 @@ public class ImageHasher {
 
 	public ImageHasher(Object input, IHashAlgorithm algorithm, int threadNum, HasherOutput outputLambda)
 			throws IllegalArgumentException {
+		PixelUtils.assertNotNull(input, algorithm, outputLambda);
 		this.source = createSource(input);
 		this.algorithm = algorithm;
-		this.outputLambda = outputLambda == null ? (hash) -> {
-			System.out.println(hash);
-		} : outputLambda;
+		this.outputLambda = outputLambda;
 		this.threadNum = threadNum;
 	}
 
@@ -79,18 +77,13 @@ public class ImageHasher {
 
 	public ImageHasher(Object input, IHashAlgorithm algorithm, int threadNum, PrintStream output)
 			throws IllegalArgumentException {
+		PixelUtils.assertNotNull(input, algorithm, output);
 		this.source = createSource(input);
 		this.algorithm = algorithm;
-		this.outputLambda = output == null ? (hash) -> {
-			System.out.println(hash);
-		} : (hash) -> {
-			output.println(hash);
-		};
 		this.threadNum = threadNum;
 	}
 
 	private static ImageSource createSource(Object input) {
-		// Create ImageSource out of input
 		ImageSource src = null;
 		if (input instanceof ImageSource) {
 			src = (ImageSource) input;
@@ -108,14 +101,15 @@ public class ImageHasher {
 		} else if (input instanceof Collection<?>) {
 			src = new ImageCollection((Collection<?>) input);
 		}
+
+		if (src == null) {
+			throw new IllegalArgumentException(
+					"Expected an ImageSource, File, or Collection<?> for input, but got: " + input.getClass());
+		}
 		return src;
 	}
 
 	public ImageHash hash() {
-		return this.hash(true);
-	}
-
-	public ImageHash hash(boolean sourced) {
 		IImage<?> img = source.nextImage();
 		if (img == null) {
 			return null;
@@ -126,26 +120,23 @@ public class ImageHasher {
 	}
 
 	public List<ImageHash> hash(int iterations) {
-		return this.hash(iterations, true);
-	}
-
-	public List<ImageHash> hash(int iterations, boolean sourced) {
 		final int hashesPerThread = iterations / this.threadNum;
 		final int hashesNotCovered = iterations - (hashesPerThread * this.threadNum);
 
 		List<ImageHash> completedHashes = new Vector<>();
 
-		ExecutorService pool = Executors.newWorkStealingPool(this.threadNum);
+		ExecutorService threadpool = Executors.newWorkStealingPool(this.threadNum);
 		for (int i = 0; i < this.threadNum; i++) {
-			final boolean extra = i < hashesNotCovered;
-			pool.execute(() -> {
 
-				int its = extra ? hashesPerThread + 1 : hashesPerThread;
+			final boolean extra = i < hashesNotCovered;
+			threadpool.execute(() -> {
+
+				int thisThreadHashes = extra ? hashesPerThread + 1 : hashesPerThread;
 				boolean cont = true;
 
 				ImageHash hash;
-				for (int it = 0; cont && it < its; it++) {
-					hash = this.hash(sourced);
+				for (int it = 0; cont && it < thisThreadHashes; it++) {
+					hash = this.hash();
 					if (hash == null) {
 						cont = false;
 					} else {
@@ -156,8 +147,12 @@ public class ImageHasher {
 		}
 
 		try {
-			pool.shutdown();
-			pool.awaitTermination(7, TimeUnit.DAYS);
+			// I need to wait for some amount of time, I can't specify forever. But, we can
+			// expect some of these tasks to take a long time. The SafeBooruScraper
+			// ImageSource for example will last at least multiple days, depending on
+			// download speed.
+			threadpool.shutdown();
+			threadpool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 		} catch (InterruptedException e) {
 		}
 
@@ -165,23 +160,19 @@ public class ImageHasher {
 	}
 
 	public void hashAll() {
-		this.hashAll(true);
-	}
-
-	public void hashAll(boolean sourced) {
-		ExecutorService pool = Executors.newWorkStealingPool(this.threadNum);
+		ExecutorService threadpool = Executors.newWorkStealingPool(this.threadNum);
 		for (int i = 0; i < this.threadNum; i++) {
-			pool.execute(() -> {
+			threadpool.execute(() -> {
 				@SuppressWarnings("unused")
 				ImageHash hash;
-				while ((hash = this.hash(sourced)) != null) {
+				while ((hash = this.hash()) != null) {
 				}
 			});
 		}
 
 		try {
-			pool.shutdown();
-			pool.awaitTermination(7, TimeUnit.DAYS);
+			threadpool.shutdown();
+			threadpool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 		} catch (InterruptedException e) {
 		}
 	}
