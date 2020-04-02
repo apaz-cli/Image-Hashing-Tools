@@ -4,6 +4,7 @@ package pipeline.hasher;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.Vector;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -14,79 +15,95 @@ import hash.IHashAlgorithm;
 import hash.ImageHash;
 import image.IImage;
 import image.PixelUtils;
-import image.implementations.SourcedImage;
 import pipeline.sources.ImageSource;
 import pipeline.sources.impl.collection.ImageCollection;
 import pipeline.sources.impl.loader.ImageLoader;
 
+/**
+ * This class takes {@link IImage}s from an {@link ImageSource}, hashes them
+ * with an {@link IHashAlgorithm}, then passes the resulting {@link ImageHash}es
+ * to an output. That output can be absolutely whatever you want, and do
+ * whatever you want, just write a HasherOutput lambda expression.
+ * 
+ * The input to the hasher can also largely be whatever you want, just write an
+ * ImageSource. This is made more difficult by two guarantees that ImageSources
+ * have to make. They must be thread-safe, and when they run out of images they
+ * must always return null. However, once this is done, you'll have a fully
+ * multithreaded solution for hashing them and reporting the results, as well as
+ * benchmarking the success rate for hash retrieval after some modification to
+ * the image such as a crop, flip, rotation or noise.
+ * 
+ * @author Aaron Pazdera
+ */
 public class ImageHasher {
 
-	private int threadNum = 3;
-
-	private ImageSource source;
+	/*
+	 * The algorithm and HasherOutput are private so that MultiAlgImageHasher
+	 * doesn't inherit it.
+	 */
+	protected ImageSource source;
 	private IHashAlgorithm algorithm;
 	private HasherOutput outputLambda;
 
-	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, HasherOutput outputLambda)
-			throws IllegalArgumentException {
+	/**
+	 * Creates an {@link ImageHasher} with the following properties. When
+	 * {@link ImageHasher#hash()} or one of its derivatives are called, images are
+	 * pulled from the {@link ImageSource} and hashed by the {@link IHashAlgorithm},
+	 * then passed to the {@link HasherOutput}.
+	 * 
+	 * @param source       The ImageSource to hash the images from
+	 * @param algorithm    The hash algorithm to use on the images
+	 * @param outputLambda A lambda expression or other HasherOutput object to
+	 *                     accept() the hashes that come out when an image is
+	 *                     hashed. If outputLambda is null, a new one will be
+	 *                     constructed and used that does nothing.
+	 * @throws IllegalArgumentException When source or algorithm are null
+	 * @author Aaron Pazdera
+	 */
+	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, HasherOutput outputLambda) throws IllegalArgumentException {
 		this((Object) source, algorithm, outputLambda);
 	}
 
-	public ImageHasher(Object input, IHashAlgorithm algorithm, HasherOutput outputLambda)
-			throws IllegalArgumentException {
-		PixelUtils.assertNotNull(input, algorithm, outputLambda);
+	/**
+	 * This constructor tries its best to create an ImageHasher with the input and
+	 * output objects provided, and throws an IllegalArgumentException if that's not
+	 * possible, with a description of what went wrong.
+	 * 
+	 * When {@link ImageHasher#hash()} or one of its derivatives are called, images
+	 * are pulled from the input, hashed with the algorithm, and passed to the
+	 * Output.
+	 * 
+	 * If you would like to see a type of object supported that currently isn't,
+	 * please contact me at <a href=
+	 * "https://github.com/Aaron-Pazdera">https://github.com/Aaron-Pazdera</a> or
+	 * submit a pull request.
+	 * 
+	 * @param input
+	 * @param algorithm
+	 * @param output
+	 * @throws IllegalArgumentException When input or algorithm are null, input is
+	 *                                  not an accepted object or output is not an
+	 *                                  accepted object.
+	 * @author Aaron Pazdera
+	 */
+	public ImageHasher(Object input, IHashAlgorithm algorithm, Object output) throws IllegalArgumentException {
+		PixelUtils.assertNotNull(input, algorithm);
 		this.source = createSource(input);
 		this.algorithm = algorithm;
-		this.outputLambda = outputLambda;
+		this.outputLambda = createOutput(output);
+
 	}
 
-	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, PrintStream output)
-			throws IllegalArgumentException {
-		this((Object) source, algorithm, output);
-	}
-
-	public ImageHasher(Object input, IHashAlgorithm algorithm, PrintStream output) throws IllegalArgumentException {
-		PixelUtils.assertNotNull(input, algorithm, output);
-		this.source = createSource(input);
-		this.algorithm = algorithm;
-		this.outputLambda = (hash) -> {
-			output.println(hash);
-		};
-	}
-
-	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, int threadNum, HasherOutput outputLambda)
-			throws IllegalArgumentException {
-		this((Object) source, algorithm, outputLambda);
-		this.threadNum = threadNum;
-	}
-
-	public ImageHasher(Object input, IHashAlgorithm algorithm, int threadNum, HasherOutput outputLambda)
-			throws IllegalArgumentException {
-		PixelUtils.assertNotNull(input, algorithm, outputLambda);
-		this.source = createSource(input);
-		this.algorithm = algorithm;
-		this.outputLambda = outputLambda;
-		this.threadNum = threadNum;
-	}
-
-	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, int threadNum, PrintStream output)
-			throws IllegalArgumentException {
-		this((Object) source, algorithm, output);
-		this.threadNum = threadNum;
-	}
-
-	public ImageHasher(Object input, IHashAlgorithm algorithm, int threadNum, PrintStream output)
-			throws IllegalArgumentException {
-		PixelUtils.assertNotNull(input, algorithm, output);
-		this.source = createSource(input);
-		this.algorithm = algorithm;
-		this.threadNum = threadNum;
-	}
-
-	private static ImageSource createSource(Object input) {
-		ImageSource src = null;
+	/**
+	 * A helper method that takes the input object from the constructor and creates
+	 * an {@link ImageSource} out of it. This is so that the constructor can be
+	 * expanded to multiple other types of Objects in the future when we can
+	 * construct ImageSources out of them, all while not actually having to add a
+	 * lot more constructors.
+	 */
+	protected static ImageSource createSource(Object input) throws IllegalArgumentException {
 		if (input instanceof ImageSource) {
-			src = (ImageSource) input;
+			return (ImageSource) input;
 		} else if (input instanceof File) {
 			File s = (File) input;
 			boolean readable = s.canRead();
@@ -97,44 +114,145 @@ public class ImageHasher {
 						+ "If you want to read only one file, first load it with ImageUtils.openImage(), "
 						+ "or use a SingleImageSource.");
 			}
-			src = new ImageLoader(s);
+			return new ImageLoader(s);
 		} else if (input instanceof Collection<?>) {
-			src = new ImageCollection((Collection<?>) input);
+			return new ImageCollection((Collection<?>) input);
 		}
 
-		if (src == null) {
-			throw new IllegalArgumentException(
-					"Expected an ImageSource, File, or Collection<?> for input, but got: " + input.getClass());
-		}
-		return src;
+		throw new IllegalArgumentException("Expected an ImageSource, File, or Collection<?> for input to ImageHasher, but got: " + input.getClass());
 	}
 
+	/**
+	 * Another helper method, with the same purpose as
+	 * {@link ImageHasher#createSource(Object)}. This method creates a HasherOutput
+	 * out of a bunch of different types of objects, so that we don't have to add a
+	 * bunch of constructors.
+	 * 
+	 * This one however can accept null and return an empty lambda expression.
+	 */
+	@SuppressWarnings("unchecked")
+	protected static HasherOutput createOutput(Object output) throws IllegalArgumentException {
+		if (output == null) {
+			return (hash) -> {};
+		} else if (output instanceof HasherOutput) {
+			return (HasherOutput) output;
+		} else if (output instanceof PrintStream) {
+			PrintStream ps = ((PrintStream) output);
+			return (hash) -> { ps.println(); };
+		} else if (output instanceof Collection<?>) {
+			try {
+				final Collection<ImageHash> imageCollection = ((Collection<ImageHash>) output);
+				return (hash) -> { imageCollection.add(hash); };
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Expected a collection of ImageHash, but got a collection of some other type.");
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Hashes an image from this {@link ImageHasher}'s input, sending the
+	 * {@link ImageHash}es to this ImageHasher's output and also returning the hash.
+	 * 
+	 * @return hash The hash of an image from this ImageHasher's
+	 *         {@link ImageSource}. If the ImageSource is out of images, then this
+	 *         method returns null.
+	 * @author Aaron Pazdera
+	 */
 	public ImageHash hash() {
 		IImage<?> img = source.nextImage();
 		if (img == null) {
 			return null;
 		}
-		ImageHash h = img instanceof SourcedImage ? algorithm.hash((SourcedImage) img) : algorithm.hash(img);
+		ImageHash h = algorithm.hash(img);
 		outputLambda.accept(h);
 		return h;
 	}
 
-	public List<ImageHash> hash(int iterations) {
-		final int hashesPerThread = iterations / this.threadNum;
-		final int hashesNotCovered = iterations - (hashesPerThread * this.threadNum);
+	/**
+	 * Hashes a number of images from this {@link ImageHasher}'s input, sending the
+	 * {@link ImageHash}es to this ImageHasher's output and returning all of the
+	 * hashes in a list.
+	 * 
+	 * For a large number of hashes, use {@link ImageHasher#hashAll(int)} to consume
+	 * less memory storing references inside a list, or if you don't necessarily
+	 * want to consume the entire ImageSource, call this method multiple times so
+	 * that the lists can be garbage collected.
+	 * 
+	 * @param numberOfHashes The number of images to take from this ImageHasher's
+	 *                       {@link ImageSource} and hash.
+	 * @return hashList The list of hashes that were completed. The size of this
+	 *         list may be less than the number of hashes specified if this
+	 *         ImageHasher's ImageSource did not contain that many images that could
+	 *         be processed.
+	 * @throws IllegalArgumentException When numberOfHashes is less than zero.
+	 * @author Aaron Pazdera
+	 */
+	public List<ImageHash> hash(int numberOfHashes) throws IllegalArgumentException {
+		if (numberOfHashes < 0) {
+			throw new IllegalArgumentException("Number of iterations cannot be less than zero.");
+		}
+
+		List<ImageHash> completedHashes = new ArrayList<ImageHash>();
+		boolean cont = true;
+		for (int i = 0; cont && i < numberOfHashes; i++) {
+			ImageHash hash = this.hash();
+			if (hash == null) {
+				cont = false;
+			} else {
+				completedHashes.add(hash);
+			}
+		}
+
+		return completedHashes;
+	}
+
+	/**
+	 * Hashes a number of images from this {@link ImageHasher}'s input, sending the
+	 * {@link ImageHash}es to this ImageHasher's output and returning all of the
+	 * hashes in a list. The hashes and image loads are performed on a threadpool
+	 * with at most the parallelismLevel many threads.
+	 * 
+	 * For a large number of hashes, use {@link ImageHasher#hashAll(int)} to consume
+	 * less memory storing references inside a list, or if you don't necessarily
+	 * want to consume the entire ImageSource, call this method multiple times so
+	 * that the lists can be garbage collected.
+	 * 
+	 * @param numberOfHashes   The number of images to take from this ImageHasher's
+	 *                         {@link ImageSource} and hash.
+	 * @param parallelismLevel The maximum number of threads to put to work hashing
+	 *                         items from the input to this ImageHasher
+	 * @return hashList The list of hashes that were completed. The size of this
+	 *         list may be less than the number of hashes specified if this
+	 *         ImageHasher's ImageSource did not contain that many images that could
+	 *         be processed.
+	 * @throws IllegalArgumentException When numberOfHashes is less than zero or
+	 *                                  parallelismLevel is less than one.
+	 * @author Aaron Pazdera
+	 */
+	public List<ImageHash> hash(int numberOfHashes, int parallelismLevel) throws IllegalArgumentException {
+		if (numberOfHashes < 0) {
+			throw new IllegalArgumentException("Number of iterations cannot be less than zero.");
+		}
+		if (parallelismLevel < 1) {
+			throw new IllegalArgumentException("Number of threads cannot be less than one.");
+		}
+
+		final int hashesPerThread = numberOfHashes / parallelismLevel;
+		final int hashesNotCovered = numberOfHashes - (hashesPerThread * parallelismLevel);
 
 		List<ImageHash> completedHashes = new Vector<>();
 
-		ExecutorService threadpool = Executors.newWorkStealingPool(this.threadNum);
-		for (int i = 0; i < this.threadNum; i++) {
+		ExecutorService threadpool = Executors.newWorkStealingPool(parallelismLevel);
+		for (int i = 0; i < parallelismLevel; i++) {
 
 			final boolean extra = i < hashesNotCovered;
 			threadpool.execute(() -> {
 
 				int thisThreadHashes = extra ? hashesPerThread + 1 : hashesPerThread;
-				boolean cont = true;
 
 				ImageHash hash;
+				boolean cont = true;
 				for (int it = 0; cont && it < thisThreadHashes; it++) {
 					hash = this.hash();
 					if (hash == null) {
@@ -147,10 +265,9 @@ public class ImageHasher {
 		}
 
 		try {
-			// I need to wait for some amount of time, I can't specify forever. But, we can
-			// expect some of these tasks to take a long time. The SafeBooruScraper
-			// ImageSource for example will last at least multiple days, depending on
-			// download speed.
+			/* We can expect some of these tasks to take a long time. The SafeBooruScraper
+			 * ImageSource for example will last at least multiple days, depending on
+			 * download speed. We can't say wait forever, so just say a very long time. */
 			threadpool.shutdown();
 			threadpool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 		} catch (InterruptedException e) {
@@ -159,9 +276,23 @@ public class ImageHasher {
 		return completedHashes;
 	}
 
-	public void hashAll() {
-		ExecutorService threadpool = Executors.newWorkStealingPool(this.threadNum);
-		for (int i = 0; i < this.threadNum; i++) {
+	/**
+	 * Hashes until this {@link ImageHasher}'s input is completely consumed, sending
+	 * the {@link ImageHash}es to this ImageHasher's output. The hashes are
+	 * performed on a threadpool with at most parallelismLevel many threads.
+	 * 
+	 * @param parallelismLevel The maximum number of threads to put to work hashing
+	 *                         items from the input to this ImageHasher
+	 * @throws IllegalArgumentException When parallelismLevel is less than one.
+	 * @author Aaron Pazdera
+	 */
+	public void hashAll(int parallelismLevel) throws IllegalArgumentException {
+		if (parallelismLevel < 1) {
+			throw new IllegalArgumentException("Number of threads cannot be less than one.");
+		}
+
+		ExecutorService threadpool = Executors.newWorkStealingPool(parallelismLevel);
+		for (int i = 0; i < parallelismLevel; i++) {
 			threadpool.execute(() -> {
 				@SuppressWarnings("unused")
 				ImageHash hash;

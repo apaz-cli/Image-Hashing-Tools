@@ -22,7 +22,7 @@ public class ImageHasherTest {
 		int hashnum = 27;
 		List<ImageHash> completedHashes = new Vector<>();
 
-		ImageHasher safeHasher = new ImageHasher(TestUtils.safeScraper, new PerceptualHash(), 5, (hash) -> {
+		ImageHasher safeHasher = new ImageHasher(TestUtils.safeScraper, new PerceptualHash(), (hash) -> {
 			completedHashes.add(hash);
 		});
 
