@@ -1,4 +1,4 @@
-package pipeline.sources;
+package pipeline;
 
 import java.awt.image.BufferedImage;
 import java.io.Closeable;

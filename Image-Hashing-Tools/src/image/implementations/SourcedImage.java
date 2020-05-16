@@ -10,7 +10,7 @@ public class SourcedImage implements IImage<SourcedImage> {
 
 	private String source;
 	private IImage<?> img;
-	boolean isURL; // If isn't URL, is File
+	boolean isURL; // If isn't a URL, assume that means it's a File
 
 	// Master Constructor
 	public SourcedImage(BufferedImage img, String source, boolean isURL) {

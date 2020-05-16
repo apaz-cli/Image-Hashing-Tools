@@ -1,4 +1,4 @@
-package pipeline.sources.impl.loader;
+package pipeline.sources.loader;
 
 public class LoadTask implements Runnable {
 

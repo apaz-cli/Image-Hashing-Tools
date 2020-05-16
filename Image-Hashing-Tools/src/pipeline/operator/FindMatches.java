@@ -1,4 +1,4 @@
-package pipeline.sources.operator;
+package pipeline.operator;
 
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
@@ -40,7 +40,7 @@ public class FindMatches implements IImageOperation {
 	}
 
 	public FindMatches(IHashAlgorithm algorithm, MatchMode mm, ImageHash hash) {
-		if (hash.toString().split(",")[0] != alg.getHashName() || hash.getLength() != algorithm.getHashLength()) {
+		if (hash.toString().split(",")[0] != alg.getHashName() || hash.getHashLength() != algorithm.getHashLength()) {
 			throw new IllegalArgumentException(
 					"The name and hash lengths of the hash must match those which would be produced by the algorithm.");
 		}

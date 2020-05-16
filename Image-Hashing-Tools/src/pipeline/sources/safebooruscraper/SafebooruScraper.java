@@ -1,4 +1,4 @@
-package pipeline.sources.impl.safebooruscraper;
+package pipeline.sources.safebooruscraper;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -18,7 +18,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import image.implementations.SourcedImage;
-import pipeline.sources.ImageSource;
+import pipeline.ImageSource;
 import utils.ImageUtils;
 
 public class SafebooruScraper implements ImageSource {

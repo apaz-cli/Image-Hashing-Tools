@@ -1,4 +1,4 @@
-package pipeline.sources.operator;
+package pipeline.operator;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import image.IImage;
-import pipeline.sources.ImageSource;
+import pipeline.ImageSource;
 
 public class ImageOperator implements ImageSource {
 

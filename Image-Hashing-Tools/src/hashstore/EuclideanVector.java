@@ -1,4 +1,4 @@
-package hashstore.euclidean;
+package hashstore;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,11 +8,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import hash.ImageHash;
+import image.PixelUtils;
 
-public class EuclideanVector {
+public class EuclideanVector implements MetricComparable<EuclideanVector> {
 
 	float[] data;
-	EuclideanVector(float[] data) { this.data = data; }
+
+	EuclideanVector(float[] data) {
+		PixelUtils.assertNotNull("Vector data cannot be null.", data);
+		this.data = data;
+	}
 
 	float magnitude() {
 		int sumSquares = 0;
@@ -24,7 +29,7 @@ public class EuclideanVector {
 
 	float dot(EuclideanVector vec) {
 		if (this.data.length == vec.getLength()) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Vectors of dot product are not the same length.");
 		}
 
 		float[] vData = vec.getData();
@@ -35,9 +40,31 @@ public class EuclideanVector {
 		return sum;
 	}
 
-	int getLength() { return this.data.length; }
+	int getLength() {
+		return this.data.length;
+	}
 
-	float[] getData() { return this.data; }
+	float[] getData() {
+		return this.data;
+	}
+
+	@Override
+	public double distance(EuclideanVector other) {
+		int length = other.getLength();
+		if (length != this.data.length) {
+			throw new IllegalArgumentException(
+					"Length mismatch. Tried to compute the distance between vectors of length " + this.getLength()
+							+ " and " + other.getLength() + ".");
+		}
+		
+		float sum = 0, diff;
+		float[] od = other.getData();
+		for (int i = 0; i < length; i++) {
+			diff = this.data[i] - od[i];
+			sum += diff*diff;
+		}
+		return Math.sqrt(sum);
+	}
 
 	// Where, for example, a 3d hyperplane is given in the form ax + by + cz - d = 0
 	// EuclideanVector solutions to this describe the hyperplane. The solutions to
@@ -74,18 +101,13 @@ public class EuclideanVector {
 		}
 		bos.write(barr);
 	}
-	
+
 	static void writeToStream(ByteArrayOutputStream bos, List<ImageHash> vecList) throws IOException {
-		
-		ImageHash h1 = vecList.get(0);
-		String type = h1.getType();
-		int dimensions = h1.getBitArrayAsFloat().length;
-		for (int i = 1; i < vecList.size(); i++) {
-			
-		}
+
 	}
+
 	static void writeToSteam(ByteArrayOutputStream bos, List<EuclideanVector> vecList) throws IOException {
-		
+
 	}
 
 	List<EuclideanVector> readStream(ByteArrayInputStream bis) throws IOException {
@@ -130,5 +152,13 @@ public class EuclideanVector {
 		return new EuclideanVector(Arrays.copyOf(data, data.length - 1));
 	}
 
-	private float getHyperplaneSolution() { return data[data.length - 1]; }
+	private float getHyperplaneSolution() {
+		return data[data.length - 1];
+	}
+
+	@Override
+	public String toString() {
+		String arrStr = Arrays.toString(this.data);
+		return new StringBuilder().append('<').append(arrStr.substring(1, arrStr.length() - 1)).append('>').toString();
+	}
 }

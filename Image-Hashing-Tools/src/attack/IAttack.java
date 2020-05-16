@@ -6,7 +6,7 @@ import image.IImage;
 import image.implementations.GreyscaleImage;
 import image.implementations.RGBAImage;
 import image.implementations.SourcedImage;
-import pipeline.sources.operator.IImageOperation;
+import pipeline.operator.IImageOperation;
 
 @FunctionalInterface
 public interface IAttack extends IImageOperation {

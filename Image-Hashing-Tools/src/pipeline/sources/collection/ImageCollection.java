@@ -1,4 +1,4 @@
-package pipeline.sources.impl.collection;
+package pipeline.sources.collection;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -6,8 +6,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import image.implementations.SourcedImage;
-import pipeline.sources.ImageSource;
-import pipeline.sources.impl.SourceUtil;
+import pipeline.ImageSource;
+import pipeline.sources.SourceUtil;
 
 public class ImageCollection implements ImageSource {
 

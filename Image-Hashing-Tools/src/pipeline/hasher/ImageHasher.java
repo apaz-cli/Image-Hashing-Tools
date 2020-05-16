@@ -15,9 +15,9 @@ import hash.IHashAlgorithm;
 import hash.ImageHash;
 import image.IImage;
 import image.PixelUtils;
-import pipeline.sources.ImageSource;
-import pipeline.sources.impl.collection.ImageCollection;
-import pipeline.sources.impl.loader.ImageLoader;
+import pipeline.ImageSource;
+import pipeline.sources.collection.ImageCollection;
+import pipeline.sources.loader.ImageLoader;
 
 /**
  * This class takes {@link IImage}s from an {@link ImageSource}, hashes them
@@ -74,8 +74,7 @@ public class ImageHasher {
 	 * Output.
 	 * 
 	 * If you would like to see a type of object supported that currently isn't,
-	 * please contact me at <a href=
-	 * "https://github.com/Aaron-Pazdera">https://github.com/Aaron-Pazdera</a> or
+	 * please contact me at <a href="https://github.com/Aaron-Pazdera">https://github.com/Aaron-Pazdera</a> or
 	 * submit a pull request.
 	 * 
 	 * @param input
@@ -101,7 +100,7 @@ public class ImageHasher {
 	 * construct ImageSources out of them, all while not actually having to add a
 	 * lot more constructors.
 	 */
-	protected static ImageSource createSource(Object input) throws IllegalArgumentException {
+	static ImageSource createSource(Object input) throws IllegalArgumentException {
 		if (input instanceof ImageSource) {
 			return (ImageSource) input;
 		} else if (input instanceof File) {
@@ -131,18 +130,16 @@ public class ImageHasher {
 	 * This one however can accept null and return an empty lambda expression.
 	 */
 	@SuppressWarnings("unchecked")
-	protected static HasherOutput createOutput(Object output) throws IllegalArgumentException {
+	static HasherOutput createOutput(Object output) throws IllegalArgumentException {
 		if (output == null) {
 			return (hash) -> {};
 		} else if (output instanceof HasherOutput) {
 			return (HasherOutput) output;
 		} else if (output instanceof PrintStream) {
-			PrintStream ps = ((PrintStream) output);
-			return (hash) -> { ps.println(); };
+			return (hash) -> { ((PrintStream) output).println(); };
 		} else if (output instanceof Collection<?>) {
 			try {
-				final Collection<ImageHash> imageCollection = ((Collection<ImageHash>) output);
-				return (hash) -> { imageCollection.add(hash); };
+				return (hash) -> { ((Collection<ImageHash>) output).add(hash); };
 			} catch (Exception e) {
 				throw new IllegalArgumentException("Expected a collection of ImageHash, but got a collection of some other type.");
 			}

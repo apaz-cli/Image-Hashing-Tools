@@ -1,4 +1,4 @@
-package pipeline.sources.operator;
+package pipeline.operator;
 
 import image.IImage;
 import image.implementations.SourcedImage;

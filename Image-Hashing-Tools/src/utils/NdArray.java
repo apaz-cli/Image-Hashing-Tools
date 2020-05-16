@@ -1,4 +1,4 @@
-package hashstore.euclidean;
+package utils;
 
 import image.PixelUtils;
 

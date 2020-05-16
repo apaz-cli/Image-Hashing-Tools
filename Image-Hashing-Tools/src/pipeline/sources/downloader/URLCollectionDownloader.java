@@ -1,4 +1,4 @@
-package pipeline.sources.impl.downloader;
+package pipeline.sources.downloader;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 
 import image.implementations.SourcedImage;
-import pipeline.sources.ImageSource;
+import pipeline.ImageSource;
 import utils.ImageUtils;
 
 public class URLCollectionDownloader implements ImageSource {

@@ -15,8 +15,8 @@ import image.implementations.GreyscaleImage;
 import image.implementations.RGBAImage;
 import image.implementations.SourcedImage;
 import image.implementations.YCbCrImage;
-import pipeline.sources.operator.IImageOperation;
-import pipeline.sources.operator.ImageOperator;
+import pipeline.operator.IImageOperation;
+import pipeline.operator.ImageOperator;
 import utils.TestUtils;
 
 public class PHashTest {
@@ -72,7 +72,7 @@ public class PHashTest {
 		try {
 			RGBAImage img = TestUtils.safeScraper.nextImage().toRGBA();
 
-			int sideLength = 53;
+			int sideLength = 52;
 
 			ImageHash h1, h2;
 			h1 = new PerceptualHash(sideLength).hash(img);

@@ -6,18 +6,34 @@ import image.implementations.GreyscaleImage;
 
 public class PixelUtils {
 
-	public static void assertNotNull(Object... objects) throws NullPointerException {
+	public static void assertNotNull(Object... objects) throws IllegalArgumentException {
 		if (objects == null) {
-			throw new NullPointerException("Array of objects is null.");
+			throw new IllegalArgumentException("Array of objects is null.");
 		}
-		
+
 		for (int i = 0; i < objects.length; i++) {
-			if(objects[i] == null) {
-				throw new NullPointerException("Array item " + i + " is null.");
+			if (objects[i] == null) {
+				throw new IllegalArgumentException("Array item '" + i + "' is null.");
 			}
 		}
 	}
+
+	public static void assertNotNull(String[] labels, Object... objects) throws IllegalArgumentException {
+		if (labels.length != objects.length) throw new IllegalArgumentException("You must provide the same number of labels as objects.");
+		try {
+			PixelUtils.assertNotNull(objects);
+		} catch (IllegalArgumentException e) {
+			String message = e.getMessage();
+			if (!message.contains("'")) throw e;
+			int label = Integer.parseInt(message.split("'")[1]);
+			throw new IllegalArgumentException(labels[label] + " is null.");
+		}
+	}
 	
+	public static void assertNotNull(String label, Object object) {
+		if (object == null) throw new IllegalArgumentException(label + "is null.");
+	}
+
 	public static int safeSquare(int a) throws ArithmeticException {
 		return safeMult(a, a);
 	}
@@ -31,7 +47,8 @@ public class PixelUtils {
 		if (a == product / b) {
 			return product;
 		} else {
-			throw new ArithmeticException("Integer multiplication would overflow or underflow on safeMult(" + a + "," + b + ").");
+			throw new ArithmeticException(
+					"Integer multiplication would overflow or underflow on safeMult(" + a + "," + b + ").");
 		}
 	}
 

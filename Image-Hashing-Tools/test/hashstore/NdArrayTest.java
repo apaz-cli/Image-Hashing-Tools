@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
-import hashstore.euclidean.NdArray;
+import utils.NdArray;
 
 public class NdArrayTest {
 

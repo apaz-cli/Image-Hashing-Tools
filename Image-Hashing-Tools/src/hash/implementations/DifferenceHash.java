@@ -18,7 +18,7 @@ public class DifferenceHash implements IHashAlgorithm {
 
 	public DifferenceHash(int sideLength) throws ArithmeticException {
 		try {
-		PixelUtils.safeSquare(sideLength);
+			PixelUtils.safeSquare(sideLength);
 		} catch (ArithmeticException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -58,21 +58,24 @@ public class DifferenceHash implements IHashAlgorithm {
 
 	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
-		// This assertion assures that the hashes are actually comparable.
-		if (!hash1.getType().equals(this.getHashName()) || hash1.getLength() != hash2.getLength()) {
+		hash1.assertComparable(hash2);
+		if (!hash1.getHashInformation().contentEquals(this.getHashInformation())) {
 			throw new IllegalArgumentException(
-					"These hashes are not comparable. The hashes being compared must be of the same type and length.");
+					"The hash information in this hash does not match the information that this IHashAlgorithm would produce. Expected: "
+							+ this.getHashInformation() + "got:" + hash1.getHashInformation() + ".");
 		}
 
-		// No need to assert comparable, Hamming distance method does this.
+		// Doubles are represented exactly for a very large number of bits, so this is
+		// okay.
+		double dist = hash1.distance(hash2);
 		if (mode == MatchMode.SLOPPY) {
-			return hash1.hammingDistance(hash2) < 8;
+			return dist < (8 / (double) 64) * hash1.getHashLength();
 		} else if (mode == MatchMode.NORMAL) {
-			return hash1.hammingDistance(hash2) < 5;
+			return dist < (5 / (double) 64) * hash1.getHashLength();
 		} else if (mode == MatchMode.STRICT) {
-			return hash1.hammingDistance(hash2) < 2;
+			return dist < (2 / (double) 64) * hash1.getHashLength();
 		} else if (mode == MatchMode.EXACT) {
-			return hash1.hammingDistance(hash2) == 0;
+			return dist == 0;
 		} else {
 			throw new IllegalArgumentException("Invalid MatchMode: " + mode);
 		}

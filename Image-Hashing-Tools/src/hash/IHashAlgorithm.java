@@ -12,8 +12,9 @@ import utils.ImageUtils;
 public interface IHashAlgorithm {
 
 	// Much like with IImageOperation, this must deal with SourcedImages.
-	// However, it's much, much simpler. Please see the example below. 
-	
+	// However, it's much, much simpler. Please see the example below.
+
+	// @nof
 	//	default ImageHash hash(IImage<?> img) {
 	//		// You can should usually create non-anonymous class with a constructor that will make
 	//		// IHashAlgorithms with various sizes or other parameters.
@@ -22,18 +23,21 @@ public interface IHashAlgorithm {
 	// 		// Also worth noting is that for some reason it's generally faster to resize before converting.
 	//		// This holds true when what you're resizing to is smaller in memory than what you had originally.
 	//
-	//
+	//		// Resize to some thumbnail of the original image.
 	//		int width = 8;
 	//  	int[] pixels = PixelUtils.byteArrayToInt(img.resizeBilinear(width, width).toGreyscale().getPixels());
 	//		
-	//      // Do actual hash on the content of the image, pack it into a long array.
-	//		long[] emptyHash = new long[1]
+	//      // Declare a long array. Make it as big as you need, but keep track of how many bits of this array you use.
+	//		// 
+	//		long[] hashBits = new long[64];
+	// 
+	//      // Now do the actual calculations for the hash, and pack the results into the hashBits array. Use all the space.
 	//  	
-	//		// return a new ImageHash this way. If img is a SourcedImage, then this will return a source. 
-	//		// If SourcedImages are nested, then this gets the topmost source. Regardless, it's your job to
-	//      // 
-	//	  	return new ImageHash(this, emptyHash, this.findSource(img));
+	//		// Finally, return an ImageHash as shown below. If img is a SourcedImage, then this will return a source. 
+	//		// If SourcedImages are nested, then this gets the topmost source.
+	//	  	return new ImageHash(this, hashBits, this.findSource(img));
 	//	}
+	// @dof
 
 	public default String findSource(IImage<?> img) {
 		if (img instanceof SourcedImage) {
@@ -48,11 +52,11 @@ public interface IHashAlgorithm {
 	abstract int getHashLength();
 
 	abstract ComparisonType getComparisonType();
-	
+
 	abstract String serialize();
-	
+
 	abstract IHashAlgorithm deserialize(String serialized);
-	
+
 	abstract boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode);
 
 	// Implementations must all deal with SourcedImage.
@@ -65,20 +69,24 @@ public interface IHashAlgorithm {
 	// then to Greyscale.
 	abstract ImageHash hash(BufferedImage img);
 
+	// nameLength(ComparisonType)
+	default String getHashInformation() {
+		return new StringBuilder()
+				.append(this.getHashName()).append(",")
+				.append(this.getHashLength()).append(',')
+				.append(this.getComparisonType()).toString();
+	}
+
 	default ImageHash hash(IImage<?> img, String source) {
-		ImageHash hash = this.hash(img);
-		hash.setSource(source);
-		return hash;
+		return this.hash(new SourcedImage(img, source));
 	}
 
 	default ImageHash hash(BufferedImage img, String source) {
-		ImageHash hash = this.hash(img);
-		hash.setSource(source);
-		return hash;
+		return this.hash(new SourcedImage(img, source));
 	}
 
 	default ImageHash hash(SourcedImage img) {
-		return this.hash(img.unwrap(), img.getSource());
+		return this.hash((IImage<?>) img);
 	}
 
 	default ImageHash hash(File imgFile) throws IOException {
@@ -88,7 +96,7 @@ public interface IHashAlgorithm {
 	default ImageHash hash(URL imgURL) throws IOException {
 		return this.hash(ImageUtils.openImageSourced(imgURL));
 	}
-	
+
 	default boolean matches(ImageHash hash1, ImageHash hash2) {
 		return this.matches(hash1, hash2, MatchMode.NORMAL);
 	}
@@ -116,5 +124,5 @@ public interface IHashAlgorithm {
 	default boolean matches(SourcedImage img1, SourcedImage img2, MatchMode mode) {
 		return this.matches(this.hash(img1), this.hash(img2), mode);
 	}
-	
+
 }

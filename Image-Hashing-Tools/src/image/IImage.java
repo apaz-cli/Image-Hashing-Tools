@@ -5,12 +5,15 @@ import java.awt.image.BufferedImage;
 
 import attack.IAttack;
 import attack.convolutions.ConvolutionKernel;
+import hash.IHashAlgorithm;
+import hash.ImageHash;
 import image.implementations.GreyscaleImage;
 import image.implementations.RGBAImage;
 import image.implementations.RGBImage;
+import image.implementations.SourcedImage;
 import image.implementations.YCbCrImage;
 
-public interface IImage<T extends IImage<T>> {
+public interface IImage<T extends IImage<? extends T>> {
 
 	// Additionally, classes implementing IImage should implement constructors
 	// taking each of the following.
@@ -54,6 +57,14 @@ public interface IImage<T extends IImage<T>> {
 		}
 		return new YCbCrImage(this.toRGB());
 	}
+	
+	default public SourcedImage addSource(String source) {
+		return new SourcedImage(this, source);
+	}
+	
+	default public SourcedImage addSource(String source, boolean isURL) {
+		return new SourcedImage(this, source, isURL);
+	}
 
 	abstract public T flipHorizontal();
 
@@ -77,17 +88,20 @@ public interface IImage<T extends IImage<T>> {
 
 	abstract public T emplaceSubimage(T subImage, int x1, int y1, int x2, int y2);
 
-	default public IImage<?> convolveWith(ConvolutionKernel kernel) {
+	default public T convolveWith(ConvolutionKernel kernel) {
 		@SuppressWarnings("unchecked")
 		T self = (T) kernel.applyTo(this);
 		return self;
 	}
-	
-	
+
 	default public T apply(IAttack attack) {
 		@SuppressWarnings("unchecked")
 		T self = (T) attack.applyTo(this);
 		return self;
+	}
+
+	default public ImageHash hash(IHashAlgorithm algorithm) {
+		return algorithm.hash(this);
 	}
 
 	default public T printDimensions() {

@@ -3,31 +3,13 @@ package hashstore;
 import java.io.File;
 import java.util.List;
 
-import hash.ComparisonType;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
-import hashstore.euclidean.EuclideanHyperplaneStore;
 import pipeline.hasher.HasherOutput;
 
 public interface HashStore extends HasherOutput {
 
 	static HashStore build(File rootFolder, IHashAlgorithm alg) {
-
-		ComparisonType t = alg.getComparisonType();
-		switch (t) {
-		case HAMMING:
-			return new HammingStore();
-		case EUCLIDEANF32:
-			return new EuclideanHyperplaneStore();
-		case EUCLIDEANF64:
-			return new EuclideanHyperplaneStore();
-		case EUCLIDEANI32:
-			return new EuclideanHyperplaneStore();
-		case OTHER:
-			break;
-		default:
-			throw new UnsupportedOperationException("Unknown ComparisonType from alg.");
-		}
 		return null;
 	}
 
@@ -53,5 +35,12 @@ public interface HashStore extends HasherOutput {
 	abstract List<String> findSourcesInRadius(ImageHash h);
 
 	abstract List<String> toSourceList();
+	
+	abstract void store(ImageHash hash) throws UnsupportedOperationException;
+	
+	@Override
+	default void accept(ImageHash hash) throws UnsupportedOperationException {
+		this.store(hash);
+	}
 
 }

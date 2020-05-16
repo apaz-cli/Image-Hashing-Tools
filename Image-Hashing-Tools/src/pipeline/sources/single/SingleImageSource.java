@@ -1,4 +1,4 @@
-package pipeline.sources.impl.single;
+package pipeline.sources.single;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -6,7 +6,7 @@ import java.net.URL;
 
 import image.IImage;
 import image.implementations.SourcedImage;
-import pipeline.sources.ImageSource;
+import pipeline.ImageSource;
 
 public class SingleImageSource implements ImageSource {
 

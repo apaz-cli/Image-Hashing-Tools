@@ -1,4 +1,4 @@
-package pipeline.sources.impl.loader;
+package pipeline.sources.loader;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -16,7 +16,7 @@ import javax.imageio.ImageIO;
 
 import image.implementations.GreyscaleImage;
 import image.implementations.SourcedImage;
-import pipeline.sources.ImageSource;
+import pipeline.ImageSource;
 
 public class ImageLoader implements ImageSource {
 

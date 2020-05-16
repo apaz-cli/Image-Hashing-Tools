@@ -26,10 +26,11 @@ public class DHashTest {
 			for (int i = 0; i < 500; i++) {
 				int sideLength = 0;
 				while (sideLength == 0) {
-					sideLength = r.nextInt(1000);
+					sideLength = r.nextInt(10);
 				}
 
 				h1 = new DifferenceHash(sideLength).hash(img);
+				System.out.println(h1.toString());
 				h2 = ImageHash.fromString(h1.toString());
 				assertEquals(h1, h2);
 			}

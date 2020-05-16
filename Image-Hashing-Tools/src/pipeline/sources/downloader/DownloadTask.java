@@ -1,4 +1,4 @@
-package pipeline.sources.impl.downloader;
+package pipeline.sources.downloader;
 
 class DownloadTask implements Runnable {
 	

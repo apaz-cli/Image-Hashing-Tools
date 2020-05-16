@@ -1,6 +1,6 @@
 package utils;
 
-import pipeline.sources.impl.safebooruscraper.SafebooruScraper;
+import pipeline.sources.safebooruscraper.SafebooruScraper;
 
 public class TestUtils {
 

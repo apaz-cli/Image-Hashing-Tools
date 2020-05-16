@@ -1,4 +1,4 @@
-package pipeline.sources.impl.joined;
+package pipeline.sources.joined;
 
 import java.util.Collection;
 import java.util.Vector;

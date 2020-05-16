@@ -1,118 +1,212 @@
 package hash;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.BitSet;
 
-public class ImageHash implements Comparable<ImageHash>, Serializable {
+import hashstore.MetricComparable;
+import image.PixelUtils;
 
-	private static final long serialVersionUID = 1L;
+public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 
+	/********************/
+	/* Member Variables */
+	/********************/
+
+	// For Java serialization
+	private static final long serialVersionUID = -1248134817737622671L;
+	// Convenience for toString() hex conversion
+	final protected static char[] intToHexChar = "0123456789ABCDEF".toCharArray();
+
+	// The hash itself
 	private final long[] bits;
-	private final String type; // name null is not legal. Name also cannot contain certain characters. (,|\")
-	private final int hashLength; // Will still work if not a multiple of 64. We just don't mess with those bits.
-	private String source = null; // null appends as "null" with StringBuilder in toString(), which effectively
-									// serializes hashes.
 
-	final protected static char[] intToHexChar = "0123456789ABCDEF".toCharArray();// Convenience for toString()
+	// @nof
+	// This field is stored as one string for memory reasons. It should be laid out with:
+	// hashName,hashLength,comparisonType
+	// With all of the information coming from the IHashAlgorithm that created it. It's stored this way because 
+	// Strings are interned, meaning that only one instance of that string actually exists, and each ImageHash
+	// only needs to hold a reference to it.
+	// @dof
+	private final String hashInformation;
 
-	public ImageHash(IHashAlgorithm creator, long[] hash) throws IllegalArgumentException {
-		this.type = creator.getHashName();
-		this.bits = Arrays.copyOf(hash, hash.length);
-		this.hashLength = creator.getHashLength();
+	// Where the Image came from, if it was a SourcedImage. Otherwise null. Note
+	// that null appends as "null" with StringBuilder in toString(), which
+	// effectively serializes hashes.
+	private String source = null;
+
+	// Assume that the creator has been implemented correctly, and that the
+	// hashInformation is laid out properly. But, for String constructors, we'll
+	// check.
+
+	/****************/
+	/* Constructors */
+	/****************/
+
+	public ImageHash(IHashAlgorithm creator, long[] bits) throws IllegalArgumentException {
+		PixelUtils.assertNotNull(new String[] { "creator", "bits" }, creator, bits);
+		this.bits = Arrays.copyOf(bits, bits.length);
+		this.hashInformation = creator.getHashInformation(); // Source remains null
 	}
 
-	public ImageHash(IHashAlgorithm creator, long[] hash, String source) throws IllegalArgumentException {
-		this.type = creator.getHashName();
-		this.bits = Arrays.copyOf(hash, hash.length);
-		this.hashLength = creator.getHashLength();
-		this.source = source;
+	public ImageHash(IHashAlgorithm creator, long[] bits, String source) throws IllegalArgumentException {
+		PixelUtils.assertNotNull(new String[] { "creator", "bits" }, creator, bits);
+		this.bits = Arrays.copyOf(bits, bits.length);
+		this.hashInformation = creator.getHashInformation();
+		this.source = sanitizeFileOrURL(source);
 	}
 
-	public ImageHash(String hashName, long[] hash, int hashLength) throws IllegalArgumentException {
-		checkName(hashName);
-		this.type = hashName;
-		this.bits = Arrays.copyOf(hash, hash.length);
-		this.hashLength = hashLength;
+	public ImageHash(String hashInformation, long[] bits) throws IllegalArgumentException {
+		PixelUtils.assertNotNull(new String[] { "hashInformation", "bits" }, hashInformation, bits);
+		this.bits = Arrays.copyOf(bits, bits.length);
+		this.hashInformation = checkHashInformation(hashInformation);
 	}
 
-	public ImageHash(String hashName, long[] hash, int hashLength, String source) throws IllegalArgumentException {
-		checkName(hashName);
-		this.type = hashName;
-		this.bits = Arrays.copyOf(hash, hash.length);
-		this.hashLength = hashLength;
-		this.source = source;
+	public ImageHash(String hashInformation, long[] bits, String source) throws IllegalArgumentException {
+		PixelUtils.assertNotNull(new String[] { "hashInformation", "bits" }, hashInformation, bits);
+		this.bits = Arrays.copyOf(bits, bits.length);
+		this.hashInformation = checkHashInformation(hashInformation);
+		this.source = sanitizeFileOrURL(source);
 	}
 
-	// Hash name may not contain the characters comma, pipe, or double quote (,|\").
-	// To save time, we don't check when we're using an IHashAlgorithm. If somebody
-	// implements it wrong, that's on them.
-	private void checkName(String hashName) throws IllegalArgumentException {
-		for (char c : hashName.toCharArray()) {
+	/*****************/
+	/* Sanity Checks */
+	/*****************/
+
+	private static void checkAlgName(String type) throws IllegalArgumentException {
+		for (char c : type.toCharArray()) {
 			if (c == '|' || c == ',' || c == '\"') {
 				throw new IllegalArgumentException(
-						"Hash name may not contain the characters comma, pipe, or double quote (,|\").");
+						"The hashName field of the hashInformation may not contain the characters comma, pipe, or double quote (,|\").");
 			}
 		}
 	}
 
-	public static ImageHash fromString(String imageHash) throws NumberFormatException, IllegalArgumentException {
-		// Can deserialize in two different forms
-		// 1. type,length,bits
-		// 2. type,length,bits,source
+	private static void checkHashLength(String hashLength) {
+		try {
+			Integer.parseInt(hashLength);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(
+					"Could not parse an int for the hash's length from the hashInformation provided.");
+		}
 
+	}
+
+	private static void checkComparisonType(String comparisonType) {
+		try {
+			ComparisonType.valueOf(comparisonType);
+		} catch (Exception e) {
+			throw new IllegalArgumentException(
+					"Could not deserialize a valid ComparisonType from the hashInformation provided.");
+		}
+	}
+
+	private static String checkHashInformation(String hashInformation) throws IllegalArgumentException {
+		String[] spt = hashInformation.split(",");
+		if (spt.length != 3) throw new IllegalArgumentException(
+				"hashInformation does not have the correct number of fields. Expected algName,hashLength,comparisonType, but got: "
+						+ hashInformation);
+		checkAlgName(spt[0]);
+		checkHashLength(spt[1]);
+		checkComparisonType(spt[2]);
+		return hashInformation;
+	}
+
+	// Encode any backslashes or pipes with their url escape equivalents
+	private String sanitizeFileOrURL(String source) {
+		return source == null ? null : source.replace("\\", "%5C").replace("|", "%7C");
+	}
+
+	/***********/
+	/* Getters */
+	/***********/
+
+	public BitSet getBitSet() {
+		return BitSet.valueOf(this.bits);
+	}
+
+	public long[] getBitArray() {
+		return this.bits;
+	}
+
+	public String getHashInformation() {
+		return this.hashInformation;
+	}
+
+	// These should never throw exceptions. If they do, an IHashAlgorithm was
+	// implemented incorrectly.
+
+	public String getAlgName() {
+		return this.hashInformation.split(",")[0];
+	}
+
+	public int getHashLength() {
+		return Integer.parseInt(this.hashInformation.split(",")[1]);
+	}
+
+	public ComparisonType getComparisonType() {
+		return ComparisonType.valueOf(this.hashInformation.split(",")[2]);
+	}
+
+	public String getSource() {
+		return this.source;
+	}
+
+	/*****************************/
+	/* Strings and Serialization */
+	/*****************************/
+
+	public static ImageHash fromString(String imageHash) throws NumberFormatException, IllegalArgumentException {
 		// Parse for arguments
-		String type = null, length = null, bits = null, source = null;
+		// hexBits,algName,hashLength,comparisonType,source
+		String hexBits = null, hashName = null, hashLength = null, comparisonType = null, source = null;
 		String[] split = imageHash.split(",");
 
-		if (split.length == 3) {
-			type = split[0];
-			length = split[1];
-			bits = split[2];
-		} else if (split.length == 4) {
-			type = split[0];
-			length = split[1];
-			bits = split[2];
-			source = split[3];
-		} else {
-			type = split[0];
-			length = split[1];
-			bits = split[2];
-			// Joining the trailing splits handles possible commas in URLs.
+		if (split.length < 4) {
+			throw new IllegalArgumentException(
+					"Failed to parse an ImageHash from the given string. Expected a String in the form: "
+							+ "hashName,hashLength,comparisonType,hexBits,source where source "
+							+ "could possibly be \"null\", missing, or a url containing commas. Instead got: "
+							+ imageHash);
+		}
+		if (split.length == 4) {
+			hexBits = split[0];
+			hashName = split[1];
+			hashLength = split[2];
+			comparisonType = split[3];
+			// If source is missing, just leave it null.
+		}
+		if (split.length == 5) {
+			hexBits = split[0];
+			hashName = split[1];
+			hashLength = split[2];
+			comparisonType = split[3];
+			source = split[4];
+		} else if (split.length > 5) {
+			hexBits = split[0];
+			hashName = split[1];
+			hashLength = split[2];
+			comparisonType = split[3];
+			// If source has a comma in it, just join the trailing pieces of the split.
+			// We'll sanity check this later.
 			source = "";
-			for (int i = 3; i < split.length; i++) {
+			for (int i = 4; i < split.length; i++) {
 				source += split[i];
 			}
 		}
 
-		if (type == null) {
-			throw new IllegalArgumentException("Not enough commas. Can deserialize in two different forms:\n"
-					+ "1. type,length,bits\n" + "2. type,length,bits,source");
-		}
-
-		long[] longs = new long[(Integer.valueOf(length) + 63) / 64];
+		long[] longs = new long[(Integer.valueOf(hashLength) + 63) / 64];
 
 		int currentLong = 0, nibbleOffset = 0;
 		int c;
-		for (char hexChar : (bits = bits.toUpperCase()).toCharArray()) {
+		for (char hexChar : (hexBits = hexBits.toUpperCase()).toCharArray()) {
 			c = hexChar - 48;
 			if (c < 0x0) {
-				throw new IllegalArgumentException(
-						"Hash contains non-hex characters. Can deserialize in two different forms:\n"
-								+ "1. type,length,bits\n" + "2. type,length,bits,source");
+				throw new IllegalArgumentException("hexBits contain non-hex characters.");
 			} else if (c > 0x9) {
 				c -= 7;
 				if (c < 0xA || c > 0xF) {
-					throw new IllegalArgumentException(
-							"Hash contains non-hex characters. Can deserialize in two different forms:\n"
-									+ "1. type,length,bits\n" + "2. type,length,bits,source");
+					throw new IllegalArgumentException("hexBits contain non-hex characters.");
 				}
 			}
 
@@ -130,62 +224,21 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			}
 		}
 
-		// If in normal form, it begins with the name. If it was just the hex bits, then
-		// give it a name.
-		return new ImageHash(type, longs, Integer.parseInt(length), source.equals("null") ? null : source);
+		// Let the constructor do the sanity checks.
+		String hashInformation = new StringBuilder(hashName).append(",").append(hashLength).append(",")
+				.append(comparisonType).toString();
+		return new ImageHash(hashInformation, longs, source);
 	}
 
-	public static ImageHash fromFile(File imageHash) throws IOException {
-		DataInputStream dis = new DataInputStream(new FileInputStream(imageHash));
-		String hash = dis.readUTF();
-		dis.close();
-		return ImageHash.fromString(hash);
+	@Override
+	public String toString() {
+		// @nof
+		return new StringBuilder()
+				.append(this.hexHash()).append(",")
+				.append(this.hashInformation).append(",")
+				.append(this.source).toString();
+		// @dof
 	}
-
-	public void writeToFile(File imageHash) throws IOException, FileNotFoundException {
-		if (!imageHash.isFile()) {
-			throw new FileNotFoundException(
-					"File passed could be found, but is not a file, and is probably a directory.");
-		}
-		DataOutputStream dos = new DataOutputStream(new FileOutputStream(imageHash, false));
-		dos.writeUTF(this.toString());
-		dos.close();
-	}
-
-	public void writeToNewFile(File imageHash) throws IOException, FileNotFoundException {
-		if (!imageHash.exists()) {
-			String p = imageHash.getParent();
-			File parent = p == null ? null : new File(p);
-			if (parent != null) {
-				if (!parent.exists()) {
-					if (!parent.mkdirs()) {
-						throw new IOException("Directories leading up to this file could not be created.");
-					}
-				}
-			}
-			// Cannot return false, and throws own exception if there's a problem.
-			imageHash.createNewFile();
-		}
-		this.writeToFile(imageHash);
-	}
-
-	public void setSource(String source) {
-		this.source = source;
-	}
-
-	public String getSource() {
-		return this.source;
-	}
-
-	public BitSet getBits() {
-		return BitSet.valueOf(this.bits);
-	}
-
-	public long[] getBitArray() {
-		return this.bits;
-	}
-
-	/* Euclidean */
 
 	public double[] getBitArrayAsDouble() {
 		double[] dbits = new double[this.bits.length];
@@ -212,7 +265,7 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 			ibits[currentInt] = (int) this.bits[i];
 			ibits[currentInt + 1] = (int) (this.bits[i] >> 32);
 		}
-		return (this.hashLength % 2 == 0) ? ibits : Arrays.copyOf(ibits, (this.bits.length * 2) - 1);
+		return ((this.getHashLength() / 32) % 2 == 0) ? ibits : Arrays.copyOf(ibits, (this.bits.length * 2) - 1);
 	}
 
 	public byte[] getBitArrayAsByte() {
@@ -232,25 +285,28 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 	}
 
 	public boolean getBit(int bitIndex) throws ArrayIndexOutOfBoundsException {
-		// Taken from BitSet docs
 		// https://docs.oracle.com/javase/7/docs/api/java/utils/BitSet.html#toLongArray%28%29
 		return ((this.bits[bitIndex / 64] & (1L << (bitIndex % 64))) != 0);
 	}
 
-	public int getLength() {
-		return this.hashLength;
+	@Override
+	public double distance(ImageHash hash) throws IllegalArgumentException {
+		assertComparable(hash);
+
+		ComparisonType thisType = this.getComparisonType();
+		switch (thisType) {
+		case HAMMING:
+			return this.hammingDistance(hash);
+		case EUCLIDEANF32:
+			return this.euclideanF32Distance(hash);
+		case EUCLIDEANF64:
+			return this.euclideanF64Distance(hash);
+		default:
+			throw new UnsupportedOperationException("ComparisonType \"" + thisType + "\" not supported.");
+		}
 	}
 
-	public String getType() {
-		return type;
-	}
-
-	public int hammingDistance(ImageHash hash) throws IllegalArgumentException {
-		areDistanceComparable(hash);
-
-		// While there may be some unused bits at the end of the last long, since we
-		// aren't touching them they'll be the same. It isn't worth trying to optimize
-		// it away. Most hashes are a multiple of 64 long, and it isn't worth checking.
+	private int hammingDistance(ImageHash hash) {
 		long[] other = hash.getBitArray();
 		int distance = 0;
 		long b;
@@ -265,84 +321,34 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return distance;
 	}
 
-	public float percentHammingDifference(ImageHash hash) throws IllegalArgumentException {
-		areDistanceComparable(hash);
-
-		int distance = this.hammingDistance(hash);
-		return distance / (float) this.hashLength;
+	private float euclideanF32Distance(ImageHash hash) {
+		float[] thisBits = this.getBitArrayAsFloat(), otherBits = hash.getBitArrayAsFloat();
+		double product = 0;
+		for (int i = 0; i < thisBits.length; i++) {
+			float diff = thisBits[i] - otherBits[i];
+			product += diff * diff;
+		}
+		return (float) Math.sqrt(product);
 	}
 
-	private void areDistanceComparable(ImageHash hash) throws IllegalArgumentException {
-		// If one or both of them is of unknown origin, then ignore comparison of types.
-		if (!(this.type == "unknownHash" || hash.type == "unknownHash")) {
-			if (this.type != hash.getType()) {
-				throw new IllegalArgumentException(
-						"These two hashes are not the same type, and therefore cannot be compared.");
-			}
+	private double euclideanF64Distance(ImageHash hash) {
+		double[] thisBits = this.getBitArrayAsDouble(), otherBits = hash.getBitArrayAsDouble();
+		double product = 0;
+		for (int i = 0; i < thisBits.length; i++) {
+			double diff = thisBits[i] - otherBits[i];
+			product += diff * diff;
 		}
-
-		if (this.hashLength != hash.getLength()) {
-			throw new IllegalArgumentException(
-					"These two hashes are not of the same length, and therefore cannot be compared. Hash 1: "
-							+ this.getLength() + " Hash 2: " + hash.getLength());
-		}
+		return Math.sqrt(product);
 	}
 
-	// Sort alphabetically by algorithm, then by hash length least to greatest, then
-	// alphabetically by source, then by hash, least to greatest numerically.
-	@Override
-	public int compareTo(ImageHash hash) throws IllegalArgumentException {
+	public void assertComparable(ImageHash hash) throws IllegalArgumentException {
+		if (!this.hashInformation.equals(hash.getHashInformation())) throw new IllegalArgumentException(
+				"These two hashes are not comparable. Tried to compare this hash: " + this.toString()
+						+ " against another hash: " + hash.toString() + " that did not have the same hashInformation.");
 
-		if (this.type.compareTo(hash.getType()) > 0) {
-			return 1;
-		}
-
-		if (this.type.compareTo(hash.getType()) < 0) {
-			return -1;
-		}
-
-		if (this.hashLength != hash.getLength()) {
-			return this.hashLength > hash.getLength() ? 1 : -1;
-		}
-
-		String hSource = hash.getSource();
-		if (this.source != null && hSource != null) {
-			if (this.source.compareTo(hash.getSource()) > 0) {
-				return 1;
-			}
-			if (this.source.compareTo(hash.getSource()) < 0) {
-				return -1;
-			}
-		}
-
-		// null sources are considered less than.
-		if (this.source == null && hSource != null) {
-			return -1;
-		} else if (hSource == null && this.source != null) {
-			return 1;
-		}
-
-		// If both are null, continue on and sort by hash.
-
-		long[] other = hash.getBitArray();
-
-		long x, y;
-		for (int arr = 0; arr < this.bits.length; arr++) {
-			x = bits[arr];
-			y = other[arr];
-			for (int i = 0; i < 64; i++) {
-				if ((x & 1) != (y & 1)) {
-					return (y & 1) == 1 ? -1 : 1;
-				}
-				x >>= 1;
-				y >>= 1;
-			}
-		}
-
-		// If they're bitwise equal, report equal.
-		return 0;
 	}
 
+	// Returns the contents of this hash's bits in hexadecimal.
 	private char[] hexHash() {
 		char[] encodedChars = new char[this.bits.length * 16];
 		for (int i = 0; i < this.bits.length; i++) {
@@ -355,49 +361,25 @@ public class ImageHash implements Comparable<ImageHash>, Serializable {
 		return encodedChars;
 	}
 
-	// type,length,bits,source
-	@Override
-	public String toString() {
-		// @nof
-		return new StringBuilder(this.type)
-				.append(",")
-				.append(this.hashLength)
-				.append(",")
-				.append(this.hexHash())
-				.append(",")
-				.append(this.source)
-				.toString();
-		// @dof
-	}
+	// Deep equals for everything
 
-	// Same as above, but overwrites source
-	public String toString(String source) throws IllegalArgumentException {
-		// @nof
-		return new StringBuilder(this.type)
-				.append(",")
-				.append(this.hashLength)
-				.append(",")
-				.append(this.hexHash())
-				.append(",")
-				.append(source)
-				.toString();
-		// @dof
-	}
-
-	// Deep equals
 	@Override
 	public boolean equals(Object h) {
-		if (h instanceof ImageHash) {
-			ImageHash o = (ImageHash) h;
-			return this.compareTo(o) == 0;
-		}
-		return false;
+		if (h == null) return false;
+		if (!(h instanceof ImageHash)) return false;
+		if (!this.equalsIgnoreSource(h)) return false;
+
+		String sauce = ((ImageHash) h).getSource();
+		return ((sauce == null) || (sauce.equals("null"))) ? (this.source == null || this.source.equals("null"))
+				: sauce.equals(this.source);
 	}
 
-	// Dependent only on the bits
-	@Override
-	public int hashCode() {
-		return Arrays.hashCode(this.bits);
+	// Deep equals for everything but the source
+	public boolean equalsIgnoreSource(Object h) {
+		if (h == null) return false;
+		if (!(h instanceof ImageHash)) return false;
+		ImageHash o = (ImageHash) h;
+		return (this.hashInformation.equals(o.getHashInformation()) && Arrays.equals(this.bits, o.getBitArray()));
 	}
 
 }

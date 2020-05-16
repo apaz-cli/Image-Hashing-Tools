@@ -8,6 +8,7 @@ import hash.IHashAlgorithm;
 import hash.ImageHash;
 import hash.MatchMode;
 import image.IImage;
+import image.PixelUtils;
 import image.implementations.RGBImage;
 
 public class PerceptualHash implements IHashAlgorithm {
@@ -20,6 +21,8 @@ public class PerceptualHash implements IHashAlgorithm {
 	}
 
 	public PerceptualHash(int sideLength) {
+		if (PixelUtils.safeSquare(sideLength) % 2 != 0)
+			throw new IllegalArgumentException("sideLength must be even.");
 		this.size = sideLength;
 		this.DCTCoefficients = DCTUtils.createHalfDCTCoefficients(sideLength);
 	}
@@ -36,7 +39,8 @@ public class PerceptualHash implements IHashAlgorithm {
 
 	@Override
 	public int getHashLength() {
-		return this.size * this.size;
+		int trimmedSize = (this.size / 2);
+		return trimmedSize * trimmedSize;
 	}
 
 	@Override
@@ -55,22 +59,24 @@ public class PerceptualHash implements IHashAlgorithm {
 
 	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
-		// This assertion assures that the hashes are actually comparable.
-		int hashlen = hash1.getLength();
-		if (!hash1.getType().equals(this.getHashName()) || hashlen != hash2.getLength()) {
+		hash1.assertComparable(hash2);
+		if (!hash1.getHashInformation().contentEquals(this.getHashInformation())) {
 			throw new IllegalArgumentException(
-					"These hashes are not comparable. The hashes being compared must be of the same type and length.");
+					"The hash information in this hash does not match the information that this IHashAlgorithm would produce. Expected: "
+							+ this.getHashInformation() + "got:" + hash1.getHashInformation() + ".");
 		}
 
-		// No need to assert comparable, Hamming distance method does this.
+		// Doubles are represented exactly for a very large number of bits, so this is
+		// okay.
+		double dist = hash1.distance(hash2);
 		if (mode == MatchMode.SLOPPY) {
-			return hash1.hammingDistance(hash2) < (8 / (double) 64) * hash1.getLength();
+			return dist < (8 / (double) 64) * hash1.getHashLength();
 		} else if (mode == MatchMode.NORMAL) {
-			return hash1.hammingDistance(hash2) < (5 / (double) 64) * hash1.getLength();
+			return dist < (5 / (double) 64) * hash1.getHashLength();
 		} else if (mode == MatchMode.STRICT) {
-			return hash1.hammingDistance(hash2) < (2 / (double) 64) * hash1.getLength();
+			return dist < (2 / (double) 64) * hash1.getHashLength();
 		} else if (mode == MatchMode.EXACT) {
-			return hash1.hammingDistance(hash2) == 0;
+			return dist == 0;
 		} else {
 			throw new IllegalArgumentException("Invalid MatchMode: " + mode);
 		}
@@ -96,16 +102,15 @@ public class PerceptualHash implements IHashAlgorithm {
 		return new ImageHash(this, constructHash(transformedTrimmedDCT), this.findSource(img));
 	}
 
+	// Resize the image, and convert it to a 2d array of doubles.
 	private static double[][] packPixels(IImage<?> img, int size) {
 		byte[] bpixels = img.resizeBilinear(size, size).toGreyscale().getPixels();
 		double[][] dpixels = new double[size][size];
 
 		int offset = 0;
-		for (int y = 0; y < size; y++) {
-			for (int x = 0; x < size; x++) {
+		for (int y = 0; y < size; y++)
+			for (int x = 0; x < size; x++)
 				dpixels[y][x] = (double) bpixels[offset++];
-			}
-		}
 
 		return dpixels;
 	}
@@ -126,6 +131,7 @@ public class PerceptualHash implements IHashAlgorithm {
 
 		// Now set the bits of the hash.
 		long[] hashValues = new long[((trimmedSize * trimmedSize) + 63) / 64];
+
 		int longPos = 0, currentLong = -1;
 		for (int y = 0; y < trimmedSize; y++) {
 			for (int x = 0; x < trimmedSize; x++) {
