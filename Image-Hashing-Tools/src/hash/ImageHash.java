@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.BitSet;
 
-import hashstore.MetricComparable;
+import hashstore.vptree.MetricComparable;
 import image.PixelUtils;
 
 public class ImageHash implements Serializable, MetricComparable<ImageHash> {

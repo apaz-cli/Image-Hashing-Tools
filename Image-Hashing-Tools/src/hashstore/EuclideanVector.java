@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import hash.ImageHash;
+import hashstore.vptree.MetricComparable;
 import image.PixelUtils;
 
 public class EuclideanVector implements MetricComparable<EuclideanVector> {

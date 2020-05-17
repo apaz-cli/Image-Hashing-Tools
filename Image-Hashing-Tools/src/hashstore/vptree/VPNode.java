@@ -1,10 +1,10 @@
-package hashstore;
+package hashstore.vptree;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.Stack;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,15 +14,21 @@ import java.util.stream.Stream;
 import image.PixelUtils;
 
 // This class is not to be used outside of the VPTree code. No unnecessary robustness checks.
-class VPNode<T extends MetricComparable<? extends T>> {
+class VPNode<T extends MetricComparable<? extends T>> implements VantagePoint<T> {
 
-	static Random r = new Random();
+	private static Random r = new Random();
 
-	VPNode(T datapoint) {
+	// Class is not public, so these are not actually visible
+	T data;
+	VantagePoint<T> innerChild;
+	VantagePoint<T> outerChild;
+	double radius;
+
+	VPNode(T datapoint, double radius, VantagePoint<T> innerChild, VantagePoint<T> outerChild) {
 		this.data = datapoint;
-		this.radius = 0.0;
-		this.innerChild = null;
-		this.outerChild = null;
+		this.radius = radius;
+		this.innerChild = innerChild;
+		this.outerChild = outerChild;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -72,7 +78,7 @@ class VPNode<T extends MetricComparable<? extends T>> {
 				ExecutorService pool = Executors.newFixedThreadPool(2);
 				pool.execute(() -> {
 					this.innerChild = new VPNode<T>(innerChildPartition);
-					innerChildPartition.clear(); 
+					innerChildPartition.clear();
 				});
 				pool.execute(() -> {
 					this.outerChild = new VPNode<T>(outerChildPartition);
@@ -93,87 +99,85 @@ class VPNode<T extends MetricComparable<? extends T>> {
 	}
 
 	private T chooseVantagePoint(List<T> workingPartition) {
+		// Chooses at random. This requires more research.
 		return workingPartition.remove(r.nextInt(workingPartition.size()));
 	}
 
-	private T data;
-	private VPNode<T> innerChild;
-	private VPNode<T> outerChild;
-	private double radius;
-	// Children may be null
+	@Override
+	public List<T> getAllChildren() {
+		ArrayList<T> children = new ArrayList<>();
 
-	T getData() {
-		return this.data;
-	}
+		Stack<VantagePoint<T>> toTraverse = new Stack<>();
+		VantagePoint<T> currentVantagePoint;
+		toTraverse.push(this);
 
-	VPNode<T> getInner() {
-		return this.innerChild;
-	}
-
-	VPNode<T> getOuter() {
-		return this.outerChild;
-	}
-
-	void setInner(VPNode<T> newInner) {
-		this.innerChild = newInner;
-	}
-
-	void setOuter(VPNode<T> newOuter) {
-		this.outerChild = newOuter;
-	}
-
-	double getRadius() {
-		return this.radius;
-	}
-
-	@SuppressWarnings("unchecked")
-	void addNodeToLeafNode(T datapoint) {
-		boolean hasInner = this.innerChild == null, hasOuter = this.outerChild == null;
-		if (hasInner && hasOuter)
-			throw new IllegalArgumentException("This node is not a leaf node.");
-		else if (!(hasInner || hasOuter)) {
-			this.outerChild = new VPNode<T>(datapoint);
-			this.radius = ((MetricComparable<T>) datapoint).distance(this.data);
-		} else {
-			VPNode<T> newSelf = new VPNode<>(destroySelf());
-			this.data = newSelf.getData();
-			this.innerChild = newSelf.getInner();
-			this.outerChild = newSelf.getOuter();
-			this.radius = newSelf.getRadius();
+		while (!toTraverse.isEmpty()) {
+			currentVantagePoint = toTraverse.pop();
+			if (currentVantagePoint instanceof VPNode<?>) {
+				VPNode<T> vp = ((VPNode<T>) currentVantagePoint);
+				children.add(vp.data);
+				toTraverse.push(vp.innerChild);
+				toTraverse.push(vp.outerChild);
+			} else if (currentVantagePoint instanceof VPLeaf<?>) {
+				children.addAll(((VPLeaf<T>) currentVantagePoint).getAllChildren());
+			}
 		}
 
+		return children;
 	}
 
-	void addSelfAndChildren(Collection<T> coll) {
-		coll.add(this.data);
-		if (this.innerChild != null) {
-			this.innerChild.addSelfAndChildren(coll);
+	@Override
+	public List<T> getAllAndDestroy() {
+		ArrayList<T> children = new ArrayList<>();
+
+		Stack<VantagePoint<T>> toTraverse = new Stack<>();
+		VantagePoint<T> currentVantagePoint;
+		toTraverse.push(this);
+
+		while (!toTraverse.isEmpty()) {
+			currentVantagePoint = toTraverse.pop();
+			if (currentVantagePoint instanceof VPNode<?>) {
+				VPNode<T> vp = ((VPNode<T>) currentVantagePoint);
+				children.add(vp.data);
+				toTraverse.push(vp.innerChild);
+				toTraverse.push(vp.outerChild);
+				vp.data = null;
+				vp.innerChild = null;
+				vp.outerChild = null;
+			} else if (currentVantagePoint instanceof VPLeaf<?>) {
+				VPLeaf<T> leaf = (VPLeaf<T>) currentVantagePoint;
+				children.addAll(leaf.getAllChildren());
+				leaf.data = null;
+				leaf.leafNumber = -1;
+
+			}
 		}
-		if (this.outerChild != null) {
-			this.outerChild.addSelfAndChildren(coll);
+
+		return children;
+	}
+
+	@Override
+	public void destroy() {
+		Stack<VantagePoint<T>> toTraverse = new Stack<>();
+		VantagePoint<T> currentVantagePoint;
+		toTraverse.push(this);
+
+		while (!toTraverse.isEmpty()) {
+			currentVantagePoint = toTraverse.pop();
+			if (currentVantagePoint instanceof VPNode<?>) {
+				VPNode<T> vp = ((VPNode<T>) currentVantagePoint);
+				toTraverse.push(vp.innerChild);
+				toTraverse.push(vp.outerChild);
+				vp.data = null;
+				vp.innerChild = null;
+				vp.outerChild = null;
+			} else if (currentVantagePoint instanceof VPLeaf<?>) {
+				VPLeaf<T> leaf = (VPLeaf<T>) currentVantagePoint;
+				leaf.data = null;
+				leaf.leafNumber = -1;
+
+			}
 		}
 	}
 
-	List<T> destroySelf() {
-		ArrayList<T> elements = new ArrayList<>();
-		this.addSelfAndChildrenAndDestroy(elements);
-		return elements;
-	}
-
-	// Severs the tree at this node, allowing GC to occur on the detached subtrees
-	// after the method returns.
-	void addSelfAndChildrenAndDestroy(Collection<T> coll) {
-		coll.add(this.data);
-		this.data = null;
-
-		if (this.innerChild != null) {
-			this.innerChild.addSelfAndChildrenAndDestroy(coll);
-		}
-		this.innerChild = null;
-
-		if (this.outerChild != null) {
-			this.outerChild.addSelfAndChildrenAndDestroy(coll);
-		}
-		this.outerChild = null;
-	}
 }
