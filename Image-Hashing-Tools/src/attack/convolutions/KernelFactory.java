@@ -2,21 +2,25 @@ package attack.convolutions;
 
 import java.util.Arrays;
 
+import image.IImage;
 import image.PixelUtils;
 
-public class KernelFactory {
+public class KernelFactory<T extends IImage<? extends T>> {
 
-	public static SeperableKernel averageBlurKernel(int sideLength, EdgeMode mode) {
+	public KernelFactory() {
+	}
+
+	public SeperableKernel<T> averageBlurKernel(int sideLength, EdgeMode mode) {
 		ConvolutionKernel.assertOdd(sideLength);
 		int pixelNum = PixelUtils.safeSquare(sideLength);
 
 		float[] kernel = new float[pixelNum];
 		Arrays.fill(kernel, 1f / sideLength);
 
-		return new SeperableKernel(kernel, kernel, mode);
+		return new SeperableKernel<>(kernel, kernel, mode);
 	}
 
-	public static InseperableKernel gaussianBlurKernel(int sideLength, float blurFactor) {
+	public InseperableKernel<T> gaussianBlurKernel(int sideLength, float blurFactor) {
 		ConvolutionKernel.assertOdd(sideLength);
 		int center = (sideLength / 2) + 1;
 
@@ -39,6 +43,6 @@ public class KernelFactory {
 			}
 		}
 
-		return new InseperableKernel(kernel, sideLength);
+		return new InseperableKernel<>(kernel, sideLength);
 	}
 }

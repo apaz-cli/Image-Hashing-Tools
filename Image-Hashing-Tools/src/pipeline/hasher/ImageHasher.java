@@ -3,20 +3,21 @@ package pipeline.hasher;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.Vector;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import hash.IHashAlgorithm;
 import hash.ImageHash;
+import hashstore.HashStore;
 import image.IImage;
 import image.PixelUtils;
 import pipeline.ImageSource;
-import pipeline.sources.collection.ImageCollection;
 import pipeline.sources.loader.ImageLoader;
 
 /**
@@ -60,7 +61,8 @@ public class ImageHasher {
 	 * @throws IllegalArgumentException When source or algorithm are null
 	 * @author Aaron Pazdera
 	 */
-	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, HasherOutput outputLambda) throws IllegalArgumentException {
+	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, HasherOutput outputLambda)
+			throws IllegalArgumentException {
 		this((Object) source, algorithm, outputLambda);
 	}
 
@@ -74,7 +76,8 @@ public class ImageHasher {
 	 * Output.
 	 * 
 	 * If you would like to see a type of object supported that currently isn't,
-	 * please contact me at <a href="https://github.com/Aaron-Pazdera">https://github.com/Aaron-Pazdera</a> or
+	 * please contact me at <a href=
+	 * "https://github.com/Aaron-Pazdera">https://github.com/Aaron-Pazdera</a> or
 	 * submit a pull request.
 	 * 
 	 * @param input
@@ -114,11 +117,8 @@ public class ImageHasher {
 						+ "or use a SingleImageSource.");
 			}
 			return new ImageLoader(s);
-		} else if (input instanceof Collection<?>) {
-			return new ImageCollection((Collection<?>) input);
 		}
-
-		throw new IllegalArgumentException("Expected an ImageSource, File, or Collection<?> for input to ImageHasher, but got: " + input.getClass());
+		throw new IllegalArgumentException("Expected an ImageSource or File for input to ImageHasher, but got: " + input.getClass());
 	}
 
 	/**
@@ -137,13 +137,19 @@ public class ImageHasher {
 			return (HasherOutput) output;
 		} else if (output instanceof PrintStream) {
 			return (hash) -> { ((PrintStream) output).println(); };
+		} else if (output instanceof PrintWriter) {
+			return (hash) -> { ((PrintWriter) output).println(); };
+		} else if (output instanceof HashStore) {
+			return (hash) -> { ((HashStore) output).store(hash); };
 		} else if (output instanceof Collection<?>) {
 			try {
 				return (hash) -> { ((Collection<ImageHash>) output).add(hash); };
 			} catch (Exception e) {
-				throw new IllegalArgumentException("Expected a collection of ImageHash, but got a collection of some other type.");
+				throw new IllegalArgumentException(
+						"Expected a collection of ImageHash, but got a collection of some other type.");
 			}
 		}
+		System.err.println("Could not discern the type of hasher output. Using no output. Got: " + output.getClass());
 		return null;
 	}
 
@@ -157,12 +163,10 @@ public class ImageHasher {
 	 * @author Aaron Pazdera
 	 */
 	public ImageHash hash() {
-		IImage<?> img = source.nextImage();
-		if (img == null) {
-			return null;
-		}
+		IImage<?> img = source.next();
+		if (img == null) { return null; }
 		ImageHash h = algorithm.hash(img);
-		outputLambda.accept(h);
+		outputLambda.store(h);
 		return h;
 	}
 
@@ -231,9 +235,7 @@ public class ImageHasher {
 		if (numberOfHashes < 0) {
 			throw new IllegalArgumentException("Number of iterations cannot be less than zero.");
 		}
-		if (parallelismLevel < 1) {
-			throw new IllegalArgumentException("Number of threads cannot be less than one.");
-		}
+		if (parallelismLevel < 1) { throw new IllegalArgumentException("Number of threads cannot be less than one."); }
 
 		final int hashesPerThread = numberOfHashes / parallelismLevel;
 		final int hashesNotCovered = numberOfHashes - (hashesPerThread * parallelismLevel);
@@ -262,9 +264,11 @@ public class ImageHasher {
 		}
 
 		try {
-			/* We can expect some of these tasks to take a long time. The SafeBooruScraper
+			/*
+			 * We can expect some of these tasks to take a long time. The SafeBooruScraper
 			 * ImageSource for example will last at least multiple days, depending on
-			 * download speed. We can't say wait forever, so just say a very long time. */
+			 * download speed. We can't say wait forever, so just say a very long time.
+			 */
 			threadpool.shutdown();
 			threadpool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 		} catch (InterruptedException e) {
@@ -284,17 +288,14 @@ public class ImageHasher {
 	 * @author Aaron Pazdera
 	 */
 	public void hashAll(int parallelismLevel) throws IllegalArgumentException {
-		if (parallelismLevel < 1) {
-			throw new IllegalArgumentException("Number of threads cannot be less than one.");
-		}
+		if (parallelismLevel < 1) { throw new IllegalArgumentException("Number of threads cannot be less than one."); }
 
 		ExecutorService threadpool = Executors.newWorkStealingPool(parallelismLevel);
 		for (int i = 0; i < parallelismLevel; i++) {
 			threadpool.execute(() -> {
 				@SuppressWarnings("unused")
 				ImageHash hash;
-				while ((hash = this.hash()) != null) {
-				}
+				while ((hash = this.hash()) != null) {}
 			});
 		}
 

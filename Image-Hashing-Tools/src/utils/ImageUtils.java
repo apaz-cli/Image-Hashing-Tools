@@ -11,7 +11,9 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.Vector;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -31,47 +33,67 @@ public class ImageUtils {
 	protected ImageUtils() {
 	}
 
+	public static boolean validURL(String s) {
+		// Hopefully it's better than doing this. I don't wanna do this.
+		/*
+		 * try { new URL(s); return true; } catch (MalformedURLException e) { return
+		 * false; }
+		 */
+
+		// This is PROBABLY an acceptable way to do it. The character / happens to be
+		// invalid in a file name in all of UNIX, MacOS, and Windows. And I don't think
+		// that there's a way to get that combination of characters. Furthermore, each
+		// URL is going to start with http:// or https://
+		return s.contains("://");
+	}
+
+	public static List<Exception> failedImageOpens = new Vector<>();
+
 	// Returns null if isn't an image, or it's a gif
-	public static BufferedImage openImage(URL imgURL) throws IOException {
+	public static BufferedImage openImage(URL imgURL) {
+		try {
+			// Due to a Java 8 bug in ImageIO, cannot read animated gifs.
+			// if (imgURL.getPath().contains(".gif")) { return null; }
 
-		// Due to a Java 8 bug in ImageIO, cannot read animated gifs.
-		if (imgURL.getPath().contains(".gif")) {
+			final HttpURLConnection connection = (HttpURLConnection) imgURL.openConnection();
+			connection.setRequestProperty("User-Agent",
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
+
+			int code = connection.getResponseCode();
+			if (code == 403) {
+				System.err.println("Error 403: Forbidden for: " + imgURL);
+				return null;
+			} else if (code == 404) {
+				System.err.println("Error 404: Not Found for: " + imgURL);
+				return null;
+			} else if (code < 500 && code >= 400) {
+				System.err.println("Client error (" + code + ") for: " + imgURL);
+				return null;
+			} else if (code < 600 && code >= 500) {
+				System.err.println("Server error (" + code + ") for: " + imgURL);
+				return null;
+			}
+
+			InputStream s = new BufferedInputStream(connection.getInputStream());
+			return ImageIO.read(s);
+		} catch (Exception e) {
+			failedImageOpens.add(e);
 			return null;
 		}
 
-		final HttpURLConnection connection = (HttpURLConnection) imgURL.openConnection();
-		connection.setRequestProperty("User-Agent",
-				"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
-
-		int code = connection.getResponseCode();
-		if (code == 403) {
-			System.err.println("Error 403: Forbidden for: " + imgURL);
-			return null;
-		} else if (code == 404) {
-			System.err.println("Error 404: Not Found for: " + imgURL);
-			return null;
-		} else if (code < 500 && code >= 400) {
-			System.err.println("Client error (" + code + ") for: " + imgURL);
-			return null;
-		} else if (code < 600 && code >= 500) {
-			System.err.println("Server error (" + code + ") for: " + imgURL);
-			return null;
-		}
-
-		InputStream s = new BufferedInputStream(connection.getInputStream());
-		return ImageIO.read(s);
 	}
 
 	public static BufferedImage openImage(File imgFile) throws IOException {
-		if (!imgFile.isFile()) {
-			throw new IllegalArgumentException("imgFile is not a file.");
+		BufferedImage ret = null;
+		try {
+			if (!imgFile.isFile()) throw new IllegalArgumentException("imgFile is not a file. File: " + imgFile);
+			if (!imgFile.canRead())
+				throw new IllegalArgumentException("Insufficient permission to read file: " + imgFile);
+			ret = ImageIO.read(imgFile);
+		} catch (Exception e) {
+			failedImageOpens.add(e);
 		}
-		if (!imgFile.canRead()) {
-			throw new IllegalArgumentException("Insufficient permission to read file.");
-		}
-		
-		// Cannot read gifs due to ImageIO bug.
-		return imgFile.toString().endsWith(".gif") ? null : ImageIO.read(imgFile);
+		return ret;
 	}
 
 	public static SourcedImage openImageSourced(URL imgURL) throws IOException {
@@ -116,7 +138,7 @@ public class ImageUtils {
 
 	public static GreyscaleImage imageRepresentation(ImageHash hash, int width, int height)
 			throws IllegalArgumentException {
-		return imageRepresentation(hash.getBitArray(), width, height);
+		return imageRepresentation(hash.bitsToLongArray(), width, height);
 	}
 
 	public static GreyscaleImage imageRepresentation(long[] hashBits, int width, int height)

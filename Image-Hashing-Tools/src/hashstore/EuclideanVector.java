@@ -13,6 +13,7 @@ import image.PixelUtils;
 
 public class EuclideanVector implements MetricComparable<EuclideanVector> {
 
+	private static final long serialVersionUID = -3358082503666358405L;
 	float[] data;
 
 	EuclideanVector(float[] data) {
@@ -41,13 +42,9 @@ public class EuclideanVector implements MetricComparable<EuclideanVector> {
 		return sum;
 	}
 
-	int getLength() {
-		return this.data.length;
-	}
+	int getLength() { return this.data.length; }
 
-	float[] getData() {
-		return this.data;
-	}
+	float[] getData() { return this.data; }
 
 	@Override
 	public double distance(EuclideanVector other) {
@@ -57,12 +54,12 @@ public class EuclideanVector implements MetricComparable<EuclideanVector> {
 					"Length mismatch. Tried to compute the distance between vectors of length " + this.getLength()
 							+ " and " + other.getLength() + ".");
 		}
-		
+
 		float sum = 0, diff;
 		float[] od = other.getData();
 		for (int i = 0; i < length; i++) {
 			diff = this.data[i] - od[i];
-			sum += diff*diff;
+			sum += diff * diff;
 		}
 		return Math.sqrt(sum);
 	}
@@ -132,9 +129,7 @@ public class EuclideanVector implements MetricComparable<EuclideanVector> {
 			int in;
 			while (true) {
 				for (int i = 0; i < len; i++) {
-					if (bis.read(four) == -1) {
-						return vecs;
-					}
+					if (bis.read(four) == -1) { return vecs; }
 					in = four[0];
 					in <<= 8;
 					in &= four[1];
@@ -153,9 +148,7 @@ public class EuclideanVector implements MetricComparable<EuclideanVector> {
 		return new EuclideanVector(Arrays.copyOf(data, data.length - 1));
 	}
 
-	private float getHyperplaneSolution() {
-		return data[data.length - 1];
-	}
+	private float getHyperplaneSolution() { return data[data.length - 1]; }
 
 	@Override
 	public String toString() {

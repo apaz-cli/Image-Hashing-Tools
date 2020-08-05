@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 
+import attack.IAttack;
 import image.IImage;
 import image.PixelUtils;
 import utils.ImageUtils;
@@ -33,9 +34,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
 					+ width + "  Height: " + height + "  Pixel length: " + pixels.length);
 		}
-		if (pixels.length == 0) {
-			throw new IllegalArgumentException("Width/Height may not be zero.");
-		}
+		if (pixels.length == 0) { throw new IllegalArgumentException("Width/Height may not be zero."); }
 		this.width = width;
 		this.height = height;
 		this.pixels = pixels;
@@ -46,9 +45,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 			throw new IllegalArgumentException("The length of the pixel array must be width * height.\n" + "Width: "
 					+ width + "  Height: " + height + "  Pixel length: " + pixels.length);
 		}
-		if (pixels.length == 0) {
-			throw new IllegalArgumentException("Width/Height may not be zero.");
-		}
+		if (pixels.length == 0) { throw new IllegalArgumentException("Width/Height may not be zero."); }
 		this.width = width;
 		this.height = height;
 		this.pixels = PixelUtils.intArrayToByte(pixels);
@@ -85,9 +82,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	}
 
 	public GreyscaleImage(GreyscaleImage[] g) {
-		if (g.length != 1) {
-			throw new IllegalArgumentException("Array must contain exactly one color channel.");
-		}
+		if (g.length != 1) { throw new IllegalArgumentException("Array must contain exactly one color channel."); }
 		GreyscaleImage self = new GreyscaleImage(g[0]);
 		this.width = self.getWidth();
 		this.height = self.getHeight();
@@ -118,9 +113,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		this.pixels[index] = (byte) val;
 	}
 
-	public byte[] getPixels() {
-		return this.pixels;
-	}
+	public byte[] getPixels() { return this.pixels; }
 
 	public int[] getIntPixels() {
 		int[] intPixels = new int[this.pixels.length];
@@ -160,19 +153,13 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 	}
 
 	@Override
-	public int getWidth() {
-		return this.width;
-	}
+	public int getWidth() { return this.width; }
 
 	@Override
-	public int getHeight() {
-		return this.height;
-	}
+	public int getHeight() { return this.height; }
 
 	@Override
-	public GreyscaleImage[] getChannels() {
-		return new GreyscaleImage[] { this };
-	}
+	public GreyscaleImage[] getChannels() { return new GreyscaleImage[] { this }; }
 
 	@Override
 	public GreyscaleImage deepClone() {
@@ -181,18 +168,14 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 
 	@Override
 	public GreyscaleImage resizeNearest(int width, int height) throws ArithmeticException {
-		if (this.width == width && this.height == height) {
-			return this.deepClone();
-		}
+		if (this.width == width && this.height == height) { return this.deepClone(); }
 		// Packs and unpacks the int. This is okay, the performance cost is marginal.
 		return rescaleNearest(width / (float) this.width, height / (float) this.height);
 	}
 
 	@Override
 	public GreyscaleImage rescaleNearest(float widthFactor, float heightFactor) throws ArithmeticException {
-		if (widthFactor == 1 && heightFactor == 1) {
-			return this.deepClone();
-		}
+		if (widthFactor == 1 && heightFactor == 1) { return this.deepClone(); }
 
 		// Throws when new width * new height overflows int.maxvalue
 		int newWidth = Math.toIntExact(Math.round(this.width * widthFactor));
@@ -213,9 +196,7 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 
 	@Override
 	public GreyscaleImage resizeBilinear(int width, int height) {
-		if (this.width == width && this.height == height) {
-			return this.deepClone();
-		}
+		if (this.width == width && this.height == height) { return this.deepClone(); }
 
 		byte[] scaled = new byte[PixelUtils.safeMult(width, height)];
 
@@ -258,29 +239,8 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 
 	@Override
 	public GreyscaleImage rescaleBilinear(float widthFactor, float heightFactor) {
-		if (widthFactor == 1 && heightFactor == 1) {
-			return this.deepClone();
-		}
+		if (widthFactor == 1 && heightFactor == 1) { return this.deepClone(); }
 		return resizeBilinear(Math.round(this.width * widthFactor), Math.round(this.height * heightFactor));
-	}
-
-	@Override
-	public String toString() {
-		String str = "";
-		int x, y;
-		for (y = 0; y < this.height; y++) {
-			for (x = 0; x < this.width; x++) {
-				String element = "" + (this.pixels[y * width + x] & 0xff);
-				if (element.length() == 1) {
-					element = "  " + element;
-				} else if (element.length() == 2) {
-					element = " " + element;
-				}
-				str += element + (x == this.width - 1 ? "" : " ");
-			}
-			str += "\n";
-		}
-		return str.substring(0, str.length() - 1);
 	}
 
 	@Override
@@ -361,6 +321,16 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		return new GreyscaleImage(
 				PixelUtils.emplaceSubimage(this.pixels, this.width, this.height, subImage.getPixels(), x1, y1, x2, y2),
 				this.width, this.height);
+	}
+
+	@Override
+	public GreyscaleImage apply(IAttack<GreyscaleImage> attack) {
+		return attack.applyToChannel(this);
+	}
+
+	@Override
+	public boolean hasAlpha() {
+		return false;
 	}
 
 }

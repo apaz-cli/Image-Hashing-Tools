@@ -2,21 +2,29 @@ package hash.implementations;
 
 import java.awt.image.BufferedImage;
 
+import hash.AlgLoader;
 import hash.ComparisonType;
+import hash.HashUtils;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import hash.MatchMode;
 import image.IImage;
 import image.PixelUtils;
 import image.implementations.GreyscaleImage;
+import image.implementations.SourcedImage;
 
 public class DifferenceHash implements IHashAlgorithm {
 
+	static {
+		AlgLoader.register(new DifferenceHash());
+	}
+
 	public DifferenceHash() {
-		this(8);
+		this.sideLength = 8;
 	}
 
 	public DifferenceHash(int sideLength) throws ArithmeticException {
+		if (sideLength < 1) throw new IllegalArgumentException("Side length is too small.");
 		try {
 			PixelUtils.safeSquare(sideLength);
 		} catch (ArithmeticException e) {
@@ -28,27 +36,23 @@ public class DifferenceHash implements IHashAlgorithm {
 	private int sideLength;
 
 	@Override
-	public String getHashName() {
+	public String algName() {
 		return "dHash";
 	}
 
 	@Override
-	public int getHashLength() {
-		return sideLength * sideLength;
-	}
+	public int getHashLength() { return sideLength * sideLength; }
 
 	@Override
-	public ComparisonType getComparisonType() {
-		return ComparisonType.HAMMING;
-	}
+	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String serialize() {
+	public String toArguments() {
 		return "" + this.sideLength;
 	}
 
 	@Override
-	public IHashAlgorithm deserialize(String serialized) throws IllegalArgumentException {
+	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
 		try {
 			return new DifferenceHash(Integer.parseInt(serialized.trim()));
 		} catch (NumberFormatException e) {
@@ -57,26 +61,38 @@ public class DifferenceHash implements IHashAlgorithm {
 	}
 
 	@Override
+	public double distance(ImageHash hash1, ImageHash hash2) {
+		if (this.canCompare(hash1, hash2)) {
+			return HashUtils.hammingDistance(hash1.bitsToLongArray(), hash2.bitsToLongArray());
+		} else throw new IllegalArgumentException("The chosen ");
+	}
+
+	@Override
+	public boolean algEquals(IHashAlgorithm o) {
+		if (o instanceof DifferenceHash) return ((DifferenceHash) o).sideLength == this.sideLength;
+		else return false;
+	}
+
+	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
-		hash1.assertComparable(hash2);
-		if (!hash1.getHashInformation().contentEquals(this.getHashInformation())) {
-			throw new IllegalArgumentException(
-					"The hash information in this hash does not match the information that this IHashAlgorithm would produce. Expected: "
-							+ this.getHashInformation() + "got:" + hash1.getHashInformation() + ".");
+		if (!this.canCompare(hash1, hash2)) {
+			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
+					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
-		double dist = hash1.distance(hash2);
-		if (mode == MatchMode.SLOPPY) {
-			return dist < (8 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.NORMAL) {
-			return dist < (5 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.STRICT) {
-			return dist < (2 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.EXACT) {
+		double dist = this.distance(hash1, hash2);
+		switch (mode) {
+		case SLOPPY:
+			return dist < (8 / (double) 64) * this.getHashLength();
+		case NORMAL:
+			return dist < (5 / (double) 64) * this.getHashLength();
+		case STRICT:
+			return dist < (2 / (double) 64) * this.getHashLength();
+		case EXACT:
 			return dist == 0;
-		} else {
+		default:
 			throw new IllegalArgumentException("Invalid MatchMode: " + mode);
 		}
 	}
@@ -85,52 +101,33 @@ public class DifferenceHash implements IHashAlgorithm {
 	public ImageHash hash(IImage<?> img) {
 		// This size seems odd, but we're averaging the pixels next to each other
 		// horizontally, and end up with an sideLength x sideLength length hash.
-		int rowLength = this.sideLength + 1;
-		img = img.resizeBilinear(rowLength, this.sideLength);
-		byte[] thumbnail = img.toGreyscale().getPixels();
+		byte[] thumbnail = img.resizeBilinear(this.sideLength, this.sideLength).toGreyscale().getPixels();
 
-		int thumbnailPixelNum = rowLength * this.sideLength;
+		int numHashBits = thumbnail.length - this.sideLength;
+		byte[] hash = new byte[(numHashBits + 7) / 8];
 
-		// Also worth noting is that resizing before greyscaling is more efficient. You
-		// wouldn't think that it would work this way, but for some reason it does.
+		int offset = 0, hashOffset = 0, byteIndex = 0;
+		while ((offset += 1) < thumbnail.length) {
+			if (offset % this.sideLength == 0) continue;
+			else {
 
-		int hashLongLength = (this.sideLength * this.sideLength + 63) / 64;
-		long[] hash = new long[hashLongLength];
-		int finishedIndex = -1, thumbnailAccumulator = 0;
-		int longPos = 0;
+				int bit = (thumbnail[offset] & 0xff) > (thumbnail[offset - 1] & 0xff) ? 0x1 : 0x0;
+				hash[hashOffset] <<= 1;
+				hash[hashOffset] |= bit;
 
-		// Set each bit of the hash depending on value adjacent
-		for (; thumbnailAccumulator < thumbnailPixelNum; thumbnailAccumulator++) {
-
-			if (thumbnailAccumulator % rowLength == this.sideLength) {
-				// If there's a beginning of a next row, skip this one.
-				continue;
+				// Move onto the next hash index if we must.
+				byteIndex++;
+				if (byteIndex == 8) {
+					hashOffset++;
+					byteIndex = 0;
+				}
 			}
-
-			if (longPos % 64 == 0) {
-				// fineshedIndex's -1 will immediately be incremented to 0, and it will spill
-				// over into new longs when necessary.
-				finishedIndex++;
-				longPos = 0;
-			}
-
-			// Set the current bit of the hash
-			hash[finishedIndex] <<= 1;
-			hash[finishedIndex] |= (thumbnail[thumbnailAccumulator] & 0xff) < (thumbnail[thumbnailAccumulator + 1]
-					& 0xff) ? 1 : 0;
-			longPos++;
 		}
 
-		// Shift in
-		hash[finishedIndex] <<= 64 - longPos;
+		// Shift in the last byte of the array, since that didn't get done above
+		hash[hash.length - 1] <<= (8 - (this.getHashLength() % 8));
 
-		/*
-		 * // Reverse all bits, because of the pushing back to build the hash. This is
-		 * not // actually necessary, but makes the visual representation look better.
-		 * for (finishedIndex = 0; finishedIndex < hash.length; finishedIndex++) {
-		 * hash[finishedIndex] = Long.reverse(hash[finishedIndex]); }
-		 */
-		return new ImageHash(this, hash, this.findSource(img));
+		return new ImageHash(this, hash, img instanceof SourcedImage ? ((SourcedImage) img).getSource() : null);
 	}
 
 	@Override

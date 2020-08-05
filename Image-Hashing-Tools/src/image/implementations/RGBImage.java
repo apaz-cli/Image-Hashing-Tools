@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 
+import attack.IAttack;
 import image.IImage;
 import utils.ImageUtils;
 
@@ -60,10 +61,10 @@ public class RGBImage implements IImage<RGBImage> {
 
 	// r, g, b, become backing
 	public RGBImage(GreyscaleImage red, GreyscaleImage green, GreyscaleImage blue) {
-		// TODO check height/width.
-		int len = red.getPixels().length;
-		if (len != green.getPixels().length || len != blue.getPixels().length) {
-			throw new IllegalArgumentException("All three images must be the same size.");
+		int width = red.getWidth(), height = red.getHeight();
+		if (width != green.getWidth() || width != blue.getWidth() || height != green.getHeight()
+				|| height != blue.getHeight()) {
+			throw new IllegalArgumentException("All three images have the same dimensions.");
 		}
 
 		this.width = red.getWidth();
@@ -74,9 +75,7 @@ public class RGBImage implements IImage<RGBImage> {
 	}
 
 	public RGBImage(GreyscaleImage[] rgb) {
-		if (rgb.length != 3) {
-			throw new IllegalArgumentException("Array must contain exactly three color channels.");
-		}
+		if (rgb.length != 3) { throw new IllegalArgumentException("Array must contain exactly three color channels."); }
 		RGBImage self = new RGBImage(rgb[0], rgb[1], rgb[2]);
 		this.width = self.getWidth();
 		this.height = self.getHeight();
@@ -86,9 +85,7 @@ public class RGBImage implements IImage<RGBImage> {
 	}
 
 	public RGBImage(BufferedImage img) throws IllegalArgumentException {
-		if (img == null) {
-			throw new IllegalArgumentException("Argument cannot be null.");
-		}
+		if (img == null) { throw new IllegalArgumentException("Argument cannot be null."); }
 
 		// I have to do some tricks, because Java's image library is garbage for this
 		// sort of thing.
@@ -151,32 +148,20 @@ public class RGBImage implements IImage<RGBImage> {
 		this(ImageUtils.openImage(imgURL));
 	}
 
-	public GreyscaleImage getRed() {
-		return r;
-	}
+	public GreyscaleImage getRed() { return r; }
 
-	public GreyscaleImage getGreen() {
-		return g;
-	}
+	public GreyscaleImage getGreen() { return g; }
 
-	public GreyscaleImage getBlue() {
-		return b;
-	}
+	public GreyscaleImage getBlue() { return b; }
 
 	@Override
-	public int getWidth() {
-		return this.width;
-	}
+	public int getWidth() { return this.width; }
 
 	@Override
-	public int getHeight() {
-		return this.height;
-	}
+	public int getHeight() { return this.height; }
 
 	@Override
-	public GreyscaleImage[] getChannels() {
-		return new GreyscaleImage[] { this.r, this.g, this.b };
-	}
+	public GreyscaleImage[] getChannels() { return new GreyscaleImage[] { this.r, this.g, this.b }; }
 
 	@Override
 	public RGBImage deepClone() {
@@ -241,7 +226,7 @@ public class RGBImage implements IImage<RGBImage> {
 		byte[] green = this.g.getPixels();
 		byte[] blue = this.b.getPixels();
 
-		// Paralell average as int
+		// Parallel average as int
 		int[] average = new int[this.width * this.height];
 		Arrays.parallelSetAll(average,
 				i -> Math.round((((red[i] & 0xff) + (green[i] & 0xff) + (blue[i] & 0xff)) / 3f)));
@@ -315,6 +300,17 @@ public class RGBImage implements IImage<RGBImage> {
 		return new RGBImage(this.r.emplaceSubimage(subImage.getRed(), x1, y1, x2, y2),
 				this.g.emplaceSubimage(subImage.getGreen(), x1, y1, x2, y2),
 				this.b.emplaceSubimage(subImage.getBlue(), x1, y1, x2, y2));
+	}
+
+	@Override
+	public RGBImage apply(IAttack<RGBImage> attack) {
+		return new RGBImage(attack.applyToChannel(this.r), attack.applyToChannel(this.g),
+				attack.applyToChannel(this.b));
+	}
+
+	@Override
+	public boolean hasAlpha() {
+		return false;
 	}
 
 }

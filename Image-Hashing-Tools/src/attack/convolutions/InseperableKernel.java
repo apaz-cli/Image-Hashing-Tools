@@ -2,15 +2,18 @@ package attack.convolutions;
 
 import java.util.Arrays;
 
+import image.IImage;
 import image.PixelUtils;
 import image.implementations.GreyscaleImage;
 
-public class InseperableKernel implements ConvolutionKernel {
+public class InseperableKernel<T extends IImage<? extends T>> implements ConvolutionKernel<T> {
 
 	private float[] kernel;
 	private int sideLength;
 	private EdgeMode mode;
 
+	
+	
 	public InseperableKernel() {
 		this(3);
 	}
@@ -73,7 +76,7 @@ public class InseperableKernel implements ConvolutionKernel {
 	}
 
 	@Override
-	public GreyscaleImage applyToColorChannel(GreyscaleImage channel) {
+	public GreyscaleImage applyToChannel(GreyscaleImage channel) {
 		byte[] channelPixels = channel.getPixels();
 		int channelWidth = channel.getWidth(), channelHeight = channel.getHeight();
 		int targetPixelX, targetPixelY, pixelValue;
@@ -171,8 +174,7 @@ public class InseperableKernel implements ConvolutionKernel {
 
 	@Override
 	public EdgeMode getMode() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.mode;
 	}
 
 }

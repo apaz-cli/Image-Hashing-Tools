@@ -1,49 +1,28 @@
 package pipeline.operator;
 
-import java.awt.image.BufferedImage;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
+
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import hash.MatchMode;
 import image.IImage;
-import image.implementations.RGBAImage;
-import image.implementations.SourcedImage;
 
-public class FindMatches implements IImageOperation {
+public class FindMatches<T extends IImage<? extends T>> implements ImageOperation<T> {
 
 	public FindMatches(IHashAlgorithm algorithm, ImageHash hash) {
 		this(algorithm, MatchMode.NORMAL, hash);
 	}
 
 	public FindMatches(IHashAlgorithm algorithm, IImage<?> img) {
-		this(algorithm, algorithm.hash(img));
-	}
-
-	public FindMatches(IHashAlgorithm algorithm, BufferedImage img) {
-		this(algorithm, new RGBAImage(img));
-	}
-
-	public FindMatches(IHashAlgorithm algorithm, SourcedImage img) {
-		this(algorithm, img.unwrap());
+		this(algorithm, algorithm == null || img == null ? null : algorithm.hash(img));
 	}
 
 	public FindMatches(IHashAlgorithm algorithm, MatchMode mm, IImage<?> img) {
 		this(algorithm, mm, algorithm.hash(img));
 	}
 
-	public FindMatches(IHashAlgorithm algorithm, MatchMode mm, BufferedImage img) {
-		this(algorithm, mm, new RGBAImage(img));
-	}
-
-	public FindMatches(IHashAlgorithm algorithm, MatchMode mm, SourcedImage img) {
-		this(algorithm, mm, img.unwrap());
-	}
-
 	public FindMatches(IHashAlgorithm algorithm, MatchMode mm, ImageHash hash) {
-		if (hash.toString().split(",")[0] != alg.getHashName() || hash.getHashLength() != algorithm.getHashLength()) {
-			throw new IllegalArgumentException(
-					"The name and hash lengths of the hash must match those which would be produced by the algorithm.");
-		}
 
 		this.alg = algorithm;
 		this.referenceHash = hash;
@@ -54,40 +33,36 @@ public class FindMatches implements IImageOperation {
 	private ImageHash referenceHash;
 	private MatchMode mm;
 
-	private HashSet<String> matches = new HashSet<>();
+	private List<ImageHash> matches = new ArrayList<>();
 
-	public HashSet<String> getMatches() {
+	public List<ImageHash> getMatches() {
 		synchronized (this.matches) {
 			return this.matches;
 		}
 	}
 
-	public HashSet<String> getAndClearMatches() {
+	public List<ImageHash> getAndClearMatches() {
 		synchronized (this.matches) {
-			return this.matches;
+			List<ImageHash> l = this.matches;
+			this.clearMatches();
+			return l;
 		}
 	}
 
 	public void clearMatches() {
 		synchronized (this.matches) {
-			this.matches = new HashSet<String>();
+			this.matches = new ArrayList<ImageHash>();
 		}
 	}
 
 	@Override
-	public IImage<?> operate(IImage<?> img) {
-		if (!(img instanceof SourcedImage)) {
-			throw new IllegalArgumentException("This Operation only accepts SourcedImages.");
-		}
-		SourcedImage si = (SourcedImage) img;
-
-		ImageHash h = alg.hash(si);
-		boolean match = alg.matches(this.referenceHash, h, this.mm);
-		if (match) {
+	public T apply(T img) {
+		ImageHash h = alg.hash(img);
+		if (alg.matches(this.referenceHash, h, this.mm)) {
 			synchronized (this.matches) {
-				this.matches.add(si.getSource());
+				this.matches.add(h);
 			}
 		}
-		return si;
+		return img;
 	}
 }

@@ -1,6 +1,6 @@
 package image;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.awt.Point;
 import java.util.stream.IntStream;
@@ -12,7 +12,7 @@ import utils.TestUtils;
 
 public class GreyscaleTest {
 
-	private static GreyscaleImage testImage = TestUtils.safeScraper.nextImage().toGreyscale();
+	private static GreyscaleImage testImage = TestUtils.safeScraper.next().toGreyscale();
 
 	@Test
 	void rotationFlipEquivalenceTest() {

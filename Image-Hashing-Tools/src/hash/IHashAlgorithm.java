@@ -11,82 +11,69 @@ import utils.ImageUtils;
 
 public interface IHashAlgorithm {
 
-	// Much like with IImageOperation, this must deal with SourcedImages.
-	// However, it's much, much simpler. Please see the example below.
+	// Implementing a new hash algorithm is not particularly straightforward.
 
-	// @nof
-	//	default ImageHash hash(IImage<?> img) {
-	//		// You can should usually create non-anonymous class with a constructor that will make
-	//		// IHashAlgorithms with various sizes or other parameters.
-	//		
-	//		// Everything is up to you, although it's recommended to convert to one type of image.
-	// 		// Also worth noting is that for some reason it's generally faster to resize before converting.
-	//		// This holds true when what you're resizing to is smaller in memory than what you had originally.
-	//
-	//		// Resize to some thumbnail of the original image.
-	//		int width = 8;
-	//  	int[] pixels = PixelUtils.byteArrayToInt(img.resizeBilinear(width, width).toGreyscale().getPixels());
-	//		
-	//      // Declare a long array. Make it as big as you need, but keep track of how many bits of this array you use.
-	//		// 
-	//		long[] hashBits = new long[64];
-	// 
-	//      // Now do the actual calculations for the hash, and pack the results into the hashBits array. Use all the space.
-	//  	
-	//		// Finally, return an ImageHash as shown below. If img is a SourcedImage, then this will return a source. 
-	//		// If SourcedImages are nested, then this gets the topmost source.
-	//	  	return new ImageHash(this, hashBits, this.findSource(img));
-	//	}
-	// @dof
-
-	public default String findSource(IImage<?> img) {
-		if (img instanceof SourcedImage) {
-			return ((SourcedImage) img).getSource();
-		}
-		return null;
-	}
+	// When you implement this interface, create a static block and call
+	// AlgLoader.register(new MyHashAlgorithm());
+	// Then, before you load one of them from a file, you must load your class.
+	// Otherwise, ClassNotFoundException will be thrown from ImageHash#fromString.
 
 	// Used for writing results of hash to file.
-	abstract String getHashName();
+	abstract String algName();
 
 	abstract int getHashLength();
 
 	abstract ComparisonType getComparisonType();
 
-	abstract String serialize();
+	// Use ║ as a delimiter, because it's hella invalid in url names and rare in
+	// files.
+	abstract String toArguments();
 
-	abstract IHashAlgorithm deserialize(String serialized);
+	// Split on ║
+	abstract IHashAlgorithm fromArguments(String arguments);
+
+	abstract double distance(ImageHash h1, ImageHash h2);
+
+	abstract boolean algEquals(IHashAlgorithm o);
+
+	default boolean canCompare(ImageHash hash1, ImageHash hash2) {
+		return this.algEquals(hash1.getAlgorithm()) && this.algEquals(hash2.getAlgorithm());
+	}
 
 	abstract boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode);
 
-	// Implementations must all deal with SourcedImage.
+	// Implementations must all deal with every type of IImage, whether it has an
+	// alpha channel or not, or is a SourcedImage.
 	abstract ImageHash hash(IImage<?> img);
 
-	// For speed, let the specific algorithm perform its own conversion to
-	// its preferred type, rather than providing default implementation. For
-	// example, RGBHistogramHash uses RGBImage as its preferred type, whereas
-	// AverageHash uses GreyscaleImage. No need to convert to RGBA just to be safe,
-	// then to Greyscale.
+	// Convert to the desired type and then call the other hash method
 	abstract ImageHash hash(BufferedImage img);
 
-	// nameLength(ComparisonType)
-	default String getHashInformation() {
-		return new StringBuilder()
-				.append(this.getHashName()).append(",")
-				.append(this.getHashLength()).append(',')
-				.append(this.getComparisonType()).toString();
+	/*************/
+	/* Overloads */
+	/*************/
+	default double distance(IImage<?> img1, IImage<?> img2) {
+		return this.distance(this.hash(img1), this.hash(img2));
 	}
 
-	default ImageHash hash(IImage<?> img, String source) {
+	default ImageHash hash(IImage<?> img, URL source) {
 		return this.hash(new SourcedImage(img, source));
 	}
 
-	default ImageHash hash(BufferedImage img, String source) {
+	default ImageHash hash(IImage<?> img, File source) {
 		return this.hash(new SourcedImage(img, source));
 	}
 
 	default ImageHash hash(SourcedImage img) {
 		return this.hash((IImage<?>) img);
+	}
+
+	default ImageHash hash(BufferedImage img, URL source) {
+		return this.hash(new SourcedImage(img, source));
+	}
+
+	default ImageHash hash(BufferedImage img, File source) {
+		return this.hash(new SourcedImage(img, source));
 	}
 
 	default ImageHash hash(File imgFile) throws IOException {

@@ -7,6 +7,7 @@ import java.net.URL;
 
 import javax.imageio.ImageIO;
 
+import attack.IAttack;
 import image.IImage;
 
 public class YCbCrImage implements IImage<YCbCrImage> {
@@ -17,9 +18,7 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 
 	public static GreyscaleImage computeY(IImage<?> img) {
 
-		if (img instanceof YCbCrImage) {
-			return ((YCbCrImage) img).getY();
-		}
+		if (img instanceof YCbCrImage) { return ((YCbCrImage) img).getY(); }
 
 		RGBImage image = img.toRGB();
 		byte[] red = image.getRed().getPixels();
@@ -163,31 +162,19 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 	}
 
 	@Override
-	public int getWidth() {
-		return this.width;
-	}
+	public int getWidth() { return this.width; }
 
 	@Override
-	public int getHeight() {
-		return this.height;
-	}
+	public int getHeight() { return this.height; }
 
 	@Override
-	public GreyscaleImage[] getChannels() {
-		return new GreyscaleImage[] { this.Y, this.Cb, this.Cr };
-	}
+	public GreyscaleImage[] getChannels() { return new GreyscaleImage[] { this.Y, this.Cb, this.Cr }; }
 
-	public GreyscaleImage getY() {
-		return this.Y;
-	}
+	public GreyscaleImage getY() { return this.Y; }
 
-	public GreyscaleImage getCb() {
-		return this.Cb;
-	}
+	public GreyscaleImage getCb() { return this.Cb; }
 
-	public GreyscaleImage getCr() {
-		return this.Cr;
-	}
+	public GreyscaleImage getCr() { return this.Cr; }
 
 	@Override
 	public YCbCrImage deepClone() {
@@ -324,6 +311,18 @@ public class YCbCrImage implements IImage<YCbCrImage> {
 		return new YCbCrImage(Y.emplaceSubimage(subImage.getY(), x1, y1, x2, y2),
 				Cb.emplaceSubimage(subImage.getCb(), x1, y1, x2, y2),
 				Cr.emplaceSubimage(subImage.getCr(), x1, y1, x2, y2));
+	}
+
+	@Override
+	public YCbCrImage apply(IAttack<YCbCrImage> attack) {
+		RGBImage rgb = this.toRGB();
+		return new RGBImage(attack.applyToChannel(rgb.getRed()), attack.applyToChannel(rgb.getGreen()),
+				attack.applyToChannel(rgb.getBlue())).toYCbCr();
+	}
+
+	@Override
+	public boolean hasAlpha() {
+		return false;
 	}
 
 }

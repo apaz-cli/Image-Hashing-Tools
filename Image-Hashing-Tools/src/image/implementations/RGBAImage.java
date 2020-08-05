@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
+import attack.IAttack;
 import image.IImage;
 import utils.ImageUtils;
 
@@ -120,18 +121,16 @@ public class RGBAImage implements IImage<RGBAImage> {
 		this.rgb = rgba.getRGB();
 		this.a = rgba.getAlpha();
 	}
-	
+
 	public RGBAImage(GreyscaleImage[] rgba) {
-		if (rgba.length != 4) {
-			throw new IllegalArgumentException("Array must contain exactly four color channels.");
-		}
+		if (rgba.length != 4) { throw new IllegalArgumentException("Array must contain exactly four color channels."); }
 		RGBAImage self = new RGBAImage(rgba[0], rgba[1], rgba[2], rgba[3]);
 		this.width = self.getWidth();
 		this.height = self.getHeight();
 		this.rgb = self.getRGB();
 		this.a = self.getAlpha();
 	}
-	
+
 	public RGBAImage(File imgFile) throws IOException {
 		this(ImageUtils.openImage(imgFile));
 	}
@@ -141,40 +140,26 @@ public class RGBAImage implements IImage<RGBAImage> {
 	}
 
 	@Override
-	public int getWidth() {
-		return this.width;
-	}
+	public int getWidth() { return this.width; }
 
 	@Override
-	public int getHeight() {
-		return this.height;
-	}
-	
+	public int getHeight() { return this.height; }
+
 	@Override
 	public GreyscaleImage[] getChannels() {
 		GreyscaleImage[] rgbChannels = this.rgb.getChannels();
-		return new GreyscaleImage[] { rgbChannels[0], rgbChannels[1], rgbChannels[2], this.a};
+		return new GreyscaleImage[] { rgbChannels[0], rgbChannels[1], rgbChannels[2], this.a };
 	}
 
-	public RGBImage getRGB() {
-		return this.rgb;
-	}
+	public RGBImage getRGB() { return this.rgb; }
 
-	public GreyscaleImage getRed() {
-		return this.rgb.getRed();
-	}
+	public GreyscaleImage getRed() { return this.rgb.getRed(); }
 
-	public GreyscaleImage getGreen() {
-		return this.rgb.getGreen();
-	}
+	public GreyscaleImage getGreen() { return this.rgb.getGreen(); }
 
-	public GreyscaleImage getBlue() {
-		return this.rgb.getBlue();
-	}
+	public GreyscaleImage getBlue() { return this.rgb.getBlue(); }
 
-	public GreyscaleImage getAlpha() {
-		return this.a;
-	}
+	public GreyscaleImage getAlpha() { return this.a; }
 
 	@Override
 	public RGBAImage deepClone() {
@@ -294,4 +279,23 @@ public class RGBAImage implements IImage<RGBAImage> {
 		return new RGBAImage(this.rgb.emplaceSubimage(subImage.getRGB(), x1, y1, x2, y2),
 				this.a.emplaceSubimage(subImage.getAlpha(), x1, y1, x2, y2));
 	}
+
+	@Override
+	public RGBAImage apply(IAttack<RGBAImage> attack) {
+		return this.apply(attack, true);
+	}
+
+	public RGBAImage apply(IAttack<RGBAImage> attack, boolean applyToAlpha) {
+		if (applyToAlpha)
+			return new RGBAImage(attack.applyToChannel(this.rgb.getRed()), attack.applyToChannel(this.rgb.getGreen()),
+					attack.applyToChannel(this.rgb.getBlue()), attack.applyToChannel(a));
+		else return new RGBAImage(attack.applyToChannel(this.rgb.getRed()), attack.applyToChannel(this.rgb.getGreen()),
+				attack.applyToChannel(this.rgb.getBlue()), this.a);
+	}
+
+	@Override
+	public boolean hasAlpha() {
+		return true;
+	}
+
 }

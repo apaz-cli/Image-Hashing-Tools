@@ -3,10 +3,11 @@ package attack.other;
 import java.util.Arrays;
 
 import attack.IAttack;
-import image.implementations.*;
+import image.IImage;
+import image.implementations.GreyscaleImage;
 import utils.ImageUtils;
 
-public class GaussianNoiseAttack implements IAttack {
+public class GaussianNoiseAttack<T extends IImage<? extends T>> implements IAttack<T> {
 
 	private float mean = 0, sd = 1;
 
@@ -17,7 +18,7 @@ public class GaussianNoiseAttack implements IAttack {
 	}
 
 	@Override
-	public GreyscaleImage applyToColorChannel(GreyscaleImage img) {
+	public GreyscaleImage applyToChannel(GreyscaleImage img) {
 		byte[] oldPixels = img.getPixels();
 		byte[] newPixels = Arrays.copyOf(oldPixels, oldPixels.length);
 		float[] gNoise = ImageUtils.gaussianNoise(newPixels.length, mean, sd);

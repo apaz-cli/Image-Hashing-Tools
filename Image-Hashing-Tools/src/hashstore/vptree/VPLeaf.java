@@ -1,79 +1,54 @@
 package hashstore.vptree;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
 
-class VPLeaf<T extends MetricComparable<? extends T>> implements VantagePoint<T>, Serializable {
+// An ArrayList with no duplicates
+class VPLeaf<T extends MetricComparable<? extends T>> extends ArrayList<T> implements VantagePoint<T> {
 
-	private static final long serialVersionUID = -6417470140587273877L;
+	private static final long serialVersionUID = -2592139339516215386L;
 
 	// Class is not public, so these are not actually visible
-	int leafNumber;
-	List<T> data;
-
-	VPLeaf(int leafNumber, List<T> data) {
-		this.leafNumber = leafNumber;
-		this.data = data;
+	VPLeaf() {
+		super();
 	}
 
-	VPLeaf(int leafNumber) {
-		this.leafNumber = leafNumber;
-		this.data = new ArrayList<T>();
-	}
-
-	void writeToFile(File f) throws FileNotFoundException, IOException {
-		ObjectOutputStream s = new ObjectOutputStream(new FileOutputStream(f));
-		s.writeObject(this);
-		s.close();
-	}
-
-	static VPLeaf<?> readFromFile(File f)
-			throws FileNotFoundException, IOException, ClassNotFoundException, ClassCastException {
-		ObjectInputStream s = new ObjectInputStream(new FileInputStream(f));
-		VPLeaf<?> leaf = (VPLeaf<?>) s.readObject();
-		s.close();
-		return leaf;
-	}
-
-	int size() {
-		return data.size();
-	}
-	
-	boolean addAll(Collection<? extends T> c) {
-		return this.data.addAll(c);
-	}
-	
-	boolean contains(Object o) {
-		return this.data.contains(o);
+	VPLeaf(Collection<T> l) {
+		super(new HashSet<T>(l));
 	}
 
 	@Override
-	public List<T> getAllChildren() {
-		return this.data;
+	public boolean add(T element) {
+		if (this.contains(element)) {
+			return false;
+		} else {
+			return super.add(element);
+		}
 	}
 
 	@Override
-	public List<T> getAllAndDestroy() {
-		List<T> l = this.data;
-		this.destroy();
-		return l;
+	public void add(int index, T element) {
+		if (this.contains(element)) {
+			return;
+		} else {
+			super.add(index, element);
+		}
 	}
 
 	@Override
-	public void destroy() {
-		this.leafNumber = -1;
-		this.data = null;
+	public boolean addAll(Collection<? extends T> datalist) {
+		ArrayList<T> l = new ArrayList<>(datalist);
+		l.removeAll(this);
+		return super.addAll(l);
 	}
-	
+
+	@Override
+	public boolean addAll(int index, Collection<? extends T> collection) {
+		ArrayList<T> l = new ArrayList<>(collection);
+		l.removeAll(this);
+		return super.addAll(index, l);
+	}
 	
 
 }

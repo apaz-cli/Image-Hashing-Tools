@@ -1,46 +1,46 @@
 package hashstore;
 
-import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-import hash.IHashAlgorithm;
 import hash.ImageHash;
+import pipeline.dedup.HashMatch;
 import pipeline.hasher.HasherOutput;
 
 public interface HashStore extends HasherOutput {
 
-	static HashStore build(File rootFolder, IHashAlgorithm alg) {
-		return null;
-	}
-
-	abstract File getRoot();
-
 	// Finds the closest hash in the storage that isn't itself
-	abstract ImageHash findNearest(ImageHash h);
+	abstract ImageHash NN(ImageHash h) throws IOException;
 
-	default String findNearestSource(ImageHash h) {
-		return this.findNearest(h).getSource();
+	abstract List<ImageHash> kNN(ImageHash h, int k) throws IOException;
+
+	default String NNSource(ImageHash h) throws IOException {
+		ImageHash nn = this.NN(h);
+		return nn != null ? nn.getSource() : null;
 	}
 
-	abstract boolean contains(ImageHash h);
+	abstract List<ImageHash> allWithinDistance(ImageHash h, double distance) throws IOException;
 
-	// Lists are sorted by similarity, with most similar first. Be careful not to
-	// run out of memory with these.
-
-	abstract List<ImageHash> findInRadius(ImageHash h);
-
-	abstract List<ImageHash> toList();
-
-	// Returns sources, not ImageHash objects.
-	abstract List<String> findSourcesInRadius(ImageHash h);
-
-	abstract List<String> toSourceList();
-	
-	abstract void store(ImageHash hash) throws UnsupportedOperationException;
-	
-	@Override
-	default void accept(ImageHash hash) throws UnsupportedOperationException {
-		this.store(hash);
+	default List<String> allSourcesWithinDistance(ImageHash h, double distance) throws IOException {
+		return this.allWithinDistance(h, distance).stream().map(hash -> hash.getSource()).filter(Objects::nonNull)
+				.collect(Collectors.toList());
 	}
+
+	abstract List<ImageHash> toList() throws IOException;
+
+	default List<String> toSourceList() throws IOException {
+		return this.toList().stream().map(h -> h.getSource()).filter(Objects::nonNull).collect(Collectors.toList());
+	}
+
+	abstract void storeAll(Collection<? extends ImageHash> hashes);
+
+	default List<HashMatch> findMatches() throws IOException {
+		return this.findMatches(500);
+	}
+
+	abstract List<HashMatch> findMatches(int atATime) throws IOException;
 
 }

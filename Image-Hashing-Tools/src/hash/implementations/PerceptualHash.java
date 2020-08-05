@@ -2,54 +2,57 @@ package hash.implementations;
 
 import java.awt.image.BufferedImage;
 
+import hash.AlgLoader;
 import hash.ComparisonType;
-import hash.DCTUtils;
+import hash.HalfDCTII;
+import hash.HashUtils;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import hash.MatchMode;
 import image.IImage;
 import image.PixelUtils;
 import image.implementations.RGBImage;
+import image.implementations.SourcedImage;
 
 public class PerceptualHash implements IHashAlgorithm {
 
-	private int size;
-	private double[] DCTCoefficients;
+	static {
+		PerceptualHash phash = new PerceptualHash();
+		phash.DCTCoefficients = null; // Free unnecessary memory, as the alg does not need to actually work.
+		AlgLoader.register(phash);
+	}
 
 	public PerceptualHash() {
 		this(32);
 	}
 
 	public PerceptualHash(int sideLength) {
-		if (PixelUtils.safeSquare(sideLength) % 2 != 0)
-			throw new IllegalArgumentException("sideLength must be even.");
-		this.size = sideLength;
-		this.DCTCoefficients = DCTUtils.createHalfDCTCoefficients(sideLength);
+		if (PixelUtils.safeSquare(sideLength) % 2 != 0) throw new IllegalArgumentException("sideLength must be even.");
+		this.sideLength = sideLength;
+		this.DCTCoefficients = HalfDCTII.createHalfDCTIICoefficients(sideLength);
 	}
 
-	@Override
-	public ComparisonType getComparisonType() {
-		return ComparisonType.HAMMING;
-	}
+	private int sideLength;
+	private double[] DCTCoefficients;
 
 	@Override
-	public String getHashName() {
+	public String algName() {
 		return "pHash";
 	}
 
 	@Override
-	public int getHashLength() {
-		int trimmedSize = (this.size / 2);
-		return trimmedSize * trimmedSize;
+	public int getHashLength() { return (this.sideLength / 2) * (this.sideLength / 2); }
+
+	@Override
+	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
+
+	@Override
+	public String toArguments() {
+		return "" + this.sideLength;
 	}
 
 	@Override
-	public String serialize() {
-		return "" + this.size;
-	}
-
-	@Override
-	public IHashAlgorithm deserialize(String serialized) throws IllegalArgumentException {
+	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
 		try {
 			return new PerceptualHash(Integer.parseInt(serialized.trim()));
 		} catch (NumberFormatException e) {
@@ -58,26 +61,38 @@ public class PerceptualHash implements IHashAlgorithm {
 	}
 
 	@Override
+	public double distance(ImageHash hash1, ImageHash hash2) {
+		if (this.canCompare(hash1, hash2)) {
+			return HashUtils.hammingDistance(hash1.bitsToLongArray(), hash2.bitsToLongArray());
+		} else throw new IllegalArgumentException("The chosen ");
+	}
+
+	@Override
+	public boolean algEquals(IHashAlgorithm o) {
+		if (o instanceof PerceptualHash) return ((PerceptualHash) o).sideLength == this.sideLength;
+		else return false; // Note above if sideLength is the same, so must be the coefficients.
+	}
+
+	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
-		hash1.assertComparable(hash2);
-		if (!hash1.getHashInformation().contentEquals(this.getHashInformation())) {
-			throw new IllegalArgumentException(
-					"The hash information in this hash does not match the information that this IHashAlgorithm would produce. Expected: "
-							+ this.getHashInformation() + "got:" + hash1.getHashInformation() + ".");
+		if (!this.canCompare(hash1, hash2)) {
+			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
+					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
-		double dist = hash1.distance(hash2);
-		if (mode == MatchMode.SLOPPY) {
-			return dist < (8 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.NORMAL) {
-			return dist < (5 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.STRICT) {
-			return dist < (2 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.EXACT) {
+		double dist = this.distance(hash1, hash2);
+		switch (mode) {
+		case SLOPPY:
+			return dist < (8 / (double) 64) * this.getHashLength();
+		case NORMAL:
+			return dist < (5 / (double) 64) * this.getHashLength();
+		case STRICT:
+			return dist < (2 / (double) 64) * this.getHashLength();
+		case EXACT:
 			return dist == 0;
-		} else {
+		default:
 			throw new IllegalArgumentException("Invalid MatchMode: " + mode);
 		}
 	}
@@ -88,55 +103,32 @@ public class PerceptualHash implements IHashAlgorithm {
 		// http://hackerfactor.com/blog/index.php%3F/archives/432-Looks-Like-It.html
 		// And also check out phash.org
 
-		// Function chain avoids keeping unnecessary references.
-		// Pack the image into a double array. Then, apply DCT and trim.
-		// @nof
-		double[][] transformedTrimmedDCT = 
-				DCTUtils.halfDCTII(
-				packPixels(img, this.size),
-				this.size, DCTCoefficients);
-		// @dof
+		double[] transformedTrimmedDCT = HalfDCTII.halfDCTII(resize(img, this.sideLength), this.sideLength,
+				this.DCTCoefficients);
 
 		// Now we put the bits of the hash into a long[], and make an ImageHash object
 		// out of it.
-		return new ImageHash(this, constructHash(transformedTrimmedDCT), this.findSource(img));
+		return new ImageHash(this, constructHash(transformedTrimmedDCT),
+				img instanceof SourcedImage ? ((SourcedImage) img).getSource() : null);
 	}
 
 	// Resize the image, and convert it to a 2d array of doubles.
-	private static double[][] packPixels(IImage<?> img, int size) {
-		byte[] bpixels = img.resizeBilinear(size, size).toGreyscale().getPixels();
-		double[][] dpixels = new double[size][size];
-
-		int offset = 0;
-		for (int y = 0; y < size; y++)
-			for (int x = 0; x < size; x++)
-				dpixels[y][x] = (double) bpixels[offset++];
-
-		return dpixels;
+	private static byte[] resize(IImage<?> img, int size) {
+		return img.resizeBilinear(size, size).toGreyscale().getPixels();
 	}
 
-	private static long[] constructHash(double[][] transformedTrimmedDCT) {
+	private byte[] constructHash(double[] transformedTrimmedDCT) {
 
 		// First, calculate the mean value of the whole thing. Doing so in batches
 		// allows for much smaller average loss in precision.
-		int trimmedSize = transformedTrimmedDCT.length;
-		double meanValue;
-		{
-			double[] rowAverages = new double[trimmedSize];
-			for (int y = 0; y < trimmedSize; y++) {
-				rowAverages[y] = avg(transformedTrimmedDCT[y]);
-			}
-			meanValue = avg(rowAverages);
-		}
+		double meanValue = avg(transformedTrimmedDCT);
 
 		// Now set the bits of the hash.
-		long[] hashValues = new long[((trimmedSize * trimmedSize) + 63) / 64];
+		byte[] hashValues = new byte[((transformedTrimmedDCT.length) + 7) / 8];
 
 		int longPos = 0, currentLong = -1;
-		for (int y = 0; y < trimmedSize; y++) {
-			for (int x = 0; x < trimmedSize; x++) {
-
-				if (longPos % 64 == 0) {
+		for (int i = 0; i < transformedTrimmedDCT.length; i++) {
+				if (longPos % 8 == 0) {
 					// -1 will immediately be incremented to 0, and it will spill over into new
 					// longs when necessary.
 					currentLong++;
@@ -145,13 +137,12 @@ public class PerceptualHash implements IHashAlgorithm {
 
 				// Set the current bit of the hash
 				hashValues[currentLong] <<= 1;
-				hashValues[currentLong] |= transformedTrimmedDCT[y][x] > meanValue ? 1 : 0;
+				hashValues[currentLong] |= transformedTrimmedDCT[i] > meanValue ? 1 : 0;
 				longPos++;
-			}
 		}
 
 		// Slide the last entry of the hash in to the left if necessary.
-		hashValues[currentLong] <<= 64 - longPos;
+		hashValues[currentLong] <<= 8 - longPos;
 
 		return hashValues;
 	}

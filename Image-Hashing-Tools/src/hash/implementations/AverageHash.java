@@ -2,47 +2,56 @@ package hash.implementations;
 
 import java.awt.image.BufferedImage;
 
+import hash.AlgLoader;
 import hash.ComparisonType;
+import hash.HashUtils;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import hash.MatchMode;
 import image.IImage;
+import image.PixelUtils;
 import image.implementations.GreyscaleImage;
+import image.implementations.SourcedImage;
 
 public class AverageHash implements IHashAlgorithm {
+
+	static {
+		AlgLoader.register(new AverageHash());
+	}
 
 	public AverageHash() {
 		this.sideLength = 8;
 	}
 
 	public AverageHash(int sideLength) {
+		try {
+			PixelUtils.safeSquare(sideLength);
+		} catch (ArithmeticException e) {
+			throw new IllegalArgumentException(e);
+		}
 		this.sideLength = sideLength;
 	}
 
-	int sideLength;
+	private int sideLength;
 
 	@Override
-	public String getHashName() {
+	public String algName() {
 		return "aHash";
 	}
 
 	@Override
-	public int getHashLength() {
-		return 64;
-	}
+	public int getHashLength() { return this.sideLength * this.sideLength; }
 
 	@Override
-	public ComparisonType getComparisonType() {
-		return ComparisonType.HAMMING;
-	}
+	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String serialize() {
+	public String toArguments() {
 		return "" + this.sideLength;
 	}
 
 	@Override
-	public IHashAlgorithm deserialize(String serialized) throws IllegalArgumentException {
+	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
 		try {
 			return new AverageHash(Integer.parseInt(serialized.trim()));
 		} catch (NumberFormatException e) {
@@ -51,25 +60,38 @@ public class AverageHash implements IHashAlgorithm {
 	}
 
 	@Override
+	public double distance(ImageHash hash1, ImageHash hash2) {
+		if (this.canCompare(hash1, hash2)) {
+			return HashUtils.hammingDistance(hash1.bitsToLongArray(), hash2.bitsToLongArray());
+		} else throw new IllegalArgumentException("The chosen ");
+	}
+
+	@Override
+	public boolean algEquals(IHashAlgorithm o) {
+		if (o instanceof AverageHash) return ((AverageHash) o).sideLength == this.sideLength;
+		else return false;
+	}
+
+	@Override
 	public boolean matches(ImageHash hash1, ImageHash hash2, MatchMode mode) {
-		hash1.assertComparable(hash2);
-		if (!hash1.getHashInformation().contentEquals(this.getHashInformation())) {
-			throw new IllegalArgumentException(
-					"The hash information in this hash does not match the information that this IHashAlgorithm would produce. Expected: "
-							+ this.getHashInformation() + "got:" + hash1.getHashInformation() + ".");
+		if (!this.canCompare(hash1, hash2)) {
+			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
+					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
 
-		// Doubles are represented exactly for a very large number of bits, so this is okay.
-		double dist = hash1.distance(hash2);
-		if (mode == MatchMode.SLOPPY) {
-			return dist < (8 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.NORMAL) {
-			return dist < (5 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.STRICT) {
-			return dist < (2 / (double) 64) * hash1.getHashLength();
-		} else if (mode == MatchMode.EXACT) {
+		// Doubles are represented exactly for a very large number of bits, so this is
+		// okay.
+		double dist = this.distance(hash1, hash2);
+		switch (mode) {
+		case SLOPPY:
+			return dist < (8 / (double) 64) * this.getHashLength();
+		case NORMAL:
+			return dist < (5 / (double) 64) * this.getHashLength();
+		case STRICT:
+			return dist < (2 / (double) 64) * this.getHashLength();
+		case EXACT:
 			return dist == 0;
-		} else {
+		default:
 			throw new IllegalArgumentException("Invalid MatchMode: " + mode);
 		}
 	}
@@ -78,12 +100,8 @@ public class AverageHash implements IHashAlgorithm {
 	public ImageHash hash(IImage<?> img) {
 		// Resizing before converting to greyscale is 1.5 to 2x faster.
 		// I was really confused about that when I benchmarked it, but it's true.
-		img = img.resizeBilinear(this.sideLength, this.sideLength);
 
-		// toGreyscale does not create an extra object if typeof image is
-		// GreyscaleImage. It just returns itself, so this has no overhead if img is not
-		// already a GreyscaleImage.
-		byte[] thumbnail = img.toGreyscale().getPixels();
+		byte[] thumbnail = img.resizeBilinear(this.sideLength, this.sideLength).toGreyscale().getPixels();
 
 		// Take an average. Note that there's no risk of overflow with a double.
 		// b/c Double.MAX_VALUE > Integer.MAX_VALUE * 255
@@ -93,26 +111,25 @@ public class AverageHash implements IHashAlgorithm {
 		}
 		average /= thumbnail.length;
 
-		// Set bits into hash
 		int thumbnailOffset = 0;
-		long[] hash = new long[(this.sideLength * this.sideLength + 63) / 64];
-		for (int idx = 0; idx < hash.length; idx++) {
+		byte[] hash = new byte[(this.sideLength * this.sideLength + 7) / 8];
+
+		// Set bits into hash
+		int idx = 0;
+		while (thumbnailOffset < thumbnail.length) {
 			hash[idx] |= (thumbnail[thumbnailOffset++] & 0xff) < average ? 0x1 : 0x0;
-			for (int i = 1; i < 64; i++) {
+			for (int i = 1; i < 8; i++) {
+				// Doing it like this, while it does slow things down somewhat, ensures that the
+				// last byte is properly shifted all the way to the left.
+				hash[idx] <<= 1;
 				if (thumbnailOffset < thumbnail.length) {
 					hash[idx] |= (thumbnail[thumbnailOffset++] & 0xff) < average ? 0x1 : 0x0;
 				}
-				hash[idx] <<= 1;
 			}
+			idx++;
 		}
 
-		// Reverse all bits, because of the pushing back to build the hash. This is not
-		// actually necessary, but makes the visual representation look better.
-		for (int i = 0; i < hash.length; i++) {
-			hash[i] = Long.reverse(hash[i]);
-		}
-
-		return new ImageHash(this, hash, this.findSource(img));
+		return new ImageHash(this, hash, img instanceof SourcedImage ? ((SourcedImage) img).getSource() : null);
 	}
 
 	@Override

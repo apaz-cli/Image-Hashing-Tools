@@ -1,9 +1,10 @@
 package attack.convolutions;
 
+import image.IImage;
 import image.PixelUtils;
 import image.implementations.GreyscaleImage;
 
-public class SeperableKernel implements ConvolutionKernel {
+public class SeperableKernel<T extends IImage<? extends T>> implements ConvolutionKernel<T> {
 
 	private int sideLength;
 	private float[] xKernel;
@@ -38,13 +39,11 @@ public class SeperableKernel implements ConvolutionKernel {
 	}
 
 	@Override
-	public int getSideLength() {
-		return this.sideLength;
-	}
+	public int getSideLength() { return this.sideLength; }
 
 	// These apply normalized
 	@Override
-	public GreyscaleImage applyToColorChannel(GreyscaleImage channel) {
+	public GreyscaleImage applyToChannel(GreyscaleImage channel) {
 		return this.attackY(this.attackX(channel));
 	}
 
@@ -180,12 +179,10 @@ public class SeperableKernel implements ConvolutionKernel {
 	}
 
 	@Override
-	public EdgeMode getMode() {
-		return this.mode;
-	}
+	public EdgeMode getMode() { return this.mode; }
 
-	public InseperableKernel toInseperable() {
-		return new InseperableKernel(this.getKernel(), this.getSideLength(), this.getMode());
+	public InseperableKernel<T> toInseperable() {
+		return new InseperableKernel<>(this.getKernel(), this.getSideLength(), this.getMode());
 	}
 
 }

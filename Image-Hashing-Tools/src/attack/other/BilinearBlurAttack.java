@@ -4,10 +4,10 @@ import attack.IAttack;
 import image.IImage;
 import image.implementations.GreyscaleImage;
 
-public class BilinearBlurAttack implements IAttack {
+public class BilinearBlurAttack<T extends IImage<? extends T>> implements IAttack<T> {
 
 	@Override
-	public GreyscaleImage applyToColorChannel(GreyscaleImage img) {
+	public GreyscaleImage applyToChannel(GreyscaleImage img) {
 		int width = img.getWidth(), height = img.getHeight();
 		byte[] pixels = img.getPixels();
 
@@ -48,19 +48,6 @@ public class BilinearBlurAttack implements IAttack {
 		}
 		// @dof
 		return new GreyscaleImage(blurred, width, height);
-	}
-
-	public IImage<?> attack(IImage<?> img, int iterations)
-			throws IllegalArgumentException, UnsupportedOperationException {
-		if (iterations < 0) {
-			throw new IllegalArgumentException("Number of Iterations cannot be less than zero.");
-		}
-
-		IImage<?> copied = img.deepClone();
-		for (int i = 0; i < iterations; i++) {
-			copied = this.applyTo(copied);
-		}
-		return copied;
 	}
 
 }

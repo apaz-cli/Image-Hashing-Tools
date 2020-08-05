@@ -1,6 +1,6 @@
 package image;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.awt.Point;
 import java.util.ArrayList;
@@ -8,7 +8,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import image.implementations.*;
+import image.implementations.GreyscaleImage;
+import image.implementations.RGBAImage;
 import utils.TestUtils;
 
 public class IImageTest {
@@ -17,8 +18,8 @@ public class IImageTest {
 
 	static {
 		testImages = new ArrayList<IImage<?>>();
-		testImages.add(TestUtils.safeScraper.nextImage().toRGBA());
-		testImages.add(TestUtils.safeScraper.nextImage().toRGBA());
+		testImages.add(TestUtils.safeScraper.next().toRGBA());
+		testImages.add(TestUtils.safeScraper.next().toRGBA());
 	}
 
 	@Test

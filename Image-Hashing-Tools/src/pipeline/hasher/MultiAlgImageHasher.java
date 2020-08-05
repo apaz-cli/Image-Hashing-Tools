@@ -1,8 +1,8 @@
 package pipeline.hasher;
 
-import java.util.Vector;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +69,7 @@ public class MultiAlgImageHasher {
 	}
 
 	public ImageHash[] hash() {
-		IImage<?> img = source.nextImage();
+		IImage<?> img = source.next();
 		if (img == null) {
 			return null;
 		}
@@ -77,7 +77,7 @@ public class MultiAlgImageHasher {
 		ImageHash[] h = new ImageHash[algorithms.length];
 		for (int i = 0; i < algorithms.length; i++) {
 			h[i] = algorithms[i].hash(img);
-			outputLambdas[i].accept(h[i]);
+			outputLambdas[i].store(h[i]);
 		}
 
 		return h;

@@ -1,11 +1,18 @@
 package hash;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
 
 import hashstore.vptree.MetricComparable;
 import image.PixelUtils;
+import image.implementations.SourcedImage;
+import utils.ImageUtils;
 
 public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 
@@ -15,11 +22,9 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 
 	// For Java serialization
 	private static final long serialVersionUID = -1248134817737622671L;
-	// Convenience for toString() hex conversion
-	final protected static char[] intToHexChar = "0123456789ABCDEF".toCharArray();
 
 	// The hash itself
-	private final long[] bits;
+	private final byte[] bits;
 
 	// @nof
 	// This field is stored as one string for memory reasons. It should be laid out with:
@@ -28,7 +33,7 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 	// Strings are interned, meaning that only one instance of that string actually exists, and each ImageHash
 	// only needs to hold a reference to it.
 	// @dof
-	private final String hashInformation;
+	private final IHashAlgorithm creator;
 
 	// Where the Image came from, if it was a SourcedImage. Otherwise null. Note
 	// that null appends as "null" with StringBuilder in toString(), which
@@ -43,335 +48,196 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 	/* Constructors */
 	/****************/
 
-	public ImageHash(IHashAlgorithm creator, long[] bits) throws IllegalArgumentException {
+	public ImageHash(IHashAlgorithm creator, byte[] bits) throws IllegalArgumentException {
 		PixelUtils.assertNotNull(new String[] { "creator", "bits" }, creator, bits);
 		this.bits = Arrays.copyOf(bits, bits.length);
-		this.hashInformation = creator.getHashInformation(); // Source remains null
+		this.creator = creator;
+		// Source remains null
 	}
 
-	public ImageHash(IHashAlgorithm creator, long[] bits, String source) throws IllegalArgumentException {
+	public ImageHash(IHashAlgorithm creator, byte[] bits, String source) throws IllegalArgumentException {
 		PixelUtils.assertNotNull(new String[] { "creator", "bits" }, creator, bits);
 		this.bits = Arrays.copyOf(bits, bits.length);
-		this.hashInformation = creator.getHashInformation();
-		this.source = sanitizeFileOrURL(source);
-	}
-
-	public ImageHash(String hashInformation, long[] bits) throws IllegalArgumentException {
-		PixelUtils.assertNotNull(new String[] { "hashInformation", "bits" }, hashInformation, bits);
-		this.bits = Arrays.copyOf(bits, bits.length);
-		this.hashInformation = checkHashInformation(hashInformation);
-	}
-
-	public ImageHash(String hashInformation, long[] bits, String source) throws IllegalArgumentException {
-		PixelUtils.assertNotNull(new String[] { "hashInformation", "bits" }, hashInformation, bits);
-		this.bits = Arrays.copyOf(bits, bits.length);
-		this.hashInformation = checkHashInformation(hashInformation);
-		this.source = sanitizeFileOrURL(source);
+		this.creator = creator;
+		this.source = source;
 	}
 
 	/*****************/
-	/* Sanity Checks */
+	/* Serialization */
 	/*****************/
+	@Override
+	public String toString() {
+		// @nof
+		return new StringBuilder()
+				.append(this.hexHash()).append(",")
+				.append(creator.algName()).append(",")
+				.append(creator.toArguments()).append(',')
+				.append(this.source).toString();
+		// @dof
+	}
 
-	private static void checkAlgName(String type) throws IllegalArgumentException {
-		for (char c : type.toCharArray()) {
-			if (c == '|' || c == ',' || c == '\"') {
-				throw new IllegalArgumentException(
-						"The hashName field of the hashInformation may not contain the characters comma, pipe, or double quote (,|\").");
+	public static ImageHash fromString(String imageHash) throws IllegalArgumentException, ClassNotFoundException {
+		// Parse for arguments
+		// hexBits,algName,hashLength,comparisonType,source
+
+		String bits = null, algName = null, algArgs = null, source = null;
+		String[] split = imageHash.split(",");
+		// bits,algName,arg║arg║arg...,source
+
+		if (split.length < 4) {
+			throw new IllegalArgumentException(
+					"Failed to parse an ImageHash from the given string. Expected a String in the form: "
+							+ "bits,algName,args,source but instead got " + imageHash + " which only has "
+							+ split.length + " parts.");
+		} else if (split.length == 4) {
+			bits = split[0];
+			algName = split[1];
+			algArgs = split[2];
+			source = split[3];
+			// If source is missing, just leave it null.
+		} else if (split.length > 4) {
+			bits = split[0];
+			algName = split[1];
+			algArgs = split[2];
+			// Join the trailing pieces of the split onto the source. This fixes urls having
+			// commas in them.
+			source = split[3];
+			for (int i = 4; i < split.length; i++) {
+				source += ',' + split[i];
 			}
 		}
-	}
 
-	private static void checkHashLength(String hashLength) {
-		try {
-			Integer.parseInt(hashLength);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException(
-					"Could not parse an int for the hash's length from the hashInformation provided.");
+		int hexCharCount = bits.length();
+		byte[] bytes = new byte[(hexCharCount / 2) + (hexCharCount % 2)];
+
+		int currentByte = 0; // For packing
+		boolean firstNibble = true;
+		for (char hexChar : (bits = bits.toUpperCase()).toCharArray()) {
+			// Valid Range: 48-57, 65-70
+			byte nibble = hexCharToByte(hexChar);
+			if (firstNibble) {
+				bytes[currentByte] = (byte) (nibble << 4);
+				firstNibble = false;
+			} else {
+				bytes[currentByte] = (byte) (bytes[currentByte] | nibble);
+				currentByte++;
+				firstNibble = true;
+			}
 		}
 
+		// Get creator, throws ClassNotFound if can't find. (algName/algArgs are invalid
+		// or algorithm hasn't been loaded)
+		IHashAlgorithm creator = AlgLoader.loadAlgorithm(algName, algArgs);
+
+		// There's a similar approach to error checking taken elsewhere. We throw
+		// IllegalArgumentException bit packing above if the bits are invalid, and we
+		// just trust that the user knows what to do with the Source.
+
+		return new ImageHash(creator, bytes, source);
 	}
 
-	private static void checkComparisonType(String comparisonType) {
-		try {
-			ComparisonType.valueOf(comparisonType);
-		} catch (Exception e) {
-			throw new IllegalArgumentException(
-					"Could not deserialize a valid ComparisonType from the hashInformation provided.");
+	private static byte hexCharToByte(char hexChar) throws IllegalArgumentException {
+		int hexInt = hexChar - 48;
+		// Shift to 0-9, 17-22
+		if (hexInt < 0x0) {
+			throw new IllegalArgumentException("hexBits contain non-hex characters.");
+		} else if (hexInt > 0x9) {
+			// Collapse lower range so 0-9, 10-15 for hex integer
+			hexInt -= 7;
+			if (hexInt > 0xF) { throw new IllegalArgumentException("Serialized hash contains non-hex characters."); }
 		}
-	}
-
-	private static String checkHashInformation(String hashInformation) throws IllegalArgumentException {
-		String[] spt = hashInformation.split(",");
-		if (spt.length != 3) throw new IllegalArgumentException(
-				"hashInformation does not have the correct number of fields. Expected algName,hashLength,comparisonType, but got: "
-						+ hashInformation);
-		checkAlgName(spt[0]);
-		checkHashLength(spt[1]);
-		checkComparisonType(spt[2]);
-		return hashInformation;
-	}
-
-	// Encode any backslashes or pipes with their url escape equivalents
-	private String sanitizeFileOrURL(String source) {
-		return source == null ? null : source.replace("\\", "%5C").replace("|", "%7C");
+		return (byte) hexInt;
 	}
 
 	/***********/
 	/* Getters */
 	/***********/
 
-	public BitSet getBitSet() {
-		return BitSet.valueOf(this.bits);
-	}
+	public BitSet getBitSet() { return BitSet.valueOf(this.bits); }
 
-	public long[] getBitArray() {
-		return this.bits;
-	}
+	public byte[] getBits() { return this.bits; }
 
-	public String getHashInformation() {
-		return this.hashInformation;
-	}
+	public IHashAlgorithm getAlgorithm() { return this.creator; }
 
 	// These should never throw exceptions. If they do, an IHashAlgorithm was
 	// implemented incorrectly.
 
-	public String getAlgName() {
-		return this.hashInformation.split(",")[0];
-	}
+	public String getAlgName() { return this.creator.algName(); }
 
-	public int getHashLength() {
-		return Integer.parseInt(this.hashInformation.split(",")[1]);
-	}
+	public int getLength() { return this.creator.getHashLength(); }
 
-	public ComparisonType getComparisonType() {
-		return ComparisonType.valueOf(this.hashInformation.split(",")[2]);
-	}
+	public String getSource() { return this.source; }
 
-	public String getSource() {
-		return this.source;
-	}
+	public SourcedImage loadFromSource() throws IOException {
+		if (this.source == null || this.source.equals("null")) return null;
 
-	/*****************************/
-	/* Strings and Serialization */
-	/*****************************/
+		boolean isURL = ImageUtils.validURL(this.source);
 
-	public static ImageHash fromString(String imageHash) throws NumberFormatException, IllegalArgumentException {
-		// Parse for arguments
-		// hexBits,algName,hashLength,comparisonType,source
-		String hexBits = null, hashName = null, hashLength = null, comparisonType = null, source = null;
-		String[] split = imageHash.split(",");
-
-		if (split.length < 4) {
-			throw new IllegalArgumentException(
-					"Failed to parse an ImageHash from the given string. Expected a String in the form: "
-							+ "hashName,hashLength,comparisonType,hexBits,source where source "
-							+ "could possibly be \"null\", missing, or a url containing commas. Instead got: "
-							+ imageHash);
-		}
-		if (split.length == 4) {
-			hexBits = split[0];
-			hashName = split[1];
-			hashLength = split[2];
-			comparisonType = split[3];
-			// If source is missing, just leave it null.
-		}
-		if (split.length == 5) {
-			hexBits = split[0];
-			hashName = split[1];
-			hashLength = split[2];
-			comparisonType = split[3];
-			source = split[4];
-		} else if (split.length > 5) {
-			hexBits = split[0];
-			hashName = split[1];
-			hashLength = split[2];
-			comparisonType = split[3];
-			// If source has a comma in it, just join the trailing pieces of the split.
-			// We'll sanity check this later.
-			source = "";
-			for (int i = 4; i < split.length; i++) {
-				source += split[i];
+		if (isURL) {
+			try {
+				return new SourcedImage(new URL(this.source));
+			} catch (MalformedURLException e) { // We already tested this, it can be ignored.
 			}
+		} else {
+			return new SourcedImage(new File(this.source));
 		}
 
-		long[] longs = new long[(Integer.valueOf(hashLength) + 63) / 64];
-
-		int currentLong = 0, nibbleOffset = 0;
-		int c;
-		for (char hexChar : (hexBits = hexBits.toUpperCase()).toCharArray()) {
-			c = hexChar - 48;
-			if (c < 0x0) {
-				throw new IllegalArgumentException("hexBits contain non-hex characters.");
-			} else if (c > 0x9) {
-				c -= 7;
-				if (c < 0xA || c > 0xF) {
-					throw new IllegalArgumentException("hexBits contain non-hex characters.");
-				}
-			}
-
-			if (nibbleOffset < 16) {
-				nibbleOffset++;
-				longs[currentLong] |= (0xF & c);
-				if (nibbleOffset != 16) {
-					longs[currentLong] <<= 0x4;
-				}
-			} else {
-				currentLong++;
-				longs[currentLong] |= (0xF & c);
-				longs[currentLong] <<= 0x4;
-				nibbleOffset = 1;
-			}
-		}
-
-		// Let the constructor do the sanity checks.
-		String hashInformation = new StringBuilder(hashName).append(",").append(hashLength).append(",")
-				.append(comparisonType).toString();
-		return new ImageHash(hashInformation, longs, source);
-	}
-
-	@Override
-	public String toString() {
-		// @nof
-		return new StringBuilder()
-				.append(this.hexHash()).append(",")
-				.append(this.hashInformation).append(",")
-				.append(this.source).toString();
-		// @dof
-	}
-
-	public double[] getBitArrayAsDouble() {
-		double[] dbits = new double[this.bits.length];
-		for (int i = 0; i < this.bits.length; i++) {
-			dbits[i] = java.lang.Double.longBitsToDouble(this.bits[i]);
-		}
-		return dbits;
-	}
-
-	public float[] getBitArrayAsFloat() {
-		int[] ibits = this.getBitArrayAsInt();
-		float[] fbits = new float[ibits.length];
-		for (int i = 0; i < ibits.length; i++) {
-			fbits[i] = java.lang.Float.intBitsToFloat(ibits[i]);
-		}
-		return fbits;
-	}
-
-	public int[] getBitArrayAsInt() {
-		int[] ibits = new int[this.bits.length * 2];
-		int currentInt;
-		for (int i = 0; i < this.bits.length; i++) {
-			currentInt = i * 2;
-			ibits[currentInt] = (int) this.bits[i];
-			ibits[currentInt + 1] = (int) (this.bits[i] >> 32);
-		}
-		return ((this.getHashLength() / 32) % 2 == 0) ? ibits : Arrays.copyOf(ibits, (this.bits.length * 2) - 1);
-	}
-
-	public byte[] getBitArrayAsByte() {
-		byte[] bbits = new byte[this.bits.length * 8];
-		int currentByte;
-		for (int i = 0; i < this.bits.length; i++) {
-			currentByte = i * 8;
-			long workingLong = this.bits[i];
-
-			bbits[currentByte] = (byte) workingLong;
-			for (int j = 1; j < 8; j++) {
-				workingLong <<= 8;
-				bbits[currentByte + j] = (byte) workingLong;
-			}
-		}
-		return bbits;
-	}
-
-	public boolean getBit(int bitIndex) throws ArrayIndexOutOfBoundsException {
-		// https://docs.oracle.com/javase/7/docs/api/java/utils/BitSet.html#toLongArray%28%29
-		return ((this.bits[bitIndex / 64] & (1L << (bitIndex % 64))) != 0);
+		throw new IOException("Was not able to load " + (isURL ? "url" : "file") + ": " + this.source);
 	}
 
 	@Override
 	public double distance(ImageHash hash) throws IllegalArgumentException {
-		assertComparable(hash);
-
-		ComparisonType thisType = this.getComparisonType();
-		switch (thisType) {
-		case HAMMING:
-			return this.hammingDistance(hash);
-		case EUCLIDEANF32:
-			return this.euclideanF32Distance(hash);
-		case EUCLIDEANF64:
-			return this.euclideanF64Distance(hash);
-		default:
-			throw new UnsupportedOperationException("ComparisonType \"" + thisType + "\" not supported.");
-		}
+		return this.creator.distance(this, hash);
 	}
 
-	private int hammingDistance(ImageHash hash) {
-		long[] other = hash.getBitArray();
-		int distance = 0;
-		long b;
-		for (int idx = 0; idx < this.bits.length; idx++) {
-			b = this.bits[idx] ^ other[idx];
-			b -= (b >> 1) & 0x5555555555555555L;
-			b = (b & 0x3333333333333333L) + ((b >> 2) & 0x3333333333333333L);
-			b = (b + (b >> 4)) & 0x0f0f0f0f0f0f0f0fL;
-			distance += (b * 0x0101010101010101L) >> 56;
-		}
-
-		return distance;
+	public int[] bitsToIntArray() {
+		int[] ints = new int[(this.getLength() + 31) / 32];
+		ByteBuffer.wrap(this.bits).asIntBuffer().get(ints);
+		return ints;
 	}
 
-	private float euclideanF32Distance(ImageHash hash) {
-		float[] thisBits = this.getBitArrayAsFloat(), otherBits = hash.getBitArrayAsFloat();
-		double product = 0;
-		for (int i = 0; i < thisBits.length; i++) {
-			float diff = thisBits[i] - otherBits[i];
-			product += diff * diff;
-		}
-		return (float) Math.sqrt(product);
+	public long[] bitsToLongArray() {
+		long[] longs = new long[(this.getLength() + 63) / 64];
+		ByteBuffer.wrap(this.bits).asLongBuffer().get(longs);
+		return longs;
 	}
 
-	private double euclideanF64Distance(ImageHash hash) {
-		double[] thisBits = this.getBitArrayAsDouble(), otherBits = hash.getBitArrayAsDouble();
-		double product = 0;
-		for (int i = 0; i < thisBits.length; i++) {
-			double diff = thisBits[i] - otherBits[i];
-			product += diff * diff;
-		}
-		return Math.sqrt(product);
+	public float[] bitsToFloatArray() {
+		float[] floats = new float[(this.getLength() + 31) / 32];
+		ByteBuffer.wrap(this.bits).asFloatBuffer().get(floats);
+		return floats;
 	}
 
-	public void assertComparable(ImageHash hash) throws IllegalArgumentException {
-		if (!this.hashInformation.equals(hash.getHashInformation())) throw new IllegalArgumentException(
-				"These two hashes are not comparable. Tried to compare this hash: " + this.toString()
-						+ " against another hash: " + hash.toString() + " that did not have the same hashInformation.");
-
+	public double[] bitsToDoubleArray() {
+		double[] doubles = new double[(this.getLength() + 63) / 64];
+		ByteBuffer.wrap(this.bits).asDoubleBuffer().get(doubles);
+		return doubles;
 	}
+
+	// Convenience for toString() hex conversion
+	protected final static char[] intToHexChar = "0123456789ABCDEF".toCharArray();
 
 	// Returns the contents of this hash's bits in hexadecimal.
-	private char[] hexHash() {
-		char[] encodedChars = new char[this.bits.length * 16];
+	private String hexHash() {
+		char[] encodedChars = new char[this.bits.length * 2];
 		for (int i = 0; i < this.bits.length; i++) {
-			long v = this.bits[i];
-			int idx = i * 16;
-			for (int j = 0; j < 16; j++) {
-				encodedChars[idx + j] = intToHexChar[(int) ((v >>> ((15 - j) * 4)) & 0x0F)];
-			}
+			int b = this.bits[i];
+			char c1 = intToHexChar[(b & 0xf0) >> 4];
+			char c2 = intToHexChar[b & 0x0f];
+			encodedChars[i * 2] = c1;
+			encodedChars[i * 2 + 1] = c2;
 		}
-		return encodedChars;
+		return new String(encodedChars);
 	}
-
-	// Deep equals for everything
 
 	@Override
 	public boolean equals(Object h) {
 		if (h == null) return false;
 		if (!(h instanceof ImageHash)) return false;
-		if (!this.equalsIgnoreSource(h)) return false;
-
-		String sauce = ((ImageHash) h).getSource();
-		return ((sauce == null) || (sauce.equals("null"))) ? (this.source == null || this.source.equals("null"))
-				: sauce.equals(this.source);
+		ImageHash o = (ImageHash) h;
+		String thatSauce = o.source == null ? "null" : o.source;
+		String thisSauce = this.source == null ? "null" : this.source;
+		return Arrays.equals(this.bits, o.bits) && this.creator.canCompare(this, o) && thisSauce.equals(thatSauce);
 	}
 
 	// Deep equals for everything but the source
@@ -379,7 +245,17 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 		if (h == null) return false;
 		if (!(h instanceof ImageHash)) return false;
 		ImageHash o = (ImageHash) h;
-		return (this.hashInformation.equals(o.getHashInformation()) && Arrays.equals(this.bits, o.getBitArray()));
+		return Arrays.equals(this.bits, o.bits) && this.creator.canCompare(this, o);
+	}
+
+	// throws when hashes are uncomparable
+	public boolean matches(ImageHash h) throws IllegalArgumentException {
+		return this.creator.matches(this, h);
+	}
+
+	// throws when hashes are uncomparable
+	public boolean matches(ImageHash h, MatchMode mode) throws IllegalArgumentException {
+		return this.creator.matches(this, h, mode);
 	}
 
 }

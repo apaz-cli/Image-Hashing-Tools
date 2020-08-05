@@ -1,12 +1,5 @@
 package hashstore.vptree;
 
-import java.util.List;
+import java.io.Serializable;
 
-interface VantagePoint<T extends MetricComparable<? extends T>> {
-	
-	abstract List<T> getAllChildren();
-
-	abstract List<T> getAllAndDestroy();
-
-	abstract void destroy();
-}
+interface VantagePoint<T extends MetricComparable<? extends T>> extends Serializable {}

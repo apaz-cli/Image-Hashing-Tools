@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Vector;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -30,14 +31,16 @@ public class SafebooruScraper implements ImageSource {
 	public static final String SOURCE = "source";
 
 	private static String apiRequestURL = "https://safebooru.org/index.php?page=dapi&s=post&q=index&limit=100&pid=";
-	private String attribute = null;
 
 	private List<String> imageURLs = new Vector<>();
-	private int currentPage = 0;
 
-	/** uses "file_url" */
+	private String attribute = null;
+	private int currentPage = 0;
+	private int advanceBy = 1;
+
+	/* uses "file_url" */
 	public SafebooruScraper() {
-		this.attribute = "file_url";
+		this.attribute = FILE_URL;
 	}
 
 	public SafebooruScraper(String attribute) {
@@ -45,29 +48,22 @@ public class SafebooruScraper implements ImageSource {
 	}
 
 	@Override
-	public SourcedImage nextImage() {
-		String surl = null;
-		synchronized (imageURLs) {
-			if (this.imageURLs.isEmpty()) {
-				this.requestPage(currentPage);
-				currentPage++;
-			}
+	public SourcedImage next() {
+		if (this.imageURLs.isEmpty()) {
+			this.requestPage(currentPage);
 
-			// If nothing was added (And there weren't any errors that made it explode) then
-			// we must have reached the end.
-			if (this.imageURLs.isEmpty()) {
-				return null;
-			}
-
-			// Otherwise, we can continue with the last url of the list.
-			surl = imageURLs.remove(imageURLs.size() - 1);
 		}
+		if (this.imageURLs.isEmpty()) return null;
+
+		String surl = imageURLs.remove(imageURLs.size() - 1);
 
 		URL imgURL = null;
 		try {
 			imgURL = new URL(surl);
 		} catch (MalformedURLException e) {
 			System.err.println("Safebooru returned an attribute that is not a well-formed URL: " + surl);
+			e.printStackTrace();
+			System.exit(2);
 		}
 
 		SourcedImage img = null;
@@ -75,32 +71,37 @@ public class SafebooruScraper implements ImageSource {
 			// If for some reason the download fails, this will return null.
 			img = ImageUtils.openImageSourced(imgURL);
 		} catch (IOException e) {
-			System.err.println("Image could not be opened.");
+			System.err.println("Image could not be opened: " + imgURL);
 			e.printStackTrace();
 		}
 
 		// If the download fails, try again from the beginning with a new link.
-		return img == null ? this.nextImage() : img;
+		return img == null ? this.next() : img;
 	}
 
 	private void requestPage(int offset) {
 		try {
-			// Request next page. Start at 0, requesting the initial one again.
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = dbf.newDocumentBuilder();
-			URLConnection connection = new URL(apiRequestURL + offset).openConnection();
-			connection.setRequestProperty("User-Agent",
-					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
-			Document document = db.parse(connection.getInputStream());
+			// Load the page
+			Document document;
+			synchronized (this.imageURLs) {
+				// Request next page. Start at 0, requesting the initial one again.
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				URLConnection connection = new URL(apiRequestURL + offset).openConnection();
+				connection.setRequestProperty("User-Agent",
+						"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
+				document = db.parse(connection.getInputStream());
 
-			// Update the final count, which will tell us if we've reached the end. That
-			// we've added nothing is the signal to let nextImage() know that there are no
-			// further images.
+				// All the exceptions would be thrown above. So now that we've successfully
+				// loaded things, up the page count and stop synchronizing on it. We want to
+				// make sure that we got back a valid page before we up the page count.
+				currentPage++;
+			}
+
 			Element root = document.getDocumentElement();
 			int count = Integer.parseInt(root.getAttribute("count"));
-			if (count == 0) {
-				return;
-			}
+			if (count == 0) { return; } // If we get zero, then we've reached the end of the results and ripping more
+										// URLs fails because there are no more to rip.
 
 			// Rip all the urls from the DOM tree, and add them to the list.
 			Element post;
@@ -118,9 +119,10 @@ public class SafebooruScraper implements ImageSource {
 				}
 			}
 
-			// The logic of the method is finished, handling errors gets a little bit
-			// unruly.
-		} catch (IOException e) {
+		}
+		// The logic of the method is finished, handling errors gets a little bit
+		// unruly.
+		catch (IOException e) {
 			// If windows is screwing up, try again. I got these when I closed my laptop.
 			if (e instanceof java.net.UnknownHostException) {
 				try {
@@ -132,9 +134,8 @@ public class SafebooruScraper implements ImageSource {
 				// This is indicative of a connection issue unrelated to not having Internet.
 				this.requestPage(offset);
 			}
-
 			// If you get an error in the 500 range, wait 2 seconds and try again.
-			if (e.getMessage().matches(".*5.. for URL.*")) {
+			else if (e.getMessage().matches(".*5.. for URL.*")) {
 				try {
 					Thread.sleep(2000);
 					this.requestPage(offset);
@@ -168,7 +169,39 @@ public class SafebooruScraper implements ImageSource {
 	}
 
 	@Override
-	public void close() {
+	public int characteristics() {
+		return IMMUTABLE | NONNULL | CONCURRENT;
+	}
+
+	@Override
+	public long estimateSize() {
+		return Long.MAX_VALUE;
+	}
+
+	private SafebooruScraper(String attribute, int currentPage, int advanceBy) {
+		this.attribute = attribute;
+		this.currentPage = currentPage;
+		this.advanceBy = advanceBy;
+	}
+
+	@Override
+	public Spliterator<SourcedImage> trySplit() {
+
+		// @nof
+		// An illustration of how sources are split:
+		// Source 1: ......| . . . . . . . . . . . . . . .
+		// Source 2:        . . . . . .|  .   .   .   .   .
+		// Source 3:                    .   .   .   .   .
+		// Where . are elements and | is where the sources are split.
+		// @dof
+
+		if (this.advanceBy >= 16) return null;
+
+		int newAdv = this.advanceBy * 2;
+		Spliterator<SourcedImage> s = new SafebooruScraper(this.attribute, this.currentPage + this.advanceBy, newAdv);
+		this.advanceBy = newAdv;
+
+		return s;
 	}
 
 }

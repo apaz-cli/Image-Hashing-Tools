@@ -1,59 +1,77 @@
 package pipeline;
 
 import java.awt.image.BufferedImage;
-import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 import image.IImage;
 import image.implementations.SourcedImage;
 
-public interface ImageSource extends Closeable {
-	public abstract IImage<?> nextImage();
+public interface ImageSource extends Spliterator<SourcedImage> {
 
-	public default BufferedImage nextBufferedImage() {
-		IImage<?> img = this.nextImage();
-		return img == null ? null : img.toBufferedImage();
+	/************/
+	/* Abstract */
+	/************/
+
+	@Override
+	public abstract int characteristics();
+
+	@Override
+	public abstract long estimateSize();
+
+	// Returns null if no more remain, otherwise fetches it on the same thread.
+	public abstract SourcedImage next();
+
+	@Override
+	public abstract Spliterator<SourcedImage> trySplit();
+
+	/***********/
+	/* Default */
+	/***********/
+
+	@Override
+	public default boolean tryAdvance(Consumer<? super SourcedImage> action) {
+		SourcedImage img = this.next();
+		if (img == null) return false;
+		action.accept(img);
+		return true;
 	}
 
-	public default List<SourcedImage> toSourcedList() {
-		ArrayList<SourcedImage> list = new ArrayList<>();
-		IImage<?> img;
-		while ((img = this.nextImage()) != null) {
-			if (img instanceof SourcedImage) {
-				list.add((SourcedImage) img);
-			} else {
-				list.add(new SourcedImage(img));
-			}
-		}
-		return list;
+	public default Stream<SourcedImage> stream() {
+		return StreamSupport.stream(this, false);
+	}
+
+	public default Stream<SourcedImage> parallelStream() {
+		return StreamSupport.stream(this, true);
+	}
+
+	public default BufferedImage nextBufferedImage() throws NoSuchElementException {
+		return this.next().toBufferedImage();
+	}
+
+	public default IImage<?> nextIImage() throws NoSuchElementException {
+		return this.next().unwrap();
+	}
+
+	public default List<SourcedImage> toList() {
+		return this.parallelStream().collect(Collectors.toList());
 	}
 
 	public default List<IImage<?>> toIImageList() {
-		ArrayList<IImage<?>> list = new ArrayList<>();
-		IImage<?> img;
-		while ((img = this.nextImage()) != null) {
-			list.add(img);
-		}
-		return list;
+		return this.parallelStream().map(i -> i.unwrap()).collect(Collectors.toList());
 	}
 
 	public default List<BufferedImage> toBufferedImageList() {
-		ArrayList<BufferedImage> list = new ArrayList<>();
-		BufferedImage img;
-		while ((img = this.nextBufferedImage()) != null) {
-			list.add(img);
-		}
-		return list;
+		return this.parallelStream().map(i -> i.toBufferedImage()).collect(Collectors.toList());
 	}
 
-	/**
-	 * Once close() is called, release all references to objects, free all resources
-	 * such as thread pools, open files and socket connections, and nextImage()
-	 * methods should always return null.
-	 * 
-	 * However, if the ImageSource implemented has other ImageSources inside, it
-	 * need not close them too. It must only give up references.
-	 */
-	@Override
-	public abstract void close();
+	public default void forEachRemainingInParallel​(Consumer<? super SourcedImage> action) {
+		this.parallelStream().forEach(action);
+	}
+
 }

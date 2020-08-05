@@ -13,7 +13,7 @@ public class PixelUtils {
 
 		for (int i = 0; i < objects.length; i++) {
 			if (objects[i] == null) {
-				throw new IllegalArgumentException("Array item '" + i + "' is null.");
+				throw new IllegalArgumentException("Argument '" + i + "' is null.");
 			}
 		}
 	}

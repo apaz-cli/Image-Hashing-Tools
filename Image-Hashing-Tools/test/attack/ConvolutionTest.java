@@ -1,6 +1,11 @@
 package attack;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.Random;
+
+import org.junit.jupiter.api.Test;
 
 import attack.convolutions.EdgeMode;
 import attack.convolutions.InseperableKernel;
@@ -8,10 +13,6 @@ import attack.convolutions.SeperableKernel;
 import image.implementations.GreyscaleImage;
 import image.implementations.RGBImage;
 import utils.TestUtils;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.Test;
 
 public class ConvolutionTest {
 
@@ -35,13 +36,13 @@ public class ConvolutionTest {
 				kerY[i] = r.nextFloat();
 			}
 
-			SeperableKernel ker1 = new SeperableKernel(kerX, kerY, mode);
-			InseperableKernel ker2 = ker1.toInseperable();
+			SeperableKernel<RGBImage> ker1 = new SeperableKernel<>(kerX, kerY, mode);
+			InseperableKernel<RGBImage> ker2 = ker1.toInseperable();
 
-			RGBImage img = TestUtils.safeScraper.nextImage().toRGB();
+			RGBImage img = TestUtils.safeScraper.next().toRGB();
 
-			GreyscaleImage img1 = img.convolveWith(ker1).toGreyscale();
-			GreyscaleImage img2 = img.convolveWith(ker2).toGreyscale();
+			GreyscaleImage img1 = img.apply(ker1).toGreyscale();
+			GreyscaleImage img2 = img.apply(ker2).toGreyscale();
 
 			// Check that they're within 1 of each other, to account for floating point
 			// error and such.
@@ -53,6 +54,7 @@ public class ConvolutionTest {
 					fail();
 				}
 			}
+			assertTrue(true);
 		}
 	}
 }
