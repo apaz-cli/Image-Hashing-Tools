@@ -5,9 +5,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Random;
-
-import javax.imageio.ImageIO;
 
 import attack.IAttack;
 import hash.IHashAlgorithm;
@@ -18,7 +15,7 @@ import image.implementations.RGBImage;
 import image.implementations.SourcedImage;
 import image.implementations.YCbCrImage;
 import pipeline.operator.ImageOperation;
-import utils.DownloadTextFile;
+import utils.ImageUtils;
 
 public interface IImage<T extends IImage<? extends T>> {
 
@@ -57,7 +54,8 @@ public interface IImage<T extends IImage<? extends T>> {
 		} else if (thisWidth == thisHeight) {
 			return this.resizeBilinear(maxWidthOrHeight, maxWidthOrHeight);
 		} else {
-			float shrinkFactor = thisWidth > thisHeight ? (((float) maxWidthOrHeight) / thisWidth)
+			float shrinkFactor = thisWidth > thisHeight 
+					? (((float) maxWidthOrHeight) / thisWidth)
 					: (((float) maxWidthOrHeight) / thisHeight);
 			return this.rescaleBilinear(shrinkFactor, shrinkFactor);
 		}
@@ -80,13 +78,9 @@ public interface IImage<T extends IImage<? extends T>> {
 		return new YCbCrImage(this.toRGB());
 	}
 
-	default public SourcedImage addSource(URL source) {
-		return new SourcedImage(this, source);
-	}
+	default public SourcedImage addSource(URL source) { return new SourcedImage(this, source); }
 
-	default public SourcedImage addSource(File source) {
-		return new SourcedImage(this, source);
-	}
+	default public SourcedImage addSource(File source) { return new SourcedImage(this, source); }
 
 	abstract public T flipHorizontal();
 
@@ -98,9 +92,7 @@ public interface IImage<T extends IImage<? extends T>> {
 
 	abstract public T rotate180();
 
-	default public T extractSubimage(Point p1, Point p2) {
-		return this.extractSubimage(p1.x, p1.y, p2.x, p2.y);
-	}
+	default public T extractSubimage(Point p1, Point p2) { return this.extractSubimage(p1.x, p1.y, p2.x, p2.y); }
 
 	abstract public T extractSubimage(int x1, int y1, int x2, int y2);
 
@@ -110,7 +102,9 @@ public interface IImage<T extends IImage<? extends T>> {
 
 	abstract public T emplaceSubimage(T subImage, int x1, int y1, int x2, int y2);
 
-	abstract T apply(IAttack<T> attack);
+	abstract public T apply(IAttack<T> attack);
+
+	default public int getArea() { return this.getWidth() * this.getHeight(); }
 
 	default public T apply(ImageOperation<T> op) {
 		@SuppressWarnings("unchecked")
@@ -127,13 +121,7 @@ public interface IImage<T extends IImage<? extends T>> {
 		return self;
 	}
 
-	// abstract public T attack(IAttack attack);
-
-	// abstract public T apply(ImageOperation<T> op);
-
-	default public ImageHash hash(IHashAlgorithm algorithm) {
-		return algorithm.hash(this);
-	}
+	default public ImageHash hash(IHashAlgorithm algorithm) { return algorithm.hash(this); }
 
 	default public T printTypeAndDimensions() {
 		System.out.println(
@@ -145,36 +133,10 @@ public interface IImage<T extends IImage<? extends T>> {
 
 	default public File save(File f) throws IOException {
 		if (f == null) throw new IllegalArgumentException();
-		return this.save(f, DownloadTextFile.formatName(f));
+		return this.save(f, ImageUtils.formatName(f));
 	}
 
-	default public File save(File f, String format) throws IOException {
-		if (f == null || format == null) throw new IllegalArgumentException();
-		if (!DownloadTextFile.formatSupported(format));
-
-		String fname = f.getName();
-
-		if (f.isDirectory()) {
-			Random r = new Random();
-			int numbers;
-			while ((numbers = r.nextInt()) < 0) {}
-			fname = "" + numbers;
-			this.save(new File(f, fname), format);
-		}
-
-		if (f.exists()) {
-			ImageIO.write(this.toBufferedImage(), format, f);
-			return f;
-		}
-
-		String containing = f.getParent();
-		containing = containing == null ? "" : containing;
-
-		int extLoc = fname.lastIndexOf('.');
-		if (extLoc != -1) fname = fname.substring(0, extLoc);
-
-		return f;
-	}
+	default public File save(File f, String format) throws IOException { return ImageUtils.saveImage(this, f, format); }
 
 	default public RGBImage imageDiff(IImage<?> img, int resizeToW, int resizeToH) {
 		RGBImage img1pix = this.toRGB().resizeBilinear(resizeToW, resizeToH);
@@ -194,20 +156,15 @@ public interface IImage<T extends IImage<? extends T>> {
 		byte[] blueChannel = new byte[resizeToW * resizeToH];
 
 		for (int j = 0; j < resizeToW * resizeToH; j++) {
-			redChannel[j] = img1r[j] - img2r[j] >= 0 ? (byte) Math.abs((img1r[j] - img2r[j]) & 0xff)
-					: (byte) Math.abs((img2r[j] - img1r[j]) & 0xff);
-			greenChannel[j] = img1g[j] - img2g[j] >= 0 ? (byte) Math.abs((img1g[j] - img2g[j]) & 0xff)
-					: (byte) Math.abs((img2g[j] - img1g[j]) & 0xff);
-			blueChannel[j] = img1b[j] - img2b[j] >= 0 ? (byte) Math.abs((img1b[j] - img2b[j]) & 0xff)
-					: (byte) Math.abs((img2b[j] - img1b[j]) & 0xff);
+			redChannel[j] = (byte) Math.abs((img1r[j] & 0xff) - (img2r[j] & 0xff));
+			greenChannel[j] = (byte) Math.abs((img1g[j] & 0xff) - (img2g[j] & 0xff));
+			blueChannel[j] = (byte) Math.abs((img1b[j] & 0xff) - (img2b[j] & 0xff));
 		}
 
 		RGBImage difference = new RGBImage(redChannel, blueChannel, greenChannel, resizeToW, resizeToH);
 		return difference;
 	}
 
-	default public RGBImage imageDiff(IImage<?> img) {
-		return this.imageDiff(img, 512, 512);
-	}
+	default public RGBImage imageDiff(IImage<?> img) { return this.imageDiff(img, 512, 512); }
 
 }

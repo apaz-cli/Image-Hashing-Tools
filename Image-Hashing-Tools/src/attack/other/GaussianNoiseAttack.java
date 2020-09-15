@@ -11,7 +11,7 @@ public class GaussianNoiseAttack<T extends IImage<? extends T>> implements IAtta
 
 	private float mean = 0, sd = 1;
 
-	// default mean = 0, sd = 3
+	// default mean = 0, SD = 3
 	public GaussianNoiseAttack(float mean, float sd) {
 		this.mean = mean;
 		this.sd = sd;

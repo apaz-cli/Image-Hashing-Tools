@@ -19,9 +19,7 @@ public class AverageHash implements IHashAlgorithm {
 		AlgLoader.register(new AverageHash());
 	}
 
-	public AverageHash() {
-		this.sideLength = 8;
-	}
+	public AverageHash() { this.sideLength = 16; }
 
 	public AverageHash(int sideLength) {
 		try {
@@ -31,13 +29,21 @@ public class AverageHash implements IHashAlgorithm {
 		}
 		this.sideLength = sideLength;
 	}
+	
+	public AverageHash(int sideLength, MatchMode mode) { this.setDefaultMatchMode(mode); }
 
 	private int sideLength;
 
+	private MatchMode defaultMode = MatchMode.NORMAL;
+
 	@Override
-	public String algName() {
-		return "aHash";
-	}
+	public void setDefaultMatchMode(MatchMode mode) { if (mode != null) this.defaultMode = mode; }
+
+	@Override
+	public MatchMode getDefaultMatchMode() { return defaultMode; }
+
+	@Override
+	public String algName() { return "aHash"; }
 
 	@Override
 	public int getHashLength() { return this.sideLength * this.sideLength; }
@@ -46,9 +52,7 @@ public class AverageHash implements IHashAlgorithm {
 	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String toArguments() {
-		return "" + this.sideLength;
-	}
+	public String toArguments() { return "" + this.sideLength; }
 
 	@Override
 	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
@@ -78,6 +82,7 @@ public class AverageHash implements IHashAlgorithm {
 			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
 					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
+		if (mode == null) mode = defaultMode;
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
@@ -133,8 +138,6 @@ public class AverageHash implements IHashAlgorithm {
 	}
 
 	@Override
-	public ImageHash hash(BufferedImage img) {
-		return hash(new GreyscaleImage(img));
-	}
+	public ImageHash hash(BufferedImage img) { return hash(new GreyscaleImage(img)); }
 
 }

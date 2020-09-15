@@ -1,8 +1,9 @@
-package pipeline.sources.downloader;
+package pipeline.sources;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -11,8 +12,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -21,20 +20,15 @@ import java.util.Spliterator;
 import java.util.Vector;
 
 import image.implementations.SourcedImage;
-import pipeline.sources.SavingImageSource;
+import pipeline.ImageSource;
 import utils.ImageUtils;
 
-public class URLDownloader implements SavingImageSource {
+public class URLDownloader implements ImageSource, Closeable {
 
 	File fileOfURLs;
 	private List<URL> urls = new ArrayList<>();
 	private List<String> failedDownloads = new Vector<>();
 
-	/**
-	 * Not suitable for files of links larger than can fit in memory.
-	 * 
-	 * @param fileOfURLs
-	 */
 	public URLDownloader(File fileOfURLs) throws IOException {
 		// Open file
 		BufferedReader reader = null;
@@ -69,15 +63,6 @@ public class URLDownloader implements SavingImageSource {
 
 	}
 
-	public URLDownloader(Collection<URL> urls) {
-		if (urls.isEmpty()) throw new IllegalArgumentException("No URLs could be constructed from the collection.");
-		urls = new ArrayList<>(urls);
-	}
-
-	public URLDownloader(URL url) throws MalformedURLException {
-		this(Arrays.asList(new URL[] { url }));
-	}
-
 	public List<String> getFailedDownloads() { return failedDownloads; }
 
 	@Override
@@ -99,13 +84,15 @@ public class URLDownloader implements SavingImageSource {
 	}
 
 	@Override
-	public int characteristics() {
-		return CONCURRENT | NONNULL | IMMUTABLE;
-	}
+	public int characteristics() { return CONCURRENT | NONNULL | IMMUTABLE; }
 
 	@Override
-	public long estimateSize() {
-		return urls.size();
+	public long estimateSize() { return urls.size(); }
+
+	private URLDownloader(List<URL> urls, File fileOfURLs, List<String> failedDownloads) {
+		this.urls = urls;
+		this.fileOfURLs = fileOfURLs;
+		this.failedDownloads = failedDownloads;
 	}
 
 	@Override
@@ -117,33 +104,24 @@ public class URLDownloader implements SavingImageSource {
 		List<URL> second = new ArrayList<>(urls.subList((size + 1) / 2, size));
 
 		this.urls = first;
-		return new URLDownloader(second);
+		return new URLDownloader(second, fileOfURLs, failedDownloads);
 	}
+
+	@Override
+	public String getSourceName() { return null; }
 
 	private Set<String> toRemove = Collections.synchronizedSet(new HashSet<>());
 	private List<String> toAdd = new Vector<>();
 
-	@Override
-	public void removeFromSource(SourcedImage img) {
-		if (img.sourceIsURL())
-			throw new IllegalArgumentException("The image must have been generated from this source.");
-		toRemove.add(img.getSource());
-	}
+	public void removeFromSource(String source) { this.toRemove.add(source); }
 
-	@Override
-	public void removeFromSource(String source) {
-		this.toRemove.add(source);
-	}
+	public void addToSource(SourcedImage img) { this.toAdd.add(img.getSource()); }
 
-	@Override
-	public void addToSource(SourcedImage img) {
-		this.toAdd.add(img.getSource());
-	}
+	public void addToSource(String source) { this.toAdd.add(source); }
 
 	// Also functions as an access flag for the file for saving.
 	private static String lineSep = System.getProperty("line.separator");
 
-	@Override
 	public void save() throws IOException {
 		synchronized (lineSep) {
 			File tempFile = new File("TEMP_URLSOURCE_SAVE_FILE.txt");
@@ -178,5 +156,8 @@ public class URLDownloader implements SavingImageSource {
 			tempFile.renameTo(this.fileOfURLs);
 		}
 	}
+
+	@Override
+	public void close() throws IOException { save(); }
 
 }

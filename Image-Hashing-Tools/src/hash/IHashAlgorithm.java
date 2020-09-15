@@ -49,6 +49,10 @@ public interface IHashAlgorithm {
 	// Convert to the desired type and then call the other hash method
 	abstract ImageHash hash(BufferedImage img);
 
+	abstract void setDefaultMatchMode(MatchMode mode);
+
+	abstract MatchMode getDefaultMatchMode();
+
 	/*************/
 	/* Overloads */
 	/*************/
@@ -56,40 +60,26 @@ public interface IHashAlgorithm {
 		return this.distance(this.hash(img1), this.hash(img2));
 	}
 
-	default ImageHash hash(IImage<?> img, URL source) {
-		return this.hash(new SourcedImage(img, source));
-	}
+	default ImageHash hash(IImage<?> img, URL source) { return this.hash(new SourcedImage(img, source)); }
 
-	default ImageHash hash(IImage<?> img, File source) {
-		return this.hash(new SourcedImage(img, source));
-	}
+	default ImageHash hash(IImage<?> img, File source) { return this.hash(new SourcedImage(img, source)); }
 
-	default ImageHash hash(SourcedImage img) {
-		return this.hash((IImage<?>) img);
-	}
+	default ImageHash hash(SourcedImage img) { return this.hash((IImage<?>) img); }
 
-	default ImageHash hash(BufferedImage img, URL source) {
-		return this.hash(new SourcedImage(img, source));
-	}
+	default ImageHash hash(BufferedImage img, URL source) { return this.hash(new SourcedImage(img, source)); }
 
-	default ImageHash hash(BufferedImage img, File source) {
-		return this.hash(new SourcedImage(img, source));
-	}
+	default ImageHash hash(BufferedImage img, File source) { return this.hash(new SourcedImage(img, source)); }
 
-	default ImageHash hash(File imgFile) throws IOException {
-		return this.hash(ImageUtils.openImageSourced(imgFile));
-	}
+	default ImageHash hash(File imgFile) throws IOException { return this.hash(ImageUtils.openImageSourced(imgFile)); }
 
-	default ImageHash hash(URL imgURL) throws IOException {
-		return this.hash(ImageUtils.openImageSourced(imgURL));
-	}
+	default ImageHash hash(URL imgURL) throws IOException { return this.hash(ImageUtils.openImageSourced(imgURL)); }
 
 	default boolean matches(ImageHash hash1, ImageHash hash2) {
-		return this.matches(hash1, hash2, MatchMode.NORMAL);
+		return this.matches(hash1, hash2, this.getDefaultMatchMode());
 	}
 
-	default boolean matches(IImage<?> img1, IImage<?> img2) {
-		return this.matches(this.hash(img1), this.hash(img2));
+	default boolean matches(IImage<?> img1, IImage<?> img2) { 
+		return this.matches(this.hash(img1), this.hash(img2)); 
 	}
 
 	default boolean matches(IImage<?> img1, IImage<?> img2, MatchMode mode) {

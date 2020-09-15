@@ -1,4 +1,4 @@
-package pipeline.sources.loader;
+package pipeline.sources;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -18,21 +18,13 @@ import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 
 import image.implementations.SourcedImage;
-import pipeline.sources.SavingImageSource;
+import pipeline.ImageSource;
 
-public class ImageLoader implements SavingImageSource {
+public class ImageLoader implements ImageSource {
 
-	public ImageLoader(File fileOrFolder) throws IllegalArgumentException {
-		this(Arrays.asList(fileOrFolder));
-	}
+	public ImageLoader(File folder) throws IllegalArgumentException {
 
-	public ImageLoader(List<File> filesOrFolders) throws IllegalArgumentException {
-		// Only at most one of the two following functions will do anything, depending
-		// on if is file or directory.
-		for (File fileOrFolder : filesOrFolders) {
-			this.indexFolder(fileOrFolder);
-			this.indexFile(fileOrFolder);
-		}
+		this.indexFolder(folder);
 
 		// Removes all files but images from the list.
 		this.trimIndex();
@@ -42,12 +34,14 @@ public class ImageLoader implements SavingImageSource {
 			throw new IllegalArgumentException(
 					"The file or folder specified was valid, but did not contain any images.");
 		}
-		this.originalFolders = filesOrFolders;
+		this.originalFolder = folder;
 	}
 
-	public ImageLoader(String fileOrFolderPath) throws IllegalArgumentException {
-		this(new File(fileOrFolderPath));
+	public ImageLoader(List<File> filesOrFolders) throws IllegalArgumentException {
+
 	}
+
+	public ImageLoader(String fileOrFolderPath) throws IllegalArgumentException { this(new File(fileOrFolderPath)); }
 
 	public ImageLoader(String... fileOrFolderPaths) throws IllegalArgumentException {
 		this(Arrays.asList(fileOrFolderPaths));
@@ -57,9 +51,7 @@ public class ImageLoader implements SavingImageSource {
 		this(fileOrFolderPaths.stream().map(s -> new File(s)).collect(Collectors.toList()));
 	}
 
-	public ImageLoader(Path fileOrFolderPath) throws IllegalArgumentException {
-		this(fileOrFolderPath.toFile());
-	}
+	public ImageLoader(Path fileOrFolderPath) throws IllegalArgumentException { this(fileOrFolderPath.toFile()); }
 
 	private void indexFolder(File folder) {
 		if (!folder.isDirectory() || !folder.canRead()) { return; }
@@ -72,11 +64,6 @@ public class ImageLoader implements SavingImageSource {
 				files.add(f);
 			}
 		}
-	}
-
-	private void indexFile(File file) {
-		if (file.isDirectory() || !file.canRead()) { return; }
-		files.add(file);
 	}
 
 	private void trimIndex() {
@@ -93,10 +80,12 @@ public class ImageLoader implements SavingImageSource {
 	}
 
 	public int estimatedRemaining() {
-		return this.files.size();
+		synchronized (files) {
+			return this.files.size();
+		}
 	}
 
-	private List<File> originalFolders;
+	private File originalFolder;
 	private List<File> files = new ArrayList<>(); // Splits into copies on trySplit()
 	private List<File> failedLoads = new Vector<>();
 
@@ -106,9 +95,10 @@ public class ImageLoader implements SavingImageSource {
 	public SourcedImage next() {
 		// Get file, handle if can't.
 		File f;
-
-		if (!files.isEmpty()) f = files.get(files.size() - 1);
-		else return null;
+		synchronized (files) {
+			if (!files.isEmpty()) f = files.remove(files.size() - 1);
+			else return null;
+		}
 
 		// Beyond this point, we have a file.
 		// Get image by loading that file, handle if it's invalid.
@@ -141,60 +131,30 @@ public class ImageLoader implements SavingImageSource {
 		return new SourcedImage(img, f);
 	}
 
-	private List<String> toDelete = new Vector<>();
-	private List<SourcedImage> toSave = new Vector<>();
-
-	@Override
-	public synchronized void save() throws IOException {
-		synchronized (toDelete) {
-			for (String s : this.toDelete) {
-				File f = new File(s);
-				if (imageContainedHere(f)) f.delete();
-			}
-			this.toSave.clear();
-
-			for (SourcedImage img : this.toSave) {
-				if (img.save() == null) throw new IOException("Failed to save an image to: " + img.getSource());
-			}
-		}
-	}
-
 	// Check for security (Don't delete arbitrary files, that would be bad.)
-	private boolean imageContainedHere(File f) {
+	public boolean imageContainedHere(File f) {
 		Path possibleChildPath = f.toPath().toAbsolutePath();
-		for (File parent : this.originalFolders) {
-			Path parentPath = parent.toPath().toAbsolutePath();
-			if (possibleChildPath.startsWith(parentPath)) return true;
-		}
+
+		Path parentPath = this.originalFolder.toPath().toAbsolutePath();
+		if (possibleChildPath.startsWith(parentPath)) return true;
+
 		return false;
 	}
 
 	@Override
-	public void removeFromSource(String img) {
-		toDelete.add(img);
-	}
-
-	@Override
-	public void removeFromSource(SourcedImage img) {
-		if (!img.sourceIsURL())
-			throw new IllegalArgumentException("The image must have been generated from this source.");
-		toDelete.add(img.getSource());
-	}
-
-	@Override
-	public void addToSource(SourcedImage img) {
-		toSave.add(img);
-	}
-
-	@Override
-	public int characteristics() {
-		return CONCURRENT | NONNULL | IMMUTABLE;
-	}
+	public int characteristics() { return CONCURRENT | NONNULL | IMMUTABLE; }
 
 	@Override
 	public long estimateSize() {
-		return files.size();
+		synchronized (files) {
+			return files.size();
+		}
 	}
+
+	@Override
+	public String getSourceName() { return this.originalFolder.toString(); }
+
+	public File getFolder() { return this.originalFolder; }
 
 	private ImageLoader(List<File> files, List<File> failedLoads) {
 		this.files = files;
@@ -203,14 +163,16 @@ public class ImageLoader implements SavingImageSource {
 
 	@Override
 	public Spliterator<SourcedImage> trySplit() {
-		if (files.size() < 50) return null;
+		synchronized (files) {
+			if (files.size() < 50) return null;
 
-		int size = files.size();
-		List<File> first = new ArrayList<>(files.subList(0, (size + 1) / 2));
-		List<File> second = new ArrayList<>(files.subList((size + 1) / 2, size));
+			int size = files.size();
+			List<File> first = new ArrayList<>(files.subList(0, (size + 1) / 2));
+			List<File> second = new ArrayList<>(files.subList((size + 1) / 2, size));
 
-		this.files = first;
-		return new ImageLoader(second, failedLoads);
+			this.files = first;
+			return new ImageLoader(second, failedLoads);
+		}
 	}
 
 }

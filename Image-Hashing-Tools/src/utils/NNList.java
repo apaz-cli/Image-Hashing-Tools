@@ -3,6 +3,7 @@ package utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 @SuppressWarnings("serial")
 public class NNList<K> extends ArrayList<K> {
@@ -15,9 +16,24 @@ public class NNList<K> extends ArrayList<K> {
 		this.c = c;
 	}
 
+	@Override
+	public boolean add(K e) {
+		synchronized (this) {
+			return super.add(e);
+		}
+	}
+
 	public K getWorstNN() {
 		justify();
 		return this.isEmpty() ? null : this.get(this.size() - 1);
+	}
+
+	public List<K> kNN(int k) {
+		justify();
+		synchronized (this) {
+			if (this.size() < k) return this;
+			return this.isEmpty() ? null : new ArrayList<>(this.subList(0, k));
+		}
 	}
 
 	public void justify() {

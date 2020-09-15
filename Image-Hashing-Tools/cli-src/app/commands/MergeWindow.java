@@ -1,4 +1,4 @@
-package app.gui;
+package app.commands;
 
 import java.awt.BorderLayout;
 import java.awt.Button;
@@ -11,18 +11,19 @@ import java.awt.Panel;
 import java.awt.Toolkit;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
+import hash.ImageHash;
 import image.IImage;
 import image.PixelUtils;
-import image.implementations.GreyscaleImage;
 import image.implementations.SourcedImage;
 import pipeline.ImageSource;
 import pipeline.dedup.HashMatch;
@@ -36,33 +37,29 @@ public class MergeWindow extends JFrame {
 	JLabel imageCanvas2 = new JLabel();
 	JLabel diffCanvas = new JLabel();
 
-	List<HashMatch> matchesToResolve = null;
 	SourcedImage img1 = null, img2 = null;
-	ImageSource leftSource = null, rightSource = null;
+	ImageSource[] sources;
+
+	List<HashMatch> partialMatches = null;
+	HashMatch currentMatch = null;
+	Command callingCommand;
+
+	List<ImageHash> toDelete = new ArrayList<>();
 
 	static {
 		try {
 			UIManager.setLookAndFeel("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel");
-		} catch (Exception ignored) {
-		}
-	}
-
-	public static void main(String[] args) throws IOException {
-		try {
-			SwingUtilities.invokeAndWait(() -> new MergeWindow(null, null, null));
-		} catch (InvocationTargetException | InterruptedException e) {
-			e.printStackTrace();
-		}
+		} catch (Exception ignored) {}
 	}
 
 	// Hashes from the left side of the list of hashes to resolve came from
 	// leftSource, and likewise on the right. Note that leftSource and rightSource
 	// may point to the same source.
-	public MergeWindow(List<HashMatch> toResolve, ImageSource leftSource, ImageSource rightSource) {
-		PixelUtils.assertNotNull(toResolve, leftSource, rightSource);
-		this.matchesToResolve = toResolve;
-		this.leftSource = leftSource;
-		this.rightSource = rightSource;
+	MergeWindow(Command callingCommand, List<HashMatch> toResolve, ImageSource[] sources) {
+		PixelUtils.assertNotNull(toResolve, sources);
+		this.callingCommand = callingCommand;
+		this.partialMatches = toResolve;
+		this.sources = sources;
 
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		this.setSize(screenSize.width / 2, screenSize.height / 2);
@@ -114,10 +111,16 @@ public class MergeWindow extends JFrame {
 		button4.setFont(buttonFont);
 		buttonPanel.add(button4);
 
-		Button button5 = new Button("Delete both");
+		Button button5 = new Button("Delete Both");
 		button5.addActionListener(deleteBoth);
 		button5.setBackground(buttonColor);
 		button5.setFont(buttonFont);
+		buttonPanel.add(button5);
+
+		Button button6 = new Button("Save Changes");
+		button6.addActionListener(saveChanges);
+		button6.setBackground(buttonColor);
+		button6.setFont(buttonFont);
 		buttonPanel.add(button5);
 
 		return buttonPanel;
@@ -128,20 +131,28 @@ public class MergeWindow extends JFrame {
 	}
 
 	private void nextMatch() {
-		if (matchesToResolve.isEmpty()) {
+		if (partialMatches.isEmpty()) {
 			System.exit(0);
 		}
 
-		HashMatch match = matchesToResolve.remove(matchesToResolve.size() - 1);
+		String err = null;
+		HashMatch match = partialMatches.remove(partialMatches.size() - 1);
 		try {
-			img1 = match.loadFirst();
-			img2 = match.loadSecond();
+			ImageHash h1 = match.getFirst();
+			err = h1.getSource();
+			this.img1 = h1.loadFromSource();
+
+			ImageHash h2 = match.getSecond();
+			err = h2.getSource();
+			this.img1 = h2.loadFromSource();
 		} catch (IOException e) {
+			System.err.println(err);
 			e.printStackTrace();
+			System.exit(2);
 		}
 
-		this.updateImages(img1 != null ? img1 : new GreyscaleImage(new byte[1], 1, 1),
-				img2 != null ? img2 : new GreyscaleImage(new byte[1], 1, 1));
+		currentMatch = match;
+		this.updateImages(img1, img2);
 	}
 
 	protected void updateImages(IImage<?> img1, IImage<?> img2) {
@@ -151,10 +162,49 @@ public class MergeWindow extends JFrame {
 		diffCanvas.setIcon(new ImageIcon(img1.imageDiff(img2, imageSideLength, imageSideLength).toBufferedImage()));
 	}
 
-	ActionListener keepImage1 = e -> {};
-	ActionListener keepImage2 = e -> {};
-	ActionListener keepBothIm = e -> {};
-	ActionListener keepLarger = e -> {};
-	ActionListener deleteBoth = e -> {};
+	ActionListener keepImage1 = e -> {
+		synchronized (callingCommand) {
+			toDelete.add(currentMatch.getSecond());
+			nextMatch();
+		}
+	};
+	ActionListener keepImage2 = e -> {
+		synchronized (callingCommand) {
+			toDelete.add(currentMatch.getFirst());
+			nextMatch();
+		}
+	};
+	ActionListener keepBothIm = e -> {
+		synchronized (callingCommand) {
+			nextMatch();
+		}
+	};
+	ActionListener keepLarger = e -> {
+		synchronized (callingCommand) {
+			if (img1.getArea() >= img2.getArea()) {
+				keepImage1.actionPerformed(e);
+			} else {
+				keepImage2.actionPerformed(e);
+			}
+		}
+	};
+	ActionListener deleteBoth = e -> {
+		synchronized (callingCommand) {
+			toDelete.add(currentMatch.getFirst());
+			toDelete.add(currentMatch.getSecond());
+			nextMatch();
+		}
+	};
+	
+	// Leave the action of actually saving to the calling method.
+	ActionListener saveChanges = e -> {
+		synchronized(callingCommand) {
+			this.dispose();
+		}
+	};
+	
+	public Set<ImageHash> getToDelete() {
+		return new HashSet<>(this.toDelete);
+	}
 
 }

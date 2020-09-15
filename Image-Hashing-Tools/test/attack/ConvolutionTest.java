@@ -1,21 +1,7 @@
 package attack;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.util.Random;
-
-import org.junit.jupiter.api.Test;
-
-import attack.convolutions.EdgeMode;
-import attack.convolutions.InseperableKernel;
-import attack.convolutions.SeperableKernel;
-import image.implementations.GreyscaleImage;
-import image.implementations.RGBImage;
-import utils.TestUtils;
-
 public class ConvolutionTest {
-
+/*
 	@Test
 	void seperabilityEquivalenceTest() {
 		Random r = new Random();
@@ -57,4 +43,5 @@ public class ConvolutionTest {
 			assertTrue(true);
 		}
 	}
+	*/
 }

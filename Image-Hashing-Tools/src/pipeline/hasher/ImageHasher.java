@@ -18,7 +18,7 @@ import hashstore.HashStore;
 import image.IImage;
 import image.PixelUtils;
 import pipeline.ImageSource;
-import pipeline.sources.loader.ImageLoader;
+import pipeline.sources.ImageLoader;
 
 /**
  * This class takes {@link IImage}s from an {@link ImageSource}, hashes them
@@ -34,7 +34,7 @@ import pipeline.sources.loader.ImageLoader;
  * benchmarking the success rate for hash retrieval after some modification to
  * the image such as a crop, flip, rotation or noise.
  * 
- * @author Aaron Pazdera
+ * @author apaz-cli
  */
 public class ImageHasher {
 
@@ -59,7 +59,7 @@ public class ImageHasher {
 	 *                     hashed. If outputLambda is null, a new one will be
 	 *                     constructed and used that does nothing.
 	 * @throws IllegalArgumentException When source or algorithm are null
-	 * @author Aaron Pazdera
+	 * @author apaz-cli
 	 */
 	public ImageHasher(ImageSource source, IHashAlgorithm algorithm, HasherOutput outputLambda)
 			throws IllegalArgumentException {
@@ -86,7 +86,7 @@ public class ImageHasher {
 	 * @throws IllegalArgumentException When input or algorithm are null, input is
 	 *                                  not an accepted object or output is not an
 	 *                                  accepted object.
-	 * @author Aaron Pazdera
+	 * @author apaz-cli
 	 */
 	public ImageHasher(Object input, IHashAlgorithm algorithm, Object output) throws IllegalArgumentException {
 		PixelUtils.assertNotNull(input, algorithm);
@@ -160,7 +160,7 @@ public class ImageHasher {
 	 * @return hash The hash of an image from this ImageHasher's
 	 *         {@link ImageSource}. If the ImageSource is out of images, then this
 	 *         method returns null.
-	 * @author Aaron Pazdera
+	 * @author apaz-cli
 	 */
 	public ImageHash hash() {
 		IImage<?> img = source.next();
@@ -187,7 +187,7 @@ public class ImageHasher {
 	 *         ImageHasher's ImageSource did not contain that many images that could
 	 *         be processed.
 	 * @throws IllegalArgumentException When numberOfHashes is less than zero.
-	 * @author Aaron Pazdera
+	 * @author apaz-cli
 	 */
 	public List<ImageHash> hash(int numberOfHashes) throws IllegalArgumentException {
 		if (numberOfHashes < 0) {
@@ -229,7 +229,7 @@ public class ImageHasher {
 	 *         be processed.
 	 * @throws IllegalArgumentException When numberOfHashes is less than zero or
 	 *                                  parallelismLevel is less than one.
-	 * @author Aaron Pazdera
+	 * @author apaz-cli
 	 */
 	public List<ImageHash> hash(int numberOfHashes, int parallelismLevel) throws IllegalArgumentException {
 		if (numberOfHashes < 0) {
@@ -285,7 +285,7 @@ public class ImageHasher {
 	 * @param parallelismLevel The maximum number of threads to put to work hashing
 	 *                         items from the input to this ImageHasher
 	 * @throws IllegalArgumentException When parallelismLevel is less than one.
-	 * @author Aaron Pazdera
+	 * @author apaz-cli
 	 */
 	public void hashAll(int parallelismLevel) throws IllegalArgumentException {
 		if (parallelismLevel < 1) { throw new IllegalArgumentException("Number of threads cannot be less than one."); }

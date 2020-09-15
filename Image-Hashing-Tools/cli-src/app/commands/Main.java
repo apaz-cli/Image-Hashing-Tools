@@ -1,20 +1,14 @@
-package app;
+package app.commands;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
-import app.commands.Command;
-import app.commands.GuidedMerge;
-import app.commands.ListDuplicates;
-import app.commands.PartialMerge;
-import app.commands.TrimExact;
+import app.argparse.Options;
 
 public class Main {
 
 	// @nof
-	private static String HELP = 
+	public static String HELP = 
 			"Usage: ihtools [options]... command [arguments]...\n" + 
 			"Options:\n" + 
 			"  -h, --help          Display this message and exit.\n" +
@@ -26,7 +20,7 @@ public class Main {
 			"  -d, --dHash         Use the dHash algorithm for comparison.\n"; 
 		  
 	
-	private static String COMMANDHELP = 
+	public static String COMMANDHELP = 
 			"╔═══════════════╤══════════════════════╤═══════════════════════════════════════╗\n" + 
 			"║Command        │ Arguments            │ Description                           ║\n" +
 			"╟───────────────┼──────────────────────┼───────────────────────────────────────╢\n" +  
@@ -49,11 +43,13 @@ public class Main {
 			"║               │                      │ with trimexact, these may be the same.║\n" +
 			"╚═══════════════╧══════════════════════╧═══════════════════════════════════════╝\n" + 
 			" Note:                                                                          \n" + 
-			"        Arguments for Sources can be either a folder containing images, or      \n" + 
-			"    alternatively a text file containing links to images, one on each line. The \n" + 
-			"    images will be loaded or downloaded, hashed, and matches will be reloaded   \n" + 
-			"    or redownloaded to check for exact duplicates. Sources will be edited at    \n" + 
-			"    the end of the process to reflect changes.                                  \n";
+			"    A 'source' can be either a folder containing images, or a plain text file   \n" +
+			" containing links to images, one on each line. The images will be loaded or     \n" + 
+			" downloaded, then hashed, to check for duplicates, then the appropriate action  \n" + 
+			" will be taken, depending on the command.                                       \n" + 
+			"                                                                                \n" + 
+			"    Another thing of relevance to note is that arguments marked toSource or     \n" + 
+			" refSource are not actually themselves cross-compared by these commands.        \n";
 	// @dof
 
 	private static HashMap<String, app.commands.Command> commands = new HashMap<>();
@@ -71,39 +67,18 @@ public class Main {
 			System.exit(0);
 		}
 
-		// Exit if help
-		for (String arg : args) {
-			if (arg.equals("-h") || arg.equals("--help")) {
-				System.out.println(HELP);
-				System.exit(0);
-			} else if (arg.equals("-c") || arg.equals("--commands")) {
-				System.out.println(COMMANDHELP);
-				System.exit(0);
-			}
-		}
-
-		// The options constructor strips the flags from the arguments, as well as the
-		// command name. It contains all the configurations necessary for the command to
-		// run, as well as which command to run.
-		ArrayList<String> arguments = new ArrayList<>(Arrays.asList(args));
-		Options options = new Options(arguments);
-
-		Command command = parseCommand(arguments);
-		command.acceptOptions(options);
-		arguments.trimToSize();
-		command.acceptArgs(arguments);
-
-		command.run();
-	}
-
-	// The flags have been removed from the arg list.
-	private static app.commands.Command parseCommand(List<String> args) {
-		Command command = commands.get(args.remove(0).toLowerCase());
+		Command command = commands.get(args[0]);
 		if (command == null) {
 			System.out.println("Please enter a valid command. Use -c or --commands to display a list.");
 			System.exit(0);
 		}
-		return command;
+
+		Options options = new Options(Arrays.copyOfRange(args, 1, args.length));
+		command.acceptOptions(options);
+
+		command.run();
+		
+		return;
 	}
 
 }

@@ -19,9 +19,7 @@ public class DifferenceHash implements IHashAlgorithm {
 		AlgLoader.register(new DifferenceHash());
 	}
 
-	public DifferenceHash() {
-		this.sideLength = 8;
-	}
+	public DifferenceHash() { this.sideLength = 16; }
 
 	public DifferenceHash(int sideLength) throws ArithmeticException {
 		if (sideLength < 1) throw new IllegalArgumentException("Side length is too small.");
@@ -33,12 +31,20 @@ public class DifferenceHash implements IHashAlgorithm {
 		this.sideLength = sideLength;
 	}
 
+	public DifferenceHash(int sideLength, MatchMode mode) { this.setDefaultMatchMode(mode); }
+
 	private int sideLength;
 
+	private MatchMode defaultMode = MatchMode.NORMAL;
+
 	@Override
-	public String algName() {
-		return "dHash";
-	}
+	public void setDefaultMatchMode(MatchMode mode) { if (mode != null) this.defaultMode = mode; }
+
+	@Override
+	public MatchMode getDefaultMatchMode() { return defaultMode; }
+
+	@Override
+	public String algName() { return "dHash"; }
 
 	@Override
 	public int getHashLength() { return sideLength * sideLength; }
@@ -47,9 +53,7 @@ public class DifferenceHash implements IHashAlgorithm {
 	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String toArguments() {
-		return "" + this.sideLength;
-	}
+	public String toArguments() { return "" + this.sideLength; }
 
 	@Override
 	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
@@ -79,6 +83,7 @@ public class DifferenceHash implements IHashAlgorithm {
 			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
 					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
+		if (mode == null) mode = defaultMode;
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
@@ -110,7 +115,6 @@ public class DifferenceHash implements IHashAlgorithm {
 		while ((offset += 1) < thumbnail.length) {
 			if (offset % this.sideLength == 0) continue;
 			else {
-
 				int bit = (thumbnail[offset] & 0xff) > (thumbnail[offset - 1] & 0xff) ? 0x1 : 0x0;
 				hash[hashOffset] <<= 1;
 				hash[hashOffset] |= bit;
@@ -131,8 +135,6 @@ public class DifferenceHash implements IHashAlgorithm {
 	}
 
 	@Override
-	public ImageHash hash(BufferedImage img) {
-		return hash(new GreyscaleImage(img));
-	}
+	public ImageHash hash(BufferedImage img) { return hash(new GreyscaleImage(img)); }
 
 }

@@ -1,12 +1,13 @@
-package pipeline.sources.safebooruscraper;
+package pipeline.sources;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Spliterator;
-import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -30,45 +31,65 @@ public class SafebooruScraper implements ImageSource {
 	public static final String ID = "id";
 	public static final String SOURCE = "source";
 
-	private static String apiRequestURL = "https://safebooru.org/index.php?page=dapi&s=post&q=index&limit=100&pid=";
+	private static String apiRequestURL = "https://safebooru.org/index.php?page=dapi&s=post&q=index&limit=1000&pid=";
 
-	private List<String> imageURLs = new Vector<>();
+	private List<String> imageURLs = new ArrayList<>();
 
+	private boolean depleted = false;
 	private String attribute = null;
+	private Object advanceMutex = new Object();
 	private int currentPage = 0;
 	private int advanceBy = 1;
 
 	/* uses "file_url" */
-	public SafebooruScraper() {
-		this.attribute = FILE_URL;
-	}
+	public SafebooruScraper() { this.attribute = FILE_URL; }
 
-	public SafebooruScraper(String attribute) {
-		this.attribute = attribute;
-	}
+	public SafebooruScraper(String attribute) { this.attribute = attribute; }
 
-	@Override
+	@Override 
 	public SourcedImage next() {
-		if (this.imageURLs.isEmpty()) {
-			this.requestPage(currentPage);
+		String strURL = null;
 
+		// The large url buffer prevents a race condition.
+		if (this.imageURLs.size() < 500) {
+			int page;
+			synchronized (advanceMutex) {
+				page = currentPage;
+				currentPage += advanceBy;
+			}
+			
+			try {
+				if (!depleted) this.requestPage(page);
+			} catch (NoSuchElementException e) {
+				depleted = true;
+			}
 		}
-		if (this.imageURLs.isEmpty()) return null;
 
-		String surl = imageURLs.remove(imageURLs.size() - 1);
+		synchronized (imageURLs) {
+			try {
+				strURL = imageURLs.remove(imageURLs.size() - 1);
+			} catch (IndexOutOfBoundsException e) {
+				// if we're actually out, then return null, signifying that this spliterator is
+				// depleted.
+				if (depleted) return null;
+
+				// Handles race condition where other threads somehow drain all 100 urls that
+				// were just requested and remove(-1) happens.
+				else return this.next();
+			}
+		}
 
 		URL imgURL = null;
 		try {
-			imgURL = new URL(surl);
+			imgURL = new URL(strURL);
 		} catch (MalformedURLException e) {
-			System.err.println("Safebooru returned an attribute that is not a well-formed URL: " + surl);
+			System.err.println("Safebooru returned an attribute that is not a well-formed URL: " + strURL);
 			e.printStackTrace();
 			System.exit(2);
 		}
 
 		SourcedImage img = null;
 		try {
-			// If for some reason the download fails, this will return null.
 			img = ImageUtils.openImageSourced(imgURL);
 		} catch (IOException e) {
 			System.err.println("Image could not be opened: " + imgURL);
@@ -77,31 +98,26 @@ public class SafebooruScraper implements ImageSource {
 
 		// If the download fails, try again from the beginning with a new link.
 		return img == null ? this.next() : img;
+
 	}
 
-	private void requestPage(int offset) {
+	private void requestPage(int page) {
 		try {
-			// Load the page
-			Document document;
-			synchronized (this.imageURLs) {
-				// Request next page. Start at 0, requesting the initial one again.
-				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-				DocumentBuilder db = dbf.newDocumentBuilder();
-				URLConnection connection = new URL(apiRequestURL + offset).openConnection();
-				connection.setRequestProperty("User-Agent",
-						"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
-				document = db.parse(connection.getInputStream());
-
-				// All the exceptions would be thrown above. So now that we've successfully
-				// loaded things, up the page count and stop synchronizing on it. We want to
-				// make sure that we got back a valid page before we up the page count.
-				currentPage++;
-			}
+			// Load the page requested
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			URLConnection connection = new URL(apiRequestURL + page).openConnection();
+			connection.setRequestProperty("User-Agent",
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
+			Document document = db.parse(connection.getInputStream());
 
 			Element root = document.getDocumentElement();
 			int count = Integer.parseInt(root.getAttribute("count"));
-			if (count == 0) { return; } // If we get zero, then we've reached the end of the results and ripping more
-										// URLs fails because there are no more to rip.
+			if (count == 0) { throw new NoSuchElementException(); } // If we get zero, then we've reached the end of the
+																	// results and ripping more URLs fails because there
+																	// are no more to rip.
+
+			List<String> toAdd = new ArrayList<>();
 
 			// Rip all the urls from the DOM tree, and add them to the list.
 			Element post;
@@ -112,13 +128,23 @@ public class SafebooruScraper implements ImageSource {
 				Node n = posts.item(i);
 				if (n.getNodeType() == Node.ELEMENT_NODE) {
 					post = (Element) n;
-					String imageURL = post.getAttribute(attribute);
-					if (!this.imageURLs.contains(imageURL)) {
-						this.imageURLs.add(imageURL);
+					toAdd.add(post.getAttribute(attribute));
+				}
+			}
+
+			synchronized (this.imageURLs) {
+				for (String a : toAdd) {
+					if (!this.imageURLs.contains(a)) {
+						this.imageURLs.add(a);
 					}
 				}
 			}
 
+		} catch (NoSuchElementException e) {
+			throw e; // Exception as control flow. Yeet. But it's actually an exceptional case,
+						// because you never expect to reach the end of such a massive archive. You'd
+						// have to download for multiple days or weeks. We can get away with doing this,
+						// because the performance cost is insignificant in terms of days.
 		}
 		// The logic of the method is finished, handling errors gets a little bit
 		// unruly.
@@ -127,18 +153,17 @@ public class SafebooruScraper implements ImageSource {
 			if (e instanceof java.net.UnknownHostException) {
 				try {
 					Thread.sleep(5000L);
-				} catch (InterruptedException e1) {
-				}
-				this.requestPage(offset);
+				} catch (InterruptedException e1) {}
+				this.requestPage(page);
 			} else if (e instanceof java.net.SocketException) {
 				// This is indicative of a connection issue unrelated to not having Internet.
-				this.requestPage(offset);
+				this.requestPage(page);
 			}
 			// If you get an error in the 500 range, wait 2 seconds and try again.
 			else if (e.getMessage().matches(".*5.. for URL.*")) {
 				try {
 					Thread.sleep(2000);
-					this.requestPage(offset);
+					this.requestPage(page);
 				} catch (InterruptedException e2) {
 					System.err.println(e2.getMessage());
 				}
@@ -169,14 +194,13 @@ public class SafebooruScraper implements ImageSource {
 	}
 
 	@Override
-	public int characteristics() {
-		return IMMUTABLE | NONNULL | CONCURRENT;
-	}
+	public int characteristics() { return IMMUTABLE | NONNULL | CONCURRENT; }
 
 	@Override
-	public long estimateSize() {
-		return Long.MAX_VALUE;
-	}
+	public long estimateSize() { return Long.MAX_VALUE; }
+
+	@Override
+	public String getSourceName() { return "Safebooru"; }
 
 	private SafebooruScraper(String attribute, int currentPage, int advanceBy) {
 		this.attribute = attribute;

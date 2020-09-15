@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import hash.IHashAlgorithm;
 import hash.ImageHash;
+import hash.MatchMode;
 import image.PixelUtils;
 import pipeline.dedup.HashMatch;
 import utils.NNList;
@@ -161,71 +162,76 @@ public class LinearHashStore implements HashStore, Closeable {
 	}
 
 	@Override
-	public synchronized void close() throws IOException {
-		this.writer.close();
-	}
+	public synchronized void close() throws IOException { this.writer.close(); }
 
 	@Override
-	public List<HashMatch> findMatches(int atATime) throws IOException {
-
-		List<ImageHash> allHashes = new ArrayList<>();
-		{
-			BufferedReader reader = makeReader();
-			try {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					try {
-						allHashes.add(ImageHash.fromString(line));
-					} catch (ClassNotFoundException e) {
-						throw new IOException(e);
-					}
-				}
-			} finally {
-				reader.close();
-			}
-		}
-		if (allHashes.isEmpty()) return new ArrayList<>();
-		this.alg = allHashes.get(0).getAlgorithm();
-		final IHashAlgorithm alg = this.alg;
-		final List<HashMatch> results = new Vector<>();
-
-		List<Pair<List<ImageHash>, List<ImageHash>>> currentHashesAndRests = new ArrayList<>();
-
-		for (int i = 0; i < allHashes.size(); i += atATime) {
-			// Find current position,
-			int endIndex = Math.min(allHashes.size(), i + atATime);
-			List<ImageHash> currentHashes = allHashes.subList(i, endIndex);
-			List<ImageHash> rest = allHashes.subList(endIndex, allHashes.size());
-
-			currentHashesAndRests.add(new Pair<>(currentHashes, rest));
-		}
-
-		// Try to find duplicates inside each of the sublists by n^2 brute force.
-		currentHashesAndRests.parallelStream().map(currentPartitionAndRest -> currentPartitionAndRest.getKey())
-				.forEach(currentHashes -> {
-					for (int y = 0; y < currentHashes.size(); y++) {
-						for (int z = y + 1; z < currentHashes.size(); z++) {
-							if (currentHashes.get(y).getSource().equals(currentHashes.get(z).getSource())) continue;
-							if (alg.matches(currentHashes.get(y), currentHashes.get(z)))
-								results.add(new HashMatch(currentHashes.get(y), currentHashes.get(z)));
+	public List<HashMatch> findMatches(MatchMode mode) {
+		try {
+			List<ImageHash> allHashes = new ArrayList<>();
+			{
+				BufferedReader reader = makeReader();
+				try {
+					String line;
+					while ((line = reader.readLine()) != null) {
+						try {
+							allHashes.add(ImageHash.fromString(line));
+						} catch (ClassNotFoundException e) {
+							throw new IOException(e);
 						}
 					}
-				});
-
-		// Compare each of the (now internally consistent) list of hashes to the rest of
-		// the hashes, all at once and in parallel.
-		currentHashesAndRests.parallelStream().forEach(currentHashesAndRest -> {
-			final List<ImageHash> currentHashes = currentHashesAndRest.getKey();
-			final List<ImageHash> rest = currentHashesAndRest.getValue();
-			rest.stream().forEach(h -> {
-				for (ImageHash c : currentHashes) {
-					if (h.getSource().equals(c.getSource())) continue;
-					if (alg.matches(h, c)) results.add(new HashMatch(h, c));
+				} finally {
+					reader.close();
 				}
-			});
-		});
+			}
+			if (allHashes.isEmpty()) return new ArrayList<>();
+			this.alg = allHashes.get(0).getAlgorithm();
+			final IHashAlgorithm alg = this.alg;
+			final List<HashMatch> results = new Vector<>();
 
-		return results;
+			List<Pair<List<ImageHash>, List<ImageHash>>> currentHashesAndRests = new ArrayList<>();
+
+			int atATime = 500;
+
+			for (int i = 0; i < allHashes.size(); i += atATime) {
+				// Find current position,
+				int endIndex = Math.min(allHashes.size(), i + atATime);
+				List<ImageHash> currentHashes = allHashes.subList(i, endIndex);
+				List<ImageHash> rest = allHashes.subList(endIndex, allHashes.size());
+
+				currentHashesAndRests.add(new Pair<>(currentHashes, rest));
+			}
+
+			// Try to find duplicates inside each of the sublists by n^2 brute force.
+			currentHashesAndRests.parallelStream().map(currentPartitionAndRest -> currentPartitionAndRest.getKey())
+					.forEach(currentHashes -> {
+						for (int y = 0; y < currentHashes.size(); y++) {
+							for (int z = y + 1; z < currentHashes.size(); z++) {
+								if (currentHashes.get(y).getSource().equals(currentHashes.get(z).getSource())) continue;
+								if (alg.matches(currentHashes.get(y), currentHashes.get(z), mode))
+									results.add(new HashMatch(currentHashes.get(y), currentHashes.get(z)));
+							}
+						}
+					});
+
+			// Compare each of the (now internally consistent) list of hashes to the rest of
+			// the hashes, all at once and in parallel.
+			currentHashesAndRests.parallelStream().forEach(currentHashesAndRest -> {
+				final List<ImageHash> currentHashes = currentHashesAndRest.getKey();
+				final List<ImageHash> rest = currentHashesAndRest.getValue();
+				rest.stream().forEach(h -> {
+					for (ImageHash c : currentHashes) {
+						if (h.getSource().equals(c.getSource())) continue;
+						if (alg.matches(h, c, mode)) results.add(new HashMatch(h, c));
+					}
+				});
+			});
+
+			return results;
+		} catch (IOException e) {
+			System.err.println("There was a fatal error trying to write to read from the list of hashes.");
+			System.exit(2);
+			return null;
+		}
 	}
 
 }

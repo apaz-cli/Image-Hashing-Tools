@@ -1,4 +1,4 @@
-package pipeline.sources.single;
+package pipeline.sources;
 
 import java.util.Spliterator;
 
@@ -16,14 +16,10 @@ public class SingleImageSource implements ImageSource {
 	}
 
 	@Override
-	public int characteristics() {
-		return SIZED | DISTINCT | NONNULL;
-	}
+	public int characteristics() { return SIZED | DISTINCT | NONNULL; }
 
 	@Override
-	public long estimateSize() {
-		return img == null ? 0 : 1;
-	}
+	public long estimateSize() { return img == null ? 0 : 1; }
 
 	@Override
 	public SourcedImage next() {
@@ -33,8 +29,9 @@ public class SingleImageSource implements ImageSource {
 	}
 
 	@Override
-	public Spliterator<SourcedImage> trySplit() {
-		return null;
-	}
+	public Spliterator<SourcedImage> trySplit() { return null; }
+
+	@Override
+	public String getSourceName() { return img != null ? img.getSource() : null; }
 
 }

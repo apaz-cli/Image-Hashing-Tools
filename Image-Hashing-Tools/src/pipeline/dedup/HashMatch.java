@@ -5,6 +5,7 @@ import java.io.IOException;
 import hash.IHashAlgorithm;
 import hash.ImageHash;
 import image.implementations.SourcedImage;
+import utils.Pair;
 
 public class HashMatch {
 
@@ -24,17 +25,15 @@ public class HashMatch {
 		return h1.loadFromSource();
 	}
 
-	public SourcedImage loadSecond() throws IOException {
-		return h2.loadFromSource();
-	}
+	public SourcedImage loadSecond() throws IOException { return h2.loadFromSource(); }
 
-	public IHashAlgorithm loadAlg() {
-		return h1.getAlgorithm();
-	}
+	public IHashAlgorithm loadAlg() { return h1.getAlgorithm(); }
 
 	@Override
-	public String toString() {
-		return new StringBuilder("<").append(h1).append("|").append(h2).append(">").toString();
+	public String toString() { return new StringBuilder("<").append(h1).append("|").append(h2).append(">").toString(); }
+
+	public Pair<SourcedImage, SourcedImage> loadBoth() throws IOException {
+		return new Pair<>(this.loadFirst(), this.loadSecond());
 	}
 
 }

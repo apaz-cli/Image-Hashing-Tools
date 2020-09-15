@@ -11,8 +11,10 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
@@ -23,6 +25,7 @@ import javax.swing.WindowConstants;
 
 import hash.ImageHash;
 import image.IImage;
+import image.PixelUtils;
 import image.implementations.GreyscaleImage;
 import image.implementations.RGBAImage;
 import image.implementations.RGBImage;
@@ -30,8 +33,7 @@ import image.implementations.SourcedImage;
 
 public class ImageUtils {
 
-	protected ImageUtils() {
-	}
+	protected ImageUtils() {}
 
 	public static boolean validURL(String s) {
 		// Hopefully it's better than doing this. I don't wanna do this.
@@ -47,7 +49,7 @@ public class ImageUtils {
 		return s.contains("://");
 	}
 
-	public static List<Exception> failedImageOpens = new Vector<>();
+	public static List<Exception> failedOpens = new Vector<>();
 
 	// Returns null if isn't an image, or it's a gif
 	public static BufferedImage openImage(URL imgURL) {
@@ -77,7 +79,7 @@ public class ImageUtils {
 			InputStream s = new BufferedInputStream(connection.getInputStream());
 			return ImageIO.read(s);
 		} catch (Exception e) {
-			failedImageOpens.add(e);
+			failedOpens.add(e);
 			return null;
 		}
 
@@ -91,7 +93,7 @@ public class ImageUtils {
 				throw new IllegalArgumentException("Insufficient permission to read file: " + imgFile);
 			ret = ImageIO.read(imgFile);
 		} catch (Exception e) {
-			failedImageOpens.add(e);
+			failedOpens.add(e);
 		}
 		return ret;
 	}
@@ -106,6 +108,128 @@ public class ImageUtils {
 		return img == null ? null : new SourcedImage(img, imgFile);
 	}
 
+	/************************/
+	/* IMAGE SAVING HELPERS */
+	/************************/
+
+	private static Set<String> suffixes = new HashSet<>(Arrays.asList(ImageIO.getWriterFileSuffixes()));
+
+	private static String formatName(String name) {
+		int idx = name.lastIndexOf('.');
+		if (idx > 0) {
+			return name.substring(idx + 1);
+		} else {
+			return "";
+		}
+	}
+
+	public static boolean formatSupported(String formatName) { return suffixes.contains(formatName); }
+
+	public static String formatName(File f) { return formatName(f.toString()); }
+
+	public static File avoidNameCollision(File f) {
+		PixelUtils.assertNotNull(f);
+
+		String name = f.getName();
+		String formatName = ImageUtils.formatName(f);
+
+		return avoidNameCollision(name, formatName);
+	}
+
+	private static File avoidNameCollision(String name, String formatName) {
+		PixelUtils.assertNotNull(name, formatName);
+		if (formatName.startsWith(".") && formatName.length() > 1) formatName = formatName.substring(1);
+		if (!formatSupported(formatName)) throw new IllegalArgumentException(
+				"File format " + formatName + " not supported. Supported formats: " + suffixes);
+		return avoidNameCollision(name, formatName, false);
+	}
+
+	// Only called recursively from above
+	private static File avoidNameCollision(String name, String formatName, boolean changed) {
+
+		int i = name.lastIndexOf('.');
+		if (i > 0) name = name.substring(0, i);
+
+		File f = new File(name + "." + formatName);
+		if (f.exists() || !f.isDirectory()) return f;
+
+		if (!changed) return avoidNameCollision(name + " (1)." + formatName, formatName, true);
+		else {
+			String beforeNumber = null;
+			long number;
+			String afterNumber = null;
+
+			i = name.lastIndexOf('(');
+			if (i > 0) {
+				beforeNumber = name.substring(0, i + 1);
+			}
+
+			int j = name.lastIndexOf(')');
+			if (j > 0) {
+				afterNumber = name.substring(j, name.length());
+			}
+
+			number = Integer.parseInt(name.substring(i + 1, j));
+
+			return avoidNameCollision(beforeNumber + (number + 1) + afterNumber, formatName, true);
+		}
+	}
+
+	/****************/
+	/* IMAGE SAVING */
+	/****************/
+
+	public static File saveImage(SourcedImage img) throws IOException {
+		if (img == null) throw new IllegalArgumentException();
+		File f = img.getIfFile();
+		if (f == null) throw new IllegalArgumentException("The SourcedImage must be from a file.");
+		return saveImage(img, f);
+	}
+
+	public static File saveImage(IImage<?> img, File f) throws IOException {
+		if (img == null) throw new IllegalArgumentException();
+		if (f == null) throw new IllegalArgumentException();
+		return saveImage(img, f, ImageUtils.formatName(f));
+	}
+
+	public static File saveImage(IImage<?> img, File f, String format) throws IOException {
+		if (img == null) throw new IllegalArgumentException();
+		if (f == null) throw new IllegalArgumentException();
+		if (format == null) throw new IllegalArgumentException();
+		if (!ImageUtils.formatSupported(format))
+			throw new IllegalArgumentException("Unsupported image format: " + format);
+
+		if (f.isDirectory()) {
+			Random r = new Random();
+			int numbers;
+			while ((numbers = r.nextInt()) < 0) {}
+
+			String numberName = numbers + '.' + format;
+			File newTarget = new File(f, numberName);
+
+			// May or may not exist. This gets resolved on the next iteration below.
+			saveImage(img, newTarget, format);
+		}
+
+		// We have a target and can just save
+		if (!f.exists()) {
+			ImageIO.write(img.toBufferedImage(), format, f);
+			return f;
+		} else {
+			String parent = f.getParent();
+			parent = parent == null ? "" : parent;
+
+			File newTarget = ImageUtils.avoidNameCollision(f.getName(), format);
+
+			ImageIO.write(img.toBufferedImage(), format, f);
+			return newTarget;
+		}
+	}
+
+	/****************************/
+	/* SHOWING IMAGES ON SCREEN */
+	/****************************/
+
 	public static void showImage(SourcedImage img) {
 		showImage(img.unwrap(), img.getSource());
 	}
@@ -114,13 +238,9 @@ public class ImageUtils {
 		showImage(img.toBufferedImage(), (img instanceof SourcedImage) ? ((SourcedImage) img).getSource() : "");
 	}
 
-	public static void showImage(IImage<?> img, String name) {
-		showImage(img.toBufferedImage(), name);
-	}
+	public static void showImage(IImage<?> img, String name) { showImage(img.toBufferedImage(), name); }
 
-	public static void showImage(BufferedImage img) {
-		showImage(img, "");
-	}
+	public static void showImage(BufferedImage img) { showImage(img, ""); }
 
 	public static void showImage(BufferedImage img, String name) {
 		JFrame editorFrame = new JFrame(name);
@@ -161,6 +281,8 @@ public class ImageUtils {
 
 		return new GreyscaleImage(pixels, width, height);
 	}
+
+	// TODO Move these somewhere that makes more sense
 
 	// Returns an image packed with noise 0-255
 	public static GreyscaleImage noise(int width, int height) {

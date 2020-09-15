@@ -50,16 +50,25 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 
 	public ImageHash(IHashAlgorithm creator, byte[] bits) throws IllegalArgumentException {
 		PixelUtils.assertNotNull(new String[] { "creator", "bits" }, creator, bits);
-		this.bits = Arrays.copyOf(bits, bits.length);
+		// + (bits.length % 8) is to resolve the buffer cast issue
+		this.bits = Arrays.copyOf(bits, bits.length + (bits.length % 8));
 		this.creator = creator;
 		// Source remains null
 	}
 
 	public ImageHash(IHashAlgorithm creator, byte[] bits, String source) throws IllegalArgumentException {
 		PixelUtils.assertNotNull(new String[] { "creator", "bits" }, creator, bits);
-		this.bits = Arrays.copyOf(bits, bits.length);
+		// + (bits.length % 8) is to resolve the buffer cast issue
+		this.bits = Arrays.copyOf(bits, bits.length + (bits.length % 8));
 		this.creator = creator;
 		this.source = source;
+	}
+
+	// Copy constructor
+	public ImageHash(ImageHash h) {
+		this.bits = h.bits;
+		this.creator = h.creator;
+		this.source = h.source;
 	}
 
 	/*****************/
@@ -129,6 +138,19 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 		// or algorithm hasn't been loaded)
 		IHashAlgorithm creator = AlgLoader.loadAlgorithm(algName, algArgs);
 
+		// Resize the bytes we parsed into a buffer of the size the creator is
+		// expecting.
+		int len = creator.getHashLength();
+		len = len + (len % 8);
+		len /= 8;
+
+		if (len < bytes.length) {
+			throw new IllegalArgumentException("Did not read enough bits to create a hash. Expected " + len
+					+ " bytes of data, corresponding to " + len * 2 + " characters. Got : " + bits.toUpperCase()
+					+ ", only " + bits.length() + " characters.");
+		}
+		bytes = Arrays.copyOfRange(bytes, 0, len);
+
 		// There's a similar approach to error checking taken elsewhere. We throw
 		// IllegalArgumentException bit packing above if the bits are invalid, and we
 		// just trust that the user knows what to do with the Source.
@@ -169,7 +191,7 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 	public String getSource() { return this.source; }
 
 	public SourcedImage loadFromSource() throws IOException {
-		if (this.source == null || this.source.equals("null")) return null;
+		if (this.source == null || this.source.equals("null")) throw new IOException("This image has no source.");
 
 		boolean isURL = ImageUtils.validURL(this.source);
 
@@ -186,9 +208,7 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 	}
 
 	@Override
-	public double distance(ImageHash hash) throws IllegalArgumentException {
-		return this.creator.distance(this, hash);
-	}
+	public double distance(ImageHash hash) throws IllegalArgumentException { return this.creator.distance(this, hash); }
 
 	public int[] bitsToIntArray() {
 		int[] ints = new int[(this.getLength() + 31) / 32];
@@ -223,7 +243,7 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 		for (int i = 0; i < this.bits.length; i++) {
 			int b = this.bits[i];
 			char c1 = intToHexChar[(b & 0xf0) >> 4];
-			char c2 = intToHexChar[b & 0x0f];
+			char c2 = intToHexChar[(b & 0x0f)];
 			encodedChars[i * 2] = c1;
 			encodedChars[i * 2 + 1] = c2;
 		}
@@ -249,9 +269,7 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 	}
 
 	// throws when hashes are uncomparable
-	public boolean matches(ImageHash h) throws IllegalArgumentException {
-		return this.creator.matches(this, h);
-	}
+	public boolean matches(ImageHash h) throws IllegalArgumentException { return this.creator.matches(this, h); }
 
 	// throws when hashes are uncomparable
 	public boolean matches(ImageHash h, MatchMode mode) throws IllegalArgumentException {

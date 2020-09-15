@@ -22,23 +22,29 @@ public class PerceptualHash implements IHashAlgorithm {
 		AlgLoader.register(phash);
 	}
 
-	public PerceptualHash() {
-		this(32);
-	}
+	public PerceptualHash() { this(16); }
 
 	public PerceptualHash(int sideLength) {
 		if (PixelUtils.safeSquare(sideLength) % 2 != 0) throw new IllegalArgumentException("sideLength must be even.");
 		this.sideLength = sideLength;
 		this.DCTCoefficients = HalfDCTII.createHalfDCTIICoefficients(sideLength);
 	}
+	
+	public PerceptualHash(int sideLength, MatchMode mode) { this.setDefaultMatchMode(mode); }
 
 	private int sideLength;
 	private double[] DCTCoefficients;
 
+	private MatchMode defaultMode = MatchMode.NORMAL;
+
 	@Override
-	public String algName() {
-		return "pHash";
-	}
+	public void setDefaultMatchMode(MatchMode mode) { if (mode != null) this.defaultMode = mode; }
+
+	@Override
+	public MatchMode getDefaultMatchMode() { return defaultMode; }
+
+	@Override
+	public String algName() { return "pHash"; }
 
 	@Override
 	public int getHashLength() { return (this.sideLength / 2) * (this.sideLength / 2); }
@@ -47,9 +53,7 @@ public class PerceptualHash implements IHashAlgorithm {
 	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String toArguments() {
-		return "" + this.sideLength;
-	}
+	public String toArguments() { return "" + this.sideLength; }
 
 	@Override
 	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
@@ -79,6 +83,7 @@ public class PerceptualHash implements IHashAlgorithm {
 			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
 					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
+		if (mode == null) mode = defaultMode;
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
@@ -128,17 +133,17 @@ public class PerceptualHash implements IHashAlgorithm {
 
 		int longPos = 0, currentLong = -1;
 		for (int i = 0; i < transformedTrimmedDCT.length; i++) {
-				if (longPos % 8 == 0) {
-					// -1 will immediately be incremented to 0, and it will spill over into new
-					// longs when necessary.
-					currentLong++;
-					longPos = 0;
-				}
+			if (longPos % 8 == 0) {
+				// -1 will immediately be incremented to 0, and it will spill over into new
+				// longs when necessary.
+				currentLong++;
+				longPos = 0;
+			}
 
-				// Set the current bit of the hash
-				hashValues[currentLong] <<= 1;
-				hashValues[currentLong] |= transformedTrimmedDCT[i] > meanValue ? 1 : 0;
-				longPos++;
+			// Set the current bit of the hash
+			hashValues[currentLong] <<= 1;
+			hashValues[currentLong] |= transformedTrimmedDCT[i] > meanValue ? 1 : 0;
+			longPos++;
 		}
 
 		// Slide the last entry of the hash in to the left if necessary.
@@ -156,8 +161,6 @@ public class PerceptualHash implements IHashAlgorithm {
 	}
 
 	@Override
-	public ImageHash hash(BufferedImage img) {
-		return this.hash(new RGBImage(img));
-	}
+	public ImageHash hash(BufferedImage img) { return this.hash(new RGBImage(img)); }
 
 }

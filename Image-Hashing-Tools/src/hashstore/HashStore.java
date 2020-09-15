@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import hash.ImageHash;
+import hash.MatchMode;
 import pipeline.dedup.HashMatch;
 import pipeline.hasher.HasherOutput;
 
@@ -37,10 +38,8 @@ public interface HashStore extends HasherOutput {
 
 	abstract void storeAll(Collection<? extends ImageHash> hashes);
 
-	default List<HashMatch> findMatches() throws IOException {
-		return this.findMatches(500);
-	}
+	default List<HashMatch> findMatches() { return this.findMatches(MatchMode.NORMAL); };
 
-	abstract List<HashMatch> findMatches(int atATime) throws IOException;
+	abstract List<HashMatch> findMatches(MatchMode mode);
 
 }

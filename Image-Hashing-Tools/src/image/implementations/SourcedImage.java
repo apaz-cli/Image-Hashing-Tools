@@ -25,25 +25,17 @@ public class SourcedImage implements IImage<SourcedImage> {
 		this.isURL = isURL;
 	}
 
-	public SourcedImage(IImage<?> img, URL source) {
-		this(img, source == null ? null : source.toString(), true);
-	}
+	public SourcedImage(IImage<?> img, URL source) { this(img, source == null ? null : source.toString(), true); }
 
-	public SourcedImage(IImage<?> img, File source) {
-		this(img, source == null ? null : source.toString(), false);
-	}
+	public SourcedImage(IImage<?> img, File source) { this(img, source == null ? null : source.toString(), false); }
 
 	private SourcedImage(BufferedImage img, String source, boolean isURL) {
 		this(img == null ? null : new RGBAImage(img), source, isURL);
 	}
 
-	public SourcedImage(BufferedImage img, URL source) {
-		this(img, source == null ? null : source.toString(), true);
-	}
+	public SourcedImage(BufferedImage img, URL source) { this(img, source == null ? null : source.toString(), true); }
 
-	public SourcedImage(BufferedImage img, File source) {
-		this(img, source == null ? null : source.toString(), false);
-	}
+	public SourcedImage(BufferedImage img, File source) { this(img, source == null ? null : source.toString(), false); }
 
 	public SourcedImage(URL url) throws IOException {
 		if (url == null) throw new IllegalArgumentException("URL is null.");
@@ -65,13 +57,9 @@ public class SourcedImage implements IImage<SourcedImage> {
 	}
 
 	// Returns true if is a url, false if was a file, null if string.
-	public boolean sourceIsURL() {
-		return this.isURL;
-	}
+	public boolean sourceIsURL() { return this.isURL; }
 
-	public boolean sourceIsFile() {
-		return !this.isURL;
-	}
+	public boolean sourceIsFile() { return !this.isURL; }
 
 	public URL getIfURL() {
 		if (this.isURL) try {
@@ -88,18 +76,14 @@ public class SourcedImage implements IImage<SourcedImage> {
 		} else return null;
 	}
 
-	public IImage<?> unwrap() {
-		return this.img;
-	}
+	public IImage<?> unwrap() { return this.img; }
 
 	public String getSource() { return this.source; }
 
-	// Tries its best, returns null if not saved, throws an exception if this image
-	// does come from a file, but there was an error writing.
+	// Throws IllegalArgumentException if not from a file, i.e. if this.isFile() is
+	// false.
 	public File save() throws IOException {
-		File f = this.getIfFile();
-		if (f != null) return this.save(f);
-		else return null;
+		return ImageUtils.saveImage(this);
 	}
 
 	public File save(String format) throws IOException {
@@ -109,9 +93,7 @@ public class SourcedImage implements IImage<SourcedImage> {
 	}
 
 	@Override
-	public SourcedImage deepClone() {
-		return new SourcedImage(this.img.deepClone(), this.source, this.isURL);
-	}
+	public SourcedImage deepClone() { return new SourcedImage(this.img.deepClone(), this.source, this.isURL); }
 
 	@Override
 	public int getWidth() { return this.img.getWidth(); }
@@ -143,24 +125,16 @@ public class SourcedImage implements IImage<SourcedImage> {
 	}
 
 	@Override
-	public BufferedImage toBufferedImage() {
-		return this.img.toBufferedImage();
-	}
+	public BufferedImage toBufferedImage() { return this.img.toBufferedImage(); }
 
 	@Override
-	public GreyscaleImage toGreyscale() {
-		return this.img.toGreyscale();
-	}
+	public GreyscaleImage toGreyscale() { return this.img.toGreyscale(); }
 
 	@Override
-	public RGBImage toRGB() {
-		return this.img.toRGB();
-	}
+	public RGBImage toRGB() { return this.img.toRGB(); }
 
 	@Override
-	public RGBAImage toRGBA() {
-		return this.img.toRGBA();
-	}
+	public RGBAImage toRGBA() { return this.img.toRGBA(); }
 
 	@Override
 	public SourcedImage flipHorizontal() {
@@ -168,24 +142,16 @@ public class SourcedImage implements IImage<SourcedImage> {
 	}
 
 	@Override
-	public SourcedImage flipVertical() {
-		return new SourcedImage(this.img.flipVertical(), this.source, this.isURL);
-	}
+	public SourcedImage flipVertical() { return new SourcedImage(this.img.flipVertical(), this.source, this.isURL); }
 
 	@Override
-	public SourcedImage rotate90CW() {
-		return new SourcedImage(this.img.rotate90CW(), this.source, this.isURL);
-	}
+	public SourcedImage rotate90CW() { return new SourcedImage(this.img.rotate90CW(), this.source, this.isURL); }
 
 	@Override
-	public SourcedImage rotate90CCW() {
-		return new SourcedImage(this.img.rotate90CCW(), this.source, this.isURL);
-	}
+	public SourcedImage rotate90CCW() { return new SourcedImage(this.img.rotate90CCW(), this.source, this.isURL); }
 
 	@Override
-	public SourcedImage rotate180() {
-		return new SourcedImage(this.img.rotate180(), this.source, this.isURL);
-	}
+	public SourcedImage rotate180() { return new SourcedImage(this.img.rotate180(), this.source, this.isURL); }
 
 	@Override
 	public SourcedImage extractSubimage(int x1, int y1, int x2, int y2) {
@@ -233,8 +199,6 @@ public class SourcedImage implements IImage<SourcedImage> {
 	}
 
 	@Override
-	public boolean hasAlpha() {
-		return this.img.hasAlpha();
-	}
+	public boolean hasAlpha() { return this.img.hasAlpha(); }
 
 }
