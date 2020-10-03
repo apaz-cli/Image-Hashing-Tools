@@ -77,7 +77,7 @@ public class ImageHasher {
 	 * 
 	 * If you would like to see a type of object supported that currently isn't,
 	 * please contact me at <a href=
-	 * "https://github.com/Aaron-Pazdera">https://github.com/Aaron-Pazdera</a> or
+	 * "https://github.com/apaz-cli">https://github.com/apaz-cli</a> or
 	 * submit a pull request.
 	 * 
 	 * @param input
