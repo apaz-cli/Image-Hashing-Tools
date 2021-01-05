@@ -9,12 +9,11 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
 
-import hashstore.vptree.MetricComparable;
 import image.PixelUtils;
 import image.implementations.SourcedImage;
 import utils.ImageUtils;
 
-public class ImageHash implements Serializable, MetricComparable<ImageHash> {
+public class ImageHash implements Serializable {
 
 	/********************/
 	/* Member Variables */
@@ -207,7 +206,6 @@ public class ImageHash implements Serializable, MetricComparable<ImageHash> {
 		throw new IOException("Was not able to load " + (isURL ? "url" : "file") + ": " + this.source);
 	}
 
-	@Override
 	public double distance(ImageHash hash) throws IllegalArgumentException { return this.creator.distance(this, hash); }
 
 	public int[] bitsToIntArray() {
