@@ -1,4 +1,4 @@
-package app.commands;
+package app.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Button;
@@ -42,22 +42,21 @@ public class MergeWindow extends JFrame {
 
 	List<HashMatch> partialMatches = null;
 	HashMatch currentMatch = null;
-	Command callingCommand;
 
 	List<ImageHash> toDelete = new ArrayList<>();
 
 	static {
 		try {
 			UIManager.setLookAndFeel("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel");
-		} catch (Exception ignored) {}
+		} catch (Exception ignored) {
+		}
 	}
 
 	// Hashes from the left side of the list of hashes to resolve came from
 	// leftSource, and likewise on the right. Note that leftSource and rightSource
 	// may point to the same source.
-	MergeWindow(Command callingCommand, List<HashMatch> toResolve, ImageSource[] sources) {
+	public MergeWindow(List<HashMatch> toResolve, ImageSource[] sources) {
 		PixelUtils.assertNotNull(toResolve, sources);
-		this.callingCommand = callingCommand;
 		this.partialMatches = toResolve;
 		this.sources = sources;
 
@@ -162,49 +161,27 @@ public class MergeWindow extends JFrame {
 		diffCanvas.setIcon(new ImageIcon(img1.imageDiff(img2, imageSideLength, imageSideLength).toBufferedImage()));
 	}
 
-	ActionListener keepImage1 = e -> {
-		synchronized (callingCommand) {
-			toDelete.add(currentMatch.getSecond());
-			nextMatch();
-		}
-	};
-	ActionListener keepImage2 = e -> {
-		synchronized (callingCommand) {
-			toDelete.add(currentMatch.getFirst());
-			nextMatch();
-		}
-	};
-	ActionListener keepBothIm = e -> {
-		synchronized (callingCommand) {
-			nextMatch();
-		}
-	};
+	ActionListener keepImage1 = e -> { toDelete.add(currentMatch.getSecond()); nextMatch(); };
+	ActionListener keepImage2 = e -> { toDelete.add(currentMatch.getFirst()); nextMatch(); };
+	ActionListener keepBothIm = e -> { nextMatch(); };
 	ActionListener keepLarger = e -> {
-		synchronized (callingCommand) {
-			if (img1.getArea() >= img2.getArea()) {
-				keepImage1.actionPerformed(e);
-			} else {
-				keepImage2.actionPerformed(e);
-			}
+		if (img1.getArea() >= img2.getArea()) {
+			keepImage1.actionPerformed(e);
+		} else {
+			keepImage2.actionPerformed(e);
 		}
 	};
 	ActionListener deleteBoth = e -> {
-		synchronized (callingCommand) {
-			toDelete.add(currentMatch.getFirst());
-			toDelete.add(currentMatch.getSecond());
-			nextMatch();
-		}
+		toDelete.add(currentMatch.getFirst());
+		toDelete.add(currentMatch.getSecond());
+		nextMatch();
 	};
-	
+
 	// Leave the action of actually saving to the calling method.
 	ActionListener saveChanges = e -> {
-		synchronized(callingCommand) {
-			this.dispose();
-		}
+		this.dispose();
 	};
-	
-	public Set<ImageHash> getToDelete() {
-		return new HashSet<>(this.toDelete);
-	}
+
+	public Set<ImageHash> getToDelete() { return new HashSet<>(this.toDelete); }
 
 }

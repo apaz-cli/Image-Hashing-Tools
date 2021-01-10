@@ -8,8 +8,6 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.Vector;
@@ -22,36 +20,26 @@ import pipeline.ImageSource;
 
 public class ImageLoader implements ImageSource {
 
-	public ImageLoader(File folder) throws IllegalArgumentException {
+	public ImageLoader(String fileOrFolderPath) throws IllegalArgumentException {
+		this(new File(fileOrFolderPath));
+	}
 
+	public ImageLoader(Path fileOrFolderPath) throws IllegalArgumentException {
+		this(fileOrFolderPath.toFile());
+	}
+
+	public ImageLoader(File folder) throws IllegalArgumentException {
+		if (folder == null) throw new NullPointerException("The folder cannot be null.");
+		if (!folder.isDirectory()) throw new IllegalArgumentException("The specified folder is not a folder.");
+		if (!folder.canRead()) throw new IllegalArgumentException("The specified folder cannot be read from.");
+		this.originalFolder = folder;
+
+		// Walk the folder path and add all the files found.
 		this.indexFolder(folder);
 
-		// Removes all files but images from the list.
+		// Remove all files but images from the list.
 		this.trimIndex();
-
-		// Now throw an exception if no images are indexed.
-		if (files.isEmpty()) {
-			throw new IllegalArgumentException(
-					"The file or folder specified was valid, but did not contain any images.");
-		}
-		this.originalFolder = folder;
 	}
-
-	public ImageLoader(List<File> filesOrFolders) throws IllegalArgumentException {
-
-	}
-
-	public ImageLoader(String fileOrFolderPath) throws IllegalArgumentException { this(new File(fileOrFolderPath)); }
-
-	public ImageLoader(String... fileOrFolderPaths) throws IllegalArgumentException {
-		this(Arrays.asList(fileOrFolderPaths));
-	}
-
-	public ImageLoader(Collection<String> fileOrFolderPaths) {
-		this(fileOrFolderPaths.stream().map(s -> new File(s)).collect(Collectors.toList()));
-	}
-
-	public ImageLoader(Path fileOrFolderPath) throws IllegalArgumentException { this(fileOrFolderPath.toFile()); }
 
 	private void indexFolder(File folder) {
 		if (!folder.isDirectory() || !folder.canRead()) { return; }
@@ -61,14 +49,14 @@ public class ImageLoader implements ImageSource {
 			if (f.isDirectory()) {
 				this.indexFolder(f);
 			} else {
-				files.add(f);
+				this.files.add(f);
 			}
 		}
 	}
 
 	private void trimIndex() {
 		// Removes all files but images from the list.
-		files.removeAll(files.parallelStream().filter(f -> {
+		this.files.removeAll(this.files.parallelStream().filter(f -> {
 			try {
 				String mimeType = Files.probeContentType(f.toPath());
 				return (mimeType == null) || (!mimeType.contains("image/"));
@@ -88,6 +76,8 @@ public class ImageLoader implements ImageSource {
 	private File originalFolder;
 	private List<File> files = new ArrayList<>(); // Splits into copies on trySplit()
 	private List<File> failedLoads = new Vector<>();
+
+	public List<File> getRemainingItems() { return files; }
 
 	public List<File> getFailedLoads() { return failedLoads; }
 
@@ -134,15 +124,15 @@ public class ImageLoader implements ImageSource {
 	// Check for security (Don't delete arbitrary files, that would be bad.)
 	public boolean imageContainedHere(File f) {
 		Path possibleChildPath = f.toPath().toAbsolutePath();
-
 		Path parentPath = this.originalFolder.toPath().toAbsolutePath();
-		if (possibleChildPath.startsWith(parentPath)) return true;
 
-		return false;
+		return possibleChildPath.startsWith(parentPath);
 	}
 
 	@Override
-	public int characteristics() { return CONCURRENT | NONNULL | IMMUTABLE; }
+	public int characteristics() {
+		return CONCURRENT | NONNULL | IMMUTABLE;
+	}
 
 	@Override
 	public long estimateSize() {
@@ -154,7 +144,7 @@ public class ImageLoader implements ImageSource {
 	@Override
 	public String getSourceName() { return this.originalFolder.toString(); }
 
-	public File getFolder() { return this.originalFolder; }
+	public File getOriginalFolder() { return this.originalFolder; }
 
 	private ImageLoader(List<File> files, List<File> failedLoads) {
 		this.files = files;

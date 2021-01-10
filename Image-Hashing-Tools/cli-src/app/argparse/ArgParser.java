@@ -37,7 +37,12 @@ public class ArgParser {
 
 	public boolean switchPresent(Switch sw) {
 		this.last = sw;
-		return switchIndexes.containsKey(sw.getShort()) || switchIndexes.containsKey(sw.getLong());
+
+		String sh = sw.getShort();
+		if (sh != null) if (switchIndexes.containsKey(sh)) return true;
+
+		String ln = sw.getLong();
+		return ln != null ? switchIndexes.containsKey(ln) : false;
 	}
 
 	public boolean anySwitchesPresent(Switch... switches) {
@@ -50,21 +55,28 @@ public class ArgParser {
 	/*********/
 	/* Value */
 	/*********/
-	
-	// (Returns a string value for what comes after the switch)
+	// (Returns a value for what comes after the switch)
 
+	// lastSwitchValue() is for use after switchPresent().
 	public String lastSwitchValue() {
 		return lastSwitchValue(null);
 	}
 
-	public String lastSwitchValue(String defaultValue) { return last != null ? switchValue(last, defaultValue) : null; }
+	// Returns default value if if no switches have been parsed, or the last switch
+	// has no value.
+	public String lastSwitchValue(String defaultValue) {
+		return last != null ? switchValue(last, defaultValue) : defaultValue;
+	}
 
-	public String switchValue(Switch sw) { return switchValue(sw, null); }
+	public String switchValue(Switch sw) {
+		return switchValue(sw, null);
+	}
 
 	public String switchValue(Switch sw, String defaultValue) {
 		if (!switchPresent(sw)) return defaultValue;
 
 		int switchIndex = this.getIndex(sw);
+
 		if (switchIndex + 1 < args.length) {
 			takenIndexes.add(switchIndex + 1);
 			return args[switchIndex + 1];
@@ -72,22 +84,48 @@ public class ArgParser {
 		return defaultValue;
 	}
 
-	public Long switchLongValue(Switch sw) throws NumberFormatException { return switchLongValue(sw, null); }
+	public long switchLongValue(Switch sw) throws NumberFormatException {
+		return switchLongValue(sw, 0L);
+	}
 
-	public Long switchLongValue(Switch sw, Long defaultValue) throws NumberFormatException {
+	public long switchLongValue(Switch sw, long defaultValue) throws NumberFormatException {
 		String switchValue = switchValue(sw, null);
 
 		if (switchValue == null) return defaultValue;
 		return Long.parseLong(switchValue);
 	}
 
-	public Double switchDoubleValue(Switch sw) throws NumberFormatException { return switchDoubleValue(sw, null); }
+	public double switchDoubleValue(Switch sw) throws NumberFormatException {
+		return switchDoubleValue(sw, 0.0);
+	}
 
-	public Double switchDoubleValue(Switch sw, Double defaultValue) throws NumberFormatException {
+	public double switchDoubleValue(Switch sw, double defaultValue) throws NumberFormatException {
 		String switchValue = switchValue(sw, null);
 
 		if (switchValue == null) return defaultValue;
 		return Double.parseDouble(switchValue);
+	}
+
+	public int switchIntValue(Switch sw) throws NumberFormatException {
+		return switchIntValue(sw, 0);
+	}
+
+	public int switchIntValue(Switch sw, int defaultValue) throws NumberFormatException {
+		String switchValue = switchValue(sw, null);
+
+		if (switchValue == null) return defaultValue;
+		return Integer.parseInt(switchValue);
+	}
+
+	public float switchFloatValue(Switch sw) throws NumberFormatException {
+		return switchFloatValue(sw, 0.0f);
+	}
+
+	public float switchFloatValue(Switch sw, float defaultValue) throws NumberFormatException {
+		String switchValue = switchValue(sw, null);
+
+		if (switchValue == null) return defaultValue;
+		return Float.parseFloat(switchValue);
 	}
 
 	public String[] switchValues(Switch sw) {

@@ -19,4 +19,11 @@ public class VPEntry<T> {
 				.append('>')
 				.toString();
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof VPEntry<?>)) return false;
+		VPEntry<?> other = (VPEntry<?>) o;
+		return this.item.equals(other.item) && (this.distance == other.distance);
+	}
 }

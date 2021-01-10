@@ -19,7 +19,12 @@ public class VPHashStore implements HashStore {
 	IHashAlgorithm alg;
 	VPTree<ImageHash> vpt = null;
 
-	public VPHashStore() {
+	public VPHashStore(ImageHash hash) {
+		this.store(hash);
+	}
+
+	public VPHashStore(Collection<? extends ImageHash> hashes) {
+		this.storeAll(hashes);
 	}
 
 	/**
@@ -129,12 +134,11 @@ public class VPHashStore implements HashStore {
 
 	@Override
 	public List<ImageHash> allWithinDistance(ImageHash h, double distance) throws IOException {
-		return Arrays.asList(vpt.getItems()).parallelStream()
-				.filter(hash -> h.distance(hash) <= distance)
+		return Arrays.asList(vpt.getItems()).parallelStream().filter(hash -> h.distance(hash) <= distance)
 				.collect(Collectors.toList());
 	}
 
-	@Override	
+	@Override
 	public List<ImageHash> toList() throws IOException {
 		return Arrays.asList(vpt.getItems());
 	}
