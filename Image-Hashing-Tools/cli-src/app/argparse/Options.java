@@ -1,12 +1,7 @@
 package app.argparse;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import app.Main;
 import app.actions.Action;
@@ -21,22 +16,36 @@ import pipeline.sources.ImageLoader;
 
 public class Options {
 
-	// The options object (singleton) actually tracks the state of the whole
-	// application.
+	// The Options object actually tracks the state of the whole application.
 
 	public String[] targets;
 	public ImageLoader[] targetSources;
 
-	public boolean crossCompareSelf = false;
-	public boolean crossCompareOthers = false;
-
+	public boolean crossCompare = false;
 	public IHashAlgorithm algorithm = new DifferenceHash();
 	public boolean touchDisk = true;
 	public boolean verbose = false;
 
-	public Action exactMatchAction = null;
-	public Action partialMatchAction = null;
-	public UnmatchedAction nonMatchAction = null;
+	public Action exactMatchAction = Actions.noop;
+	public Action partialMatchAction = Actions.noop;
+	public UnmatchedAction nonMatchAction = Actions.unnoop;
+
+	// For testing purposes only
+	private Options() {
+	}
+
+	public static Options testingOptions() {
+		Options ret = new Options();
+		ret.targets = new String[] { "/home/apaz/Downloads" };
+		ret.targetSources = new ImageLoader[] { new ImageLoader(ret.targets[0]) };
+		ret.crossCompare = false;
+		ret.touchDisk = false;
+		ret.verbose = true;
+		ret.exactMatchAction = Actions.print;
+		ret.partialMatchAction = Actions.gui;
+		ret.nonMatchAction = Actions.unnoop;
+		return ret;
+	}
 
 	public Options(String[] args) {
 		ArgParser parser = new ArgParser(args);
@@ -49,58 +58,36 @@ public class Options {
 		if (parser.switchPresent(new Switch("-v", "--verbose"))) this.verbose = true;
 		if (parser.switchPresent(new Switch("-t", "--test"))) this.touchDisk = false;
 
-		if (parser.switchPresent(new Switch("-s", "--same"))) this.crossCompareSelf = true;
-		if (parser.switchPresent(new Switch("-o", "--other"))) this.crossCompareOthers = true;
-
-		if (!(this.crossCompareSelf || this.crossCompareOthers)) {
-			System.out.println("Must either compare sources to themselves, or to others, or both.");
-			System.exit(0);
-		}
-
 		// Parse Actions from args
 		if (parser.switchPresent(new Switch("-e", "--exact"))) {
 			switch (parser.lastSwitchValue("noop").toLowerCase()) {
-			case "noop":
-				exactMatchAction = Actions.noop;
+			case "deletebutone":
+				exactMatchAction = Actions.deletebutone;
 				break;
-			case "gui":
-				exactMatchAction = Actions.gui;
+			case "deletecover":
+				exactMatchAction = Actions.deletecover;
 				break;
 			case "print":
 				exactMatchAction = Actions.print;
 				break;
-			case "delete":
-				exactMatchAction = Actions.delete;
-				break;
-			default:
-				exactMatchAction = Actions.noop;
+			default: // noop
 				break;
 			}
 		}
-		if (parser.switchPresent(new Switch("-p", "--partial"))) {
+		if (parser.switchPresent(new Switch("-c", "--partial"))) {
 			switch (parser.lastSwitchValue("noop").toLowerCase()) {
-			case "noop":
-				partialMatchAction = Actions.noop;
-				break;
 			case "gui":
 				partialMatchAction = Actions.gui;
 				break;
 			case "print":
 				partialMatchAction = Actions.print;
 				break;
-			case "delete":
-				partialMatchAction = Actions.delete;
-				break;
-			default:
-				partialMatchAction = Actions.noop;
+			default: // noop
 				break;
 			}
 		}
 		if (parser.switchPresent(new Switch("-n", "--nonmatched"))) {
 			switch (parser.lastSwitchValue("noop").toLowerCase()) {
-			case "noop":
-				nonMatchAction = Actions.unnoop;
-				break;
 			case "move":
 				nonMatchAction = Actions.unmove;
 				break;
@@ -140,19 +127,40 @@ public class Options {
 		}
 
 		// Possibly pick up the next
-		int algSideLength = 16;
+		int defaultSideLength = 16;
 		if (parser.switchPresent(new Switch("-p", "--phash"))) {
-			this.algorithm = new PerceptualHash(parseSideLength(parser, algSideLength), mode);
+			this.algorithm = new PerceptualHash(parseSideLength(parser, defaultSideLength), mode);
 		} else if (parser.switchPresent(new Switch("-d", "--dhash"))) {
-			this.algorithm = new DifferenceHash(parseSideLength(parser, algSideLength), mode);
+			this.algorithm = new DifferenceHash(parseSideLength(parser, defaultSideLength), mode);
 		} else if (parser.switchPresent(new Switch("-a", "--ahash"))) {
-			this.algorithm = new AverageHash(parseSideLength(parser, algSideLength), mode);
+			this.algorithm = new AverageHash(parseSideLength(parser, defaultSideLength), mode);
 		} else {
 			this.algorithm = new DifferenceHash();
 		}
 
 		this.targets = parser.targets();
+
+		// Set compare self or others
+		if (this.targets.length == 1) {
+			this.crossCompare = false;
+		} else if (this.targets.length == 2) {
+			this.crossCompare = true;
+		} else {
+			System.out.println("Expected 1-2 targets. Got: " + Arrays.toString(this.targets));
+			System.exit(0);
+		}
+
+		if (this.verbose) System.out.println("Making image sources.");
 		this.targetSources = makeSources(this.targets);
+
+		if (this.verbose) {
+			System.out.println("Options:");
+			System.out.println("targets: " + Arrays.toString(targets));
+			System.out.println("crossCompare: " + this.crossCompare);
+			System.out.println("touchDisk: " + this.touchDisk);
+			System.out.println("verbose: " + this.verbose);
+		}
+
 	}
 
 	private int parseSideLength(ArgParser parser, int defaultSideLength) {
@@ -206,49 +214,9 @@ public class Options {
 			}
 		}
 
-		// Find all contained folders
-		List<List<File>> fullTraces = new ArrayList<>();
-		for (File targetFolder : targetFiles) {
-			fullTraces.add(allDirectories(targetFolder));
-		}
-
-		// Make sure none of the folders are inside of each other.
-		for (int i = 0; i < targets.length; i++) {
-			List<File> containedFolders1 = fullTraces.get(i);
-			for (int j = i + 1; j < targets.length; j++) {
-				if (!Collections.disjoint(containedFolders1, fullTraces.get(j))) {
-					System.out.println("One of the targets contains another.");
-					System.out.println(
-							fullTraces.get(i).get(0) + " and " + fullTraces.get(j).get(0) + " are not disjoint.");
-				}
-			}
-		}
-
-		// Everything is now validated. I am finally content.
+		// TODO Make sure none of the sources are inside of each other.
 
 		return loaders;
 	}
 
-	private static List<File> allDirectories(File target) {
-		List<File> alldirs = new ArrayList<>();
-		alldirs.add(target);
-
-		List<File> toTraverse = new ArrayList<>();
-		for (;;) {
-			File file = toTraverse.remove(toTraverse.size() - 1);
-			if (!file.isDirectory()) continue;
-			else alldirs.add(file);
-
-			File[] files = file.listFiles();
-			for (File f : files) {
-				List<File> containedFolders = Arrays.asList(f.listFiles()).stream().filter(fi -> fi.isDirectory())
-						.filter(fi -> !Files.isSymbolicLink(fi.toPath())).collect(Collectors.toList());
-				toTraverse.addAll(containedFolders);
-				alldirs.addAll(containedFolders);
-			}
-
-			if (toTraverse.isEmpty()) break;
-		}
-		return alldirs;
-	}
 }

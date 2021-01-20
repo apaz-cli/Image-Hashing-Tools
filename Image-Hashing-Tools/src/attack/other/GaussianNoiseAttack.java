@@ -5,7 +5,7 @@ import java.util.Arrays;
 import attack.IAttack;
 import image.IImage;
 import image.implementations.GreyscaleImage;
-import utils.ImageUtils;
+import utils.Noise;
 
 public class GaussianNoiseAttack<T extends IImage<? extends T>> implements IAttack<T> {
 
@@ -21,7 +21,7 @@ public class GaussianNoiseAttack<T extends IImage<? extends T>> implements IAtta
 	public GreyscaleImage applyToChannel(GreyscaleImage img) {
 		byte[] oldPixels = img.getPixels();
 		byte[] newPixels = Arrays.copyOf(oldPixels, oldPixels.length);
-		float[] gNoise = ImageUtils.gaussianNoise(newPixels.length, mean, sd);
+		float[] gNoise = Noise.gaussianNoise(newPixels.length, mean, sd);
 
 		// Add noise, then correct for over/underflow
 		for (int i = 0; i < oldPixels.length; i++) {

@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -27,13 +29,15 @@ import hash.ImageHash;
 import image.IImage;
 import image.PixelUtils;
 import image.implementations.GreyscaleImage;
-import image.implementations.RGBAImage;
-import image.implementations.RGBImage;
 import image.implementations.SourcedImage;
 
 public class ImageUtils {
 
-	protected ImageUtils() {}
+	protected ImageUtils() {
+	}
+
+	public static final boolean READSVG = false;
+	public static final boolean READGIF = false;
 
 	public static boolean validURL(String s) {
 		// Hopefully it's better than doing this. I don't wanna do this.
@@ -51,11 +55,13 @@ public class ImageUtils {
 
 	public static List<Exception> failedOpens = new Vector<>();
 
-	// Returns null if isn't an image, or it's a gif
+	// Returns null if isn't an image, or it's a gif or an svg.
 	public static BufferedImage openImage(URL imgURL) {
 		try {
-			// Due to a Java 8 bug in ImageIO, cannot read animated gifs.
-			// if (imgURL.getPath().contains(".gif")) { return null; }
+			// Due to a Java 8 bug in ImageIO, cannot read animated gifs or svgs..
+			String path = imgURL.getPath();
+			if (path.contains(".gif")) { return null; }
+			if (path.contains(".svg")) { return null; }
 
 			final HttpURLConnection connection = (HttpURLConnection) imgURL.openConnection();
 			connection.setRequestProperty("User-Agent",
@@ -123,9 +129,13 @@ public class ImageUtils {
 		}
 	}
 
-	public static boolean formatSupported(String formatName) { return suffixes.contains(formatName); }
+	public static boolean formatSupported(String formatName) {
+		return suffixes.contains(formatName);
+	}
 
-	public static String formatName(File f) { return formatName(f.toString()); }
+	public static String formatName(File f) {
+		return formatName(f.toString());
+	}
 
 	public static File avoidNameCollision(File f) {
 		PixelUtils.assertNotNull(f);
@@ -226,6 +236,43 @@ public class ImageUtils {
 		}
 	}
 
+	/*********/
+	/* TRASH */
+	/*********/
+
+	private static boolean madeTrash = false;
+	private static final File trashDir = new File(System.getProperty("user.dir"));
+
+	private static void makeTrash() throws IllegalStateException {
+		synchronized (trashDir) {
+			if (trashDir.exists()) {
+				if (trashDir.isDirectory()) {
+					if (!trashDir.canWrite())
+						throw new IllegalStateException("The trash folder exists but is not writeable.");
+					madeTrash = true;
+					return;
+				} else {
+					throw new IllegalStateException("The trash folder is not a folder, but a normal file.");
+				}
+			} else {
+				boolean success = trashDir.mkdirs();
+				if (!success) throw new IllegalStateException("Could not create the trash folder.");
+				madeTrash = true;
+				return;
+			}
+
+		}
+
+	}
+
+	public static void moveToTrash(File f) throws IOException, IllegalStateException {
+		if (!madeTrash) makeTrash();
+		synchronized (trashDir) {
+			File target = avoidNameCollision(new File(trashDir, f.getName()));
+			Files.move(f.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE);
+		}
+	}
+
 	/****************************/
 	/* SHOWING IMAGES ON SCREEN */
 	/****************************/
@@ -238,9 +285,13 @@ public class ImageUtils {
 		showImage(img.toBufferedImage(), (img instanceof SourcedImage) ? ((SourcedImage) img).getSource() : "");
 	}
 
-	public static void showImage(IImage<?> img, String name) { showImage(img.toBufferedImage(), name); }
+	public static void showImage(IImage<?> img, String name) {
+		showImage(img.toBufferedImage(), name);
+	}
 
-	public static void showImage(BufferedImage img) { showImage(img, ""); }
+	public static void showImage(BufferedImage img) {
+		showImage(img, "");
+	}
 
 	public static void showImage(BufferedImage img, String name) {
 		JFrame editorFrame = new JFrame(name);
@@ -280,37 +331,6 @@ public class ImageUtils {
 		}
 
 		return new GreyscaleImage(pixels, width, height);
-	}
-
-	// TODO Move these somewhere that makes more sense
-
-	// Returns an image packed with noise 0-255
-	public static GreyscaleImage noise(int width, int height) {
-		Random r = new Random();
-		byte[] noise = new byte[width * height];
-		r.nextBytes(noise);
-		return new GreyscaleImage(noise, width, height);
-	}
-
-	public static RGBImage noiseRGB(int width, int height) {
-		return new RGBImage(ImageUtils.noise(width, height), ImageUtils.noise(width, height),
-				ImageUtils.noise(width, height));
-	}
-
-	public static RGBAImage noiseRGBA(int width, int height) {
-		return new RGBAImage(ImageUtils.noise(width, height), ImageUtils.noise(width, height),
-				ImageUtils.noise(width, height), ImageUtils.noise(width, height));
-	}
-
-	// Returns an array containing normally distributed noise, rounded to the
-	// nearest integer.
-	public static float[] gaussianNoise(int length, float mean, float sd) {
-		Random r = new Random();
-		float[] gaussNoise = new float[length];
-		for (int i = 0; i < length; i++) {
-			gaussNoise[i] = (float) ((r.nextGaussian() * sd) + mean);
-		}
-		return gaussNoise;
 	}
 
 	public static BufferedImage resizeBI(BufferedImage img, int width, int height) {

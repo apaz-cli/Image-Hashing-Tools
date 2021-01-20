@@ -30,7 +30,8 @@ public class HashMatch {
 	public IHashAlgorithm loadAlg() { return h1.getAlgorithm(); }
 
 	@Override
-	public String toString() { return new StringBuilder("<").append(h1).append("|").append(h2).append(">").toString(); }
+	public String toString() { 
+		return new StringBuilder("<").append(h1).append("|").append(h2).append(">").toString(); }
 
 	public Pair<SourcedImage, SourcedImage> loadBoth() throws IOException {
 		return new Pair<>(this.loadFirst(), this.loadSecond());

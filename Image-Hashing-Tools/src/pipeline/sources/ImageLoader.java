@@ -11,12 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import javax.imageio.ImageIO;
 
 import image.implementations.SourcedImage;
 import pipeline.ImageSource;
+import utils.ImageUtils;
 
 public class ImageLoader implements ImageSource {
 
@@ -35,36 +37,66 @@ public class ImageLoader implements ImageSource {
 		this.originalFolder = folder;
 
 		// Walk the folder path and add all the files found.
-		this.indexFolder(folder);
+		this.files = new ArrayList<>(indexFolder(folder));
 
 		// Remove all files but images from the list.
 		this.trimIndex();
 	}
 
-	private void indexFolder(File folder) {
-		if (!folder.isDirectory() || !folder.canRead()) { return; }
+	private List<File> indexFolder(File folder) {
+		final List<File> files = new Vector<>();
 
-		File[] filesAndFolders = folder.listFiles();
-		for (File f : filesAndFolders) {
-			if (f.isDirectory()) {
-				this.indexFolder(f);
-			} else {
-				this.files.add(f);
+		try {
+			final ExecutorService threadpool = Executors.newWorkStealingPool();
+			
+			class IndexTask implements Runnable {
+				File target;
+				IndexTask(File target) {
+					this.target = target;
+				}
+				@Override
+				public void run() {
+					File[] filesAndFolders = target.listFiles();
+					for (File f : filesAndFolders) {
+						if (f.isDirectory()) {
+							threadpool.execute(new IndexTask(f));
+						} else {
+							files.add(f);
+						}
+					}
+				}
 			}
+			
+			threadpool.execute(new IndexTask(folder));
+			threadpool.shutdown();
+			threadpool.awaitTermination(1, TimeUnit.DAYS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
+
+		return files;
 	}
 
 	private void trimIndex() {
 		// Removes all files but images from the list.
-		this.files.removeAll(this.files.parallelStream().filter(f -> {
+		// Also remove svg and gif images if
+		List<File> toRemove = this.files.parallelStream().filter(f -> {
+			// return true for files we want to remove
 			try {
 				String mimeType = Files.probeContentType(f.toPath());
-				return (mimeType == null) || (!mimeType.contains("image/"));
+
+				if (mimeType == null) return true;
+				if (!mimeType.contains("image/")) return true;
+				if (!ImageUtils.READSVG && mimeType.contains("svg+xml")) return true;
+				if (!ImageUtils.READGIF && mimeType.contains("image/gif")) return true;
+				return false;
 			} catch (IOException e) {
 				e.printStackTrace();
 				return true;
 			}
-		}).collect(Collectors.toList()));
+		}).collect(Collectors.toList());
+
+		this.files.removeAll(toRemove);
 	}
 
 	public int estimatedRemaining() {
@@ -94,13 +126,14 @@ public class ImageLoader implements ImageSource {
 		// Get image by loading that file, handle if it's invalid.
 		BufferedImage img = null;
 		try {
-			img = ImageIO.read(f);
+			img = ImageUtils.openImage(f);
 			if (img == null) {
 				this.failedLoads.add(f);
 				return this.next();
 			}
 		} catch (Exception e) {
 
+			// Capture the exception and analyze it
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);
@@ -115,7 +148,6 @@ public class ImageLoader implements ImageSource {
 			// Now that we've failed gracefully, we can try again.
 			this.failedLoads.add(f);
 			return this.next();
-
 		}
 
 		return new SourcedImage(img, f);

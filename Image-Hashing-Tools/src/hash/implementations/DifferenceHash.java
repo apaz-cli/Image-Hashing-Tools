@@ -19,7 +19,9 @@ public class DifferenceHash implements IHashAlgorithm {
 		AlgLoader.register(new DifferenceHash());
 	}
 
-	public DifferenceHash() { this.sideLength = 16; }
+	public DifferenceHash() {
+		this.sideLength = 16;
+	}
 
 	public DifferenceHash(int sideLength) throws ArithmeticException {
 		if (sideLength < 1) throw new IllegalArgumentException("Side length is too small.");
@@ -31,20 +33,26 @@ public class DifferenceHash implements IHashAlgorithm {
 		this.sideLength = sideLength;
 	}
 
-	public DifferenceHash(int sideLength, MatchMode mode) { this.setDefaultMatchMode(mode); }
+	public DifferenceHash(int sideLength, MatchMode mode) {
+		this.setMatchMode(mode);
+	}
 
 	private int sideLength;
 
-	private MatchMode defaultMode = MatchMode.NORMAL;
+	private MatchMode mm = MatchMode.NORMAL;
 
 	@Override
-	public void setDefaultMatchMode(MatchMode mode) { if (mode != null) this.defaultMode = mode; }
+	public void setMatchMode(MatchMode mode) {
+		if (mode != null) this.mm = mode;
+	}
 
 	@Override
-	public MatchMode getDefaultMatchMode() { return defaultMode; }
+	public MatchMode getMatchMode() { return mm; }
 
 	@Override
-	public String algName() { return "dHash"; }
+	public String algName() {
+		return "dHash";
+	}
 
 	@Override
 	public int getHashLength() { return sideLength * sideLength; }
@@ -53,7 +61,9 @@ public class DifferenceHash implements IHashAlgorithm {
 	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String toArguments() { return "" + this.sideLength; }
+	public String toArguments() {
+		return "" + this.sideLength;
+	}
 
 	@Override
 	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
@@ -73,8 +83,19 @@ public class DifferenceHash implements IHashAlgorithm {
 
 	@Override
 	public boolean algEquals(IHashAlgorithm o) {
-		if (o instanceof DifferenceHash) return ((DifferenceHash) o).sideLength == this.sideLength;
-		else return false;
+		if (!(o instanceof DifferenceHash)) return false;
+		else return ((DifferenceHash) o).sideLength == this.sideLength && ((DifferenceHash)o).mm.equals(mm);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof IHashAlgorithm)) return false;
+		else return this.algEquals((IHashAlgorithm) o);
+	}
+
+	@Override
+	public int hashCode() {
+		return (this.sideLength << 2) ^ this.mm.hashCode();
 	}
 
 	@Override
@@ -83,7 +104,7 @@ public class DifferenceHash implements IHashAlgorithm {
 			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
 					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
-		if (mode == null) mode = defaultMode;
+		if (mode == null) mode = mm;
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
@@ -135,6 +156,8 @@ public class DifferenceHash implements IHashAlgorithm {
 	}
 
 	@Override
-	public ImageHash hash(BufferedImage img) { return hash(new GreyscaleImage(img)); }
+	public ImageHash hash(BufferedImage img) {
+		return hash(new GreyscaleImage(img));
+	}
 
 }

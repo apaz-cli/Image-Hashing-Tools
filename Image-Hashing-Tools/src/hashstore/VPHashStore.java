@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.function.BiFunction;
 
 import hash.IHashAlgorithm;
 import hash.ImageHash;
@@ -70,7 +71,7 @@ public class VPHashStore implements HashStore {
 
 		// Wrap the algorithm in a closure
 		final IHashAlgorithm alg = hash.getAlgorithm();
-		class VPHashComparator implements java.util.function.BiFunction<ImageHash, ImageHash, Double> {
+		class VPHashComparator implements BiFunction<ImageHash, ImageHash, Double> {
 			@Override
 			public Double apply(ImageHash h1, ImageHash h2) {
 				return alg.distance(h1, h2);

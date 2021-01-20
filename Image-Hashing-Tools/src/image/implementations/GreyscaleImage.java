@@ -204,35 +204,47 @@ public class GreyscaleImage implements IImage<GreyscaleImage> {
 		float yRatio = ((float) (this.height - 1)) / height;
 
 		int offset = 0;
-		int A, B, C, D, x, y, index, gray;
+		float exactx, exacty;
+		int A, B, C, D, x, y, index, gray, aidx, bidx, cidx, didx;
 		float x_diff, y_diff;
 
 		// @nof
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
-
-				// To tell the truth I don't really know what's going on here,
-				// but it works, so I can't really complain.
-				x = (int) (xRatio * j);
-				y = (int) (yRatio * i);
-				x_diff = (xRatio * j) - x;
-				y_diff = (yRatio * i) - y;
+				
+				exactx = (xRatio * j);
+				exacty = (yRatio * i);
+				x = (int) exactx;
+				y = (int) exacty;
+				x_diff = exactx - x;
+				y_diff = exacty - y;
 				index = y * this.width + x;
 
-				A = pixels[index] & 0xff;
-				B = pixels[index + 1] & 0xff;
-				C = pixels[index + this.width] & 0xff;
-				D = pixels[index + this.width + 1] & 0xff;
-
+				// The pixels are laid out like so:
+				// [aidx = index      ][bidx = index+1      ]
+				// [cidx = index+width][didx = index+width+1]
+				// However, doing it like this could sometimes cause it to access out of bounds.
+				// What follows sets the above values and corrects for out of bounds accesses.
+				aidx = (index);
+				bidx = (index+1) % (this.width) == 0 ? index : (index+1);
+				cidx = (index + this.width) % (this.height) == 0 ? index : (index + this.width);
+				didx = (index + this.width + 1) % (this.width) == 0 ? index : (index + this.width + 1);
 				
+				A = this.pixels[aidx] & 0xff;
+				B = this.pixels[bidx] & 0xff;
+				C = this.pixels[cidx] & 0xff;
+				D = this.pixels[didx] & 0xff;
+
+				// Take a weighted sum of the pixels
 				gray = (int) (A * (1 - x_diff) * (1 - y_diff) + 
 							  B * (x_diff) * (1 - y_diff) + 
 							  C * (y_diff) * (1 - x_diff) + 
-							  D * (x_diff * y_diff));
+							  D * (x_diff) * (y_diff));
 
 				scaled[offset++] = (byte) gray;
 			}
 		}
+	
 		// @dof
 		return new GreyscaleImage(scaled, width, height);
 	}

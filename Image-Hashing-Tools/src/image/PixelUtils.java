@@ -7,19 +7,16 @@ import image.implementations.GreyscaleImage;
 public class PixelUtils {
 
 	public static void assertNotNull(Object... objects) throws IllegalArgumentException {
-		if (objects == null) {
-			throw new IllegalArgumentException("Array of objects is null.");
-		}
+		if (objects == null) { throw new IllegalArgumentException("Array of objects is null."); }
 
 		for (int i = 0; i < objects.length; i++) {
-			if (objects[i] == null) {
-				throw new IllegalArgumentException("Argument '" + i + "' is null.");
-			}
+			if (objects[i] == null) { throw new IllegalArgumentException("Argument '" + i + "' is null."); }
 		}
 	}
 
 	public static void assertNotNull(String[] labels, Object... objects) throws IllegalArgumentException {
-		if (labels.length != objects.length) throw new IllegalArgumentException("You must provide the same number of labels as objects.");
+		if (labels.length != objects.length)
+			throw new IllegalArgumentException("You must provide the same number of labels as objects.");
 		try {
 			PixelUtils.assertNotNull(objects);
 		} catch (IllegalArgumentException e) {
@@ -29,7 +26,7 @@ public class PixelUtils {
 			throw new IllegalArgumentException(labels[label] + " is null.");
 		}
 	}
-	
+
 	public static void assertNotNull(String label, Object object) {
 		if (object == null) throw new IllegalArgumentException(label + "is null.");
 	}
@@ -39,9 +36,7 @@ public class PixelUtils {
 	}
 
 	public static int safeMult(int a, int b) throws ArithmeticException {
-		if (b == 0) {
-			return 0;
-		}
+		if (b == 0) { return 0; }
 
 		int product = a * b;
 		if (a == product / b) {
@@ -53,9 +48,7 @@ public class PixelUtils {
 	}
 
 	public static int safeMult(int... a) {
-		if (a == null) {
-			throw new IllegalArgumentException("Null not allowed.");
-		}
+		if (a == null) { throw new IllegalArgumentException("Null not allowed."); }
 		int product = a.length == 0 ? 0 : 1;
 		for (int i = 0; i < a.length; i++) {
 			product = safeMult(product, a[i]);
@@ -205,9 +198,7 @@ public class PixelUtils {
 	}
 
 	public static int[] transpose1dAs2d(int[] arr, int oldWidth, int oldHeight) {
-		if (arr.length != oldWidth * oldHeight) {
-			throw new IllegalArgumentException();
-		}
+		if (arr.length != oldWidth * oldHeight) { throw new IllegalArgumentException(); }
 
 		int[] transposed = new int[arr.length];
 		for (int offset = 0; offset < arr.length; offset++) {
@@ -221,9 +212,7 @@ public class PixelUtils {
 	}
 
 	public static byte[] transpose1dAs2d(byte[] arr, int oldWidth, int oldHeight) {
-		if (arr.length != oldWidth * oldHeight) {
-			throw new IllegalArgumentException();
-		}
+		if (arr.length != oldWidth * oldHeight) { throw new IllegalArgumentException(); }
 
 		byte[] transposed = new byte[arr.length];
 		for (int offset = 0; offset < arr.length; offset++) {
@@ -294,7 +283,7 @@ public class PixelUtils {
 		return pixels;
 	}
 
-	public static GreyscaleImage extractSubimage(byte[] imagePixels, int width, int height, int x1, int y1, int x2,
+	public static GreyscaleImage extractSubimage(byte[] subimage, int width, int height, int x1, int y1, int x2,
 			int y2) {
 
 		// This block of code is duplicated below.
@@ -314,14 +303,21 @@ public class PixelUtils {
 			y2 = tempInt;
 		}
 
-		// More bounds checking.
+		// Make sure that the coordinates don't spill over the sides of the original.
 		if (x1 < 0 || x2 > width - 1 || y1 < 0 || y2 > height - 1) {
 			throw new IllegalArgumentException("Points must be inside the image. Note that indexes start at zero, "
 					+ "so pixel (" + width + "," + height + ") of a " + width + "x" + height
-					+ "image will actually fall just outside of the image.");
+					+ " image will actually fall just outside of the image.");
 		}
 
 		int subWidth = (x2 - x1) + 1, subHeight = (y2 - y1) + 1;
+		int expectedBufSize = subWidth * subHeight;
+
+		// Now check to make sure that the buffers are the right size.
+		if (expectedBufSize != subimage.length) {
+			throw new IllegalArgumentException("Subimage buffer is not the right size. Got size: " + subimage.length
+					+ ". Expected:" + subWidth + " x " + subHeight + ".");
+		}
 
 		// End of duplicated block
 
@@ -330,7 +326,7 @@ public class PixelUtils {
 		byte[] subImage = new byte[subWidth * subHeight];
 		for (int y = y1; y <= y2; y++) {
 			for (int x = x1; x <= x2; x++) {
-				subImage[tempInt++] = imagePixels[y * width + x];
+				subImage[tempInt++] = subimage[y * width + x];
 			}
 		}
 
@@ -355,7 +351,7 @@ public class PixelUtils {
 			y2 = tempInt;
 		}
 
-		// More bounds checking.
+		// Make sure that the coordinates don't spill over the sides of the original.
 		if (x1 < 0 || x2 > width - 1 || y1 < 0 || y2 > height - 1) {
 			throw new IllegalArgumentException("Points must be inside the image. Note that indexes start at zero, "
 					+ "so pixel (" + width + "," + height + ") of a " + width + "x" + height
@@ -363,13 +359,12 @@ public class PixelUtils {
 		}
 
 		int subWidth = (x2 - x1) + 1, subHeight = (y2 - y1) + 1;
+		int expectedBufSize = subWidth * subHeight;
 
-		// End of duplicated block
-
-		// Now check to make sure that the subimage is actually the right size.
-		if (subWidth * subHeight != subimage.length) {
-			throw new IllegalArgumentException("Subimage is not the right size. Got width: " + subWidth + " by height: "
-					+ subHeight + " and needed area of: " + subWidth * subHeight);
+		// Now check to make sure that the buffers are the right size.
+		if (expectedBufSize != subimage.length) {
+			throw new IllegalArgumentException("Subimage buffer is not the right size. Got size: " + subimage.length
+					+ ". Expected:" + subWidth + " x " + subHeight + ".");
 		}
 
 		byte[] newPixels = Arrays.copyOf(imagePixels, imagePixels.length);
@@ -379,6 +374,60 @@ public class PixelUtils {
 		for (int y = y1; y <= y2; y++) {
 			for (int x = x1; x <= x2; x++) {
 				newPixels[y * width + x] = subimage[tempInt++];
+			}
+		}
+
+		return newPixels;
+	}
+
+	public static byte[] emplaceSubimageAlphaMask(byte[] imagePixels, int width, int height, byte[] subimage, int x1,
+			int y1, int x2, int y2, byte[] subAlphaMask) {
+
+		// Rearrange so that (x1, y1) represents the top-left corner and (x2, y2)
+		// represents the bottom-right. That is to say, swap if the first point is
+		// greater.
+		int tempInt;
+		if (x1 > x2) {
+			tempInt = x1;
+			x1 = x2;
+			x2 = tempInt;
+		}
+		if (y1 > y2) {
+			tempInt = y1;
+			y1 = y2;
+			y2 = tempInt;
+		}
+
+		// Make sure that the coordinates don't spill over the sides of the original.
+		if (x1 < 0 || x2 > width - 1 || y1 < 0 || y2 > height - 1) {
+			throw new IllegalArgumentException("Points must be inside the image. Note that indexes start at zero, "
+					+ "so pixel (" + width + "," + height + ") of a " + width + "x" + height
+					+ " image will actually fall just outside of the image.");
+		}
+
+		int subWidth = (x2 - x1) + 1, subHeight = (y2 - y1) + 1;
+		int expectedBufSize = subWidth * subHeight;
+
+		// Now check to make sure that the buffers are the right size.
+		if (expectedBufSize != subimage.length) {
+			throw new IllegalArgumentException("Subimage buffer is not the right size. Got size: " + subimage.length
+					+ ". Expected:" + subWidth + " x " + subHeight + ".");
+		}
+		if (expectedBufSize != subAlphaMask.length) {
+			throw new IllegalArgumentException("Alpha mask buffer is not the right size. Got size: "
+					+ subAlphaMask.length + ". Expected:" + subWidth + " x " + subHeight + ".");
+		}
+
+		byte[] newPixels = Arrays.copyOf(imagePixels, imagePixels.length);
+
+		// Now emplace the actual subimage.
+		for (int y = 0; y < subHeight; y++) {
+			for (int x = 0; x < subWidth; x++) {
+				int idx = (y + y1) * width + (x + x2);
+				int alphaidx = y * subWidth + x;
+				if (subAlphaMask[alphaidx] != 0) {
+					newPixels[idx] = subimage[alphaidx];
+				}
 			}
 		}
 

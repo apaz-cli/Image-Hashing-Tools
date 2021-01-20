@@ -18,7 +18,7 @@ public class SourcedImage implements IImage<SourcedImage> {
 	boolean isURL; // If isn't a URL, assume that means it's a File
 
 	// Master Constructor
-	private SourcedImage(IImage<?> img, String source, boolean isURL) {
+	public SourcedImage(IImage<?> img, String source, boolean isURL) {
 		PixelUtils.assertNotNull(img, source);
 		this.img = img instanceof SourcedImage ? ((SourcedImage) img).img : img;
 		this.source = source.trim();

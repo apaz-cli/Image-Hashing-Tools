@@ -94,11 +94,7 @@ public class LinearHashStore implements HashStore, Closeable {
 					worstNN = NNs.getWorstNN().getValue();
 				}
 			}
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
+		} catch (IllegalArgumentException | ClassNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			r.close();
@@ -162,7 +158,9 @@ public class LinearHashStore implements HashStore, Closeable {
 	}
 
 	@Override
-	public synchronized void close() throws IOException { this.writer.close(); }
+	public synchronized void close() throws IOException {
+		this.writer.close();
+	}
 
 	@Override
 	public List<HashMatch> findMatches(MatchMode mode) {

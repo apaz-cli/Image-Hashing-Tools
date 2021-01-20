@@ -13,6 +13,10 @@ public class Pair<K, V> {
 
 	public K getKey() { return key; }
 
+	public boolean contains(Object o) {
+		return this.key.equals(o) || this.value.equals(o);
+	}
+
 	@Override
 	@SuppressWarnings("unchecked")
 	public boolean equals(Object o) {
@@ -27,8 +31,14 @@ public class Pair<K, V> {
 	}
 
 	@Override
+	public int hashCode() {
+		return key.hashCode() ^ value.hashCode();
+	}
+
+	@Override
 	public String toString() {
 		return new StringBuilder().append('<').append(key.toString()).append(',').append(value.toString()).append('>')
 				.toString();
 	}
+
 }

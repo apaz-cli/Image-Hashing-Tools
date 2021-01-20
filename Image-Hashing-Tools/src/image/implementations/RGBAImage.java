@@ -10,6 +10,7 @@ import java.net.URL;
 
 import attack.IAttack;
 import image.IImage;
+import image.PixelUtils;
 import utils.ImageUtils;
 
 public class RGBAImage implements IImage<RGBAImage> {
@@ -62,6 +63,11 @@ public class RGBAImage implements IImage<RGBAImage> {
 		// R, G, B cloned in constructor
 		this.rgb = new RGBImage(r, g, b);
 		this.a = alpha.deepClone();
+	}
+
+	public RGBAImage(byte[] r, byte[] g, byte[] b, byte[] a, int width, int height) {
+		this(new GreyscaleImage(r, width, height), new GreyscaleImage(g, width, height),
+				new GreyscaleImage(b, width, height), new GreyscaleImage(a, width, height));
 	}
 
 	public RGBAImage(BufferedImage img) {
@@ -276,8 +282,37 @@ public class RGBAImage implements IImage<RGBAImage> {
 
 	@Override
 	public RGBAImage emplaceSubimage(RGBAImage subImage, int x1, int y1, int x2, int y2) {
-		return new RGBAImage(this.rgb.emplaceSubimage(subImage.getRGB(), x1, y1, x2, y2),
-				this.a.emplaceSubimage(subImage.getAlpha(), x1, y1, x2, y2));
+		return this.emplaceSubimage(subImage, true, x1, y1, x2, y2);
+	}
+
+	public RGBAImage emplaceSubimage(RGBAImage subImage, boolean overwriteAlpha, int x1, int y1, int x2, int y2) {
+		if (overwriteAlpha) {
+			return new RGBAImage(this.rgb.emplaceSubimage(subImage.getRGB(), x1, y1, x2, y2),
+					this.a.emplaceSubimage(subImage.getAlpha(), x1, y1, x2, y2));
+		} else {
+			byte[] ro = this.rgb.getRed().getPixels();
+			byte[] go = this.rgb.getGreen().getPixels();
+			byte[] bo = this.rgb.getBlue().getPixels();
+			byte[] ao = this.a.getPixels();
+
+			byte[] rs = subImage.rgb.getRed().getPixels();
+			byte[] gs = subImage.rgb.getGreen().getPixels();
+			byte[] bs = subImage.rgb.getBlue().getPixels();
+			byte[] as = subImage.a.getPixels();
+
+			byte[] rn = PixelUtils.emplaceSubimageAlphaMask(ro, this.width, this.height, rs, x1, y1, x2, y2, as);
+			byte[] rg = PixelUtils.emplaceSubimageAlphaMask(go, this.width, this.height, gs, x1, y1, x2, y2, as);
+			byte[] rb = PixelUtils.emplaceSubimageAlphaMask(bo, this.width, this.height, bs, x1, y1, x2, y2, as);
+			byte[] ra = new byte[ao.length];
+			for (int i = 0; i < ra.length; i++) {
+				byte aob = ao[i], asb = as[i];
+				ra[i] = aob > asb ? aob : asb;
+			}
+
+			// emplaceSubimageAlphaMask(byte[] imagePixels, int width, int height, byte[]
+			// subimage, int x1, int y1, int x2, int y2, byte[] subAlphaMask)
+			return new RGBAImage(rn, rg, rb, ra, this.width, this.height);
+		}
 	}
 
 	@Override

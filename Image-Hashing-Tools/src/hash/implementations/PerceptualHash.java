@@ -22,29 +22,37 @@ public class PerceptualHash implements IHashAlgorithm {
 		AlgLoader.register(phash);
 	}
 
-	public PerceptualHash() { this(16); }
+	public PerceptualHash() {
+		this(16);
+	}
 
 	public PerceptualHash(int sideLength) {
 		if (PixelUtils.safeSquare(sideLength) % 2 != 0) throw new IllegalArgumentException("sideLength must be even.");
 		this.sideLength = sideLength;
 		this.DCTCoefficients = HalfDCTII.createHalfDCTIICoefficients(sideLength);
 	}
-	
-	public PerceptualHash(int sideLength, MatchMode mode) { this.setDefaultMatchMode(mode); }
+
+	public PerceptualHash(int sideLength, MatchMode mode) {
+		this(sideLength);
+		this.setMatchMode(mode);
+	}
 
 	private int sideLength;
 	private double[] DCTCoefficients;
-
-	private MatchMode defaultMode = MatchMode.NORMAL;
-
-	@Override
-	public void setDefaultMatchMode(MatchMode mode) { if (mode != null) this.defaultMode = mode; }
+	private MatchMode mm = MatchMode.NORMAL;
 
 	@Override
-	public MatchMode getDefaultMatchMode() { return defaultMode; }
+	public void setMatchMode(MatchMode mode) {
+		if (mode != null) this.mm = mode;
+	}
 
 	@Override
-	public String algName() { return "pHash"; }
+	public MatchMode getMatchMode() { return mm; }
+
+	@Override
+	public String algName() {
+		return "pHash";
+	}
 
 	@Override
 	public int getHashLength() { return (this.sideLength / 2) * (this.sideLength / 2); }
@@ -53,7 +61,9 @@ public class PerceptualHash implements IHashAlgorithm {
 	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String toArguments() { return "" + this.sideLength; }
+	public String toArguments() {
+		return "" + this.sideLength;
+	}
 
 	@Override
 	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
@@ -73,8 +83,19 @@ public class PerceptualHash implements IHashAlgorithm {
 
 	@Override
 	public boolean algEquals(IHashAlgorithm o) {
-		if (o instanceof PerceptualHash) return ((PerceptualHash) o).sideLength == this.sideLength;
-		else return false; // Note above if sideLength is the same, so must be the coefficients.
+		if (!(o instanceof PerceptualHash)) return false;
+		else return ((PerceptualHash) o).sideLength == this.sideLength && ((PerceptualHash) o).mm.equals(mm);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof IHashAlgorithm)) return false;
+		else return this.algEquals((IHashAlgorithm) o);
+	}
+
+	@Override
+	public int hashCode() {
+		return (this.sideLength << 2) ^ this.mm.hashCode();
 	}
 
 	@Override
@@ -83,7 +104,7 @@ public class PerceptualHash implements IHashAlgorithm {
 			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
 					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
-		if (mode == null) mode = defaultMode;
+		if (mode == null) mode = mm;
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
@@ -107,7 +128,6 @@ public class PerceptualHash implements IHashAlgorithm {
 		// Algorithm summary can be found here:
 		// http://hackerfactor.com/blog/index.php%3F/archives/432-Looks-Like-It.html
 		// And also check out phash.org
-
 		double[] transformedTrimmedDCT = HalfDCTII.halfDCTII(resize(img, this.sideLength), this.sideLength,
 				this.DCTCoefficients);
 
@@ -161,6 +181,8 @@ public class PerceptualHash implements IHashAlgorithm {
 	}
 
 	@Override
-	public ImageHash hash(BufferedImage img) { return this.hash(new RGBImage(img)); }
+	public ImageHash hash(BufferedImage img) {
+		return this.hash(new RGBImage(img));
+	}
 
 }

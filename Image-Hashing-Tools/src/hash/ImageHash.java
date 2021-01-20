@@ -206,7 +206,9 @@ public class ImageHash implements Serializable {
 		throw new IOException("Was not able to load " + (isURL ? "url" : "file") + ": " + this.source);
 	}
 
-	public double distance(ImageHash hash) throws IllegalArgumentException { return this.creator.distance(this, hash); }
+	public double distance(ImageHash hash) throws IllegalArgumentException {
+		return this.creator.distance(this, hash);
+	}
 
 	public int[] bitsToIntArray() {
 		int[] ints = new int[(this.getLength() + 31) / 32];
@@ -258,6 +260,17 @@ public class ImageHash implements Serializable {
 		return Arrays.equals(this.bits, o.bits) && this.creator.canCompare(this, o) && thisSauce.equals(thatSauce);
 	}
 
+	@Override
+	public int hashCode() {
+		int saucehash = this.source == null ? "null".hashCode() : this.source.hashCode();
+		int bithash = Arrays.hashCode(this.bits);
+		// TODO make sure all the IHashAlgorithms override hashCode() correctly so that
+		// this works
+		int creatorhash = this.creator.hashCode();
+		int x = saucehash ^ bithash ^ creatorhash;
+		return (x >> 2) ^ x ^ (x << 2);
+	}
+
 	// Deep equals for everything but the source
 	public boolean equalsIgnoreSource(Object h) {
 		if (h == null) return false;
@@ -267,7 +280,9 @@ public class ImageHash implements Serializable {
 	}
 
 	// throws when hashes are uncomparable
-	public boolean matches(ImageHash h) throws IllegalArgumentException { return this.creator.matches(this, h); }
+	public boolean matches(ImageHash h) throws IllegalArgumentException {
+		return this.creator.matches(this, h);
+	}
 
 	// throws when hashes are uncomparable
 	public boolean matches(ImageHash h, MatchMode mode) throws IllegalArgumentException {

@@ -55,7 +55,7 @@ public interface ImageSource extends Spliterator<SourcedImage> {
 	}
 
 	public default Stream<ImageHash> parallelStreamHashes(IHashAlgorithm alg) {
-		return this.stream().map(img -> alg.hash(img));
+		return this.parallelStream().map(img -> alg.hash(img));
 	}
 
 	public default BufferedImage nextBufferedImage() throws NoSuchElementException {

@@ -19,7 +19,9 @@ public class AverageHash implements IHashAlgorithm {
 		AlgLoader.register(new AverageHash());
 	}
 
-	public AverageHash() { this.sideLength = 16; }
+	public AverageHash() {
+		this.sideLength = 16;
+	}
 
 	public AverageHash(int sideLength) {
 		try {
@@ -29,21 +31,27 @@ public class AverageHash implements IHashAlgorithm {
 		}
 		this.sideLength = sideLength;
 	}
-	
-	public AverageHash(int sideLength, MatchMode mode) { this.setDefaultMatchMode(mode); }
+
+	public AverageHash(int sideLength, MatchMode mode) {
+		this.setMatchMode(mode);
+	}
 
 	private int sideLength;
 
-	private MatchMode defaultMode = MatchMode.NORMAL;
+	private MatchMode mm = MatchMode.NORMAL;
 
 	@Override
-	public void setDefaultMatchMode(MatchMode mode) { if (mode != null) this.defaultMode = mode; }
+	public void setMatchMode(MatchMode mode) {
+		if (mode != null) this.mm = mode;
+	}
 
 	@Override
-	public MatchMode getDefaultMatchMode() { return defaultMode; }
+	public MatchMode getMatchMode() { return mm; }
 
 	@Override
-	public String algName() { return "aHash"; }
+	public String algName() {
+		return "aHash";
+	}
 
 	@Override
 	public int getHashLength() { return this.sideLength * this.sideLength; }
@@ -52,7 +60,9 @@ public class AverageHash implements IHashAlgorithm {
 	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
 
 	@Override
-	public String toArguments() { return "" + this.sideLength; }
+	public String toArguments() {
+		return "" + this.sideLength;
+	}
 
 	@Override
 	public IHashAlgorithm fromArguments(String serialized) throws IllegalArgumentException {
@@ -72,8 +82,19 @@ public class AverageHash implements IHashAlgorithm {
 
 	@Override
 	public boolean algEquals(IHashAlgorithm o) {
-		if (o instanceof AverageHash) return ((AverageHash) o).sideLength == this.sideLength;
-		else return false;
+		if (!(o instanceof AverageHash)) return false;
+		else return ((AverageHash) o).sideLength == this.sideLength && ((AverageHash) o).mm.equals(this.mm);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof IHashAlgorithm)) return false;
+		else return this.algEquals((IHashAlgorithm) o);
+	}
+
+	@Override
+	public int hashCode() {
+		return (this.sideLength << 2) ^ this.mm.hashCode();
 	}
 
 	@Override
@@ -82,7 +103,7 @@ public class AverageHash implements IHashAlgorithm {
 			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
 					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
-		if (mode == null) mode = defaultMode;
+		if (mode == null) mode = mm;
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.
@@ -138,6 +159,8 @@ public class AverageHash implements IHashAlgorithm {
 	}
 
 	@Override
-	public ImageHash hash(BufferedImage img) { return hash(new GreyscaleImage(img)); }
+	public ImageHash hash(BufferedImage img) {
+		return hash(new GreyscaleImage(img));
+	}
 
 }
