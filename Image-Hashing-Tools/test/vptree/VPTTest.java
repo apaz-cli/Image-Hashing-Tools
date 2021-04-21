@@ -38,13 +38,15 @@ public class VPTTest {
 			l.trimToSize();
 			datapoints.add(l);
 		}
-
-		System.out.println("Datapoints generated. Building tree.");
+		System.out.println(numPoints + " datapoints generated. Building tree.");
+		
 		VPTree<List<Float>> tree = new VPTree<List<Float>>(datapoints, VPTTest::listDist);
-		System.out.println("Done building tree.");
+		System.out.println("Finished building tree.");
 
+		// Assert size works. This is a native callback, so it's legitimately worth testing.
 		assert (tree.size() == numPoints);
 
+		// Build a query point and try out nn and knn
 		List<Float> query = new ArrayList<>();
 		for (int j = 0; j < vectorDimension; j++) {
 			query.add(r.nextFloat() * 50);
@@ -58,8 +60,11 @@ public class VPTTest {
 		for (VPEntry<List<Float>> entry : tree.knn(query, 100)) {
 			System.out.println(entry);
 		}
-
+		
+		// Close the tree when finished.
+		assert (tree.isOpen());
 		tree.close();
+		assert (!tree.isOpen());
 	}
 
 	public static void main(String[] args) {

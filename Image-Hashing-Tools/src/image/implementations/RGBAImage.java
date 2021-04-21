@@ -72,6 +72,7 @@ public class RGBAImage implements IImage<RGBAImage> {
 
 	public RGBAImage(BufferedImage img) {
 		// See RGBImage's BufferedImage constructor for explanation
+		if (img == null) throw new IllegalArgumentException("The BufferedImage argument cannot be null.");
 
 		// Draw img onto new image with known encoding.
 		BufferedImage newImg = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);

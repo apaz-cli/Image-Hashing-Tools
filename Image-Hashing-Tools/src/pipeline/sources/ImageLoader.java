@@ -22,6 +22,9 @@ import utils.ImageUtils;
 
 public class ImageLoader implements ImageSource {
 
+	// TODO make "Folder cannot be read" throw IOException rather than
+	// IllegalArgument
+
 	public ImageLoader(String fileOrFolderPath) throws IllegalArgumentException {
 		this(new File(fileOrFolderPath));
 	}
@@ -31,9 +34,12 @@ public class ImageLoader implements ImageSource {
 	}
 
 	public ImageLoader(File folder) throws IllegalArgumentException {
-		if (folder == null) throw new NullPointerException("The folder cannot be null.");
-		if (!folder.isDirectory()) throw new IllegalArgumentException("The specified folder is not a folder.");
-		if (!folder.canRead()) throw new IllegalArgumentException("The specified folder cannot be read from.");
+		if (folder == null)
+			throw new NullPointerException("The folder cannot be null.");
+		if (!folder.isDirectory())
+			throw new IllegalArgumentException("The specified folder is not a folder.");
+		if (!folder.canRead())
+			throw new IllegalArgumentException("The specified folder cannot be read from.");
 		this.originalFolder = folder;
 
 		// Walk the folder path and add all the files found.
@@ -48,12 +54,14 @@ public class ImageLoader implements ImageSource {
 
 		try {
 			final ExecutorService threadpool = Executors.newWorkStealingPool();
-			
+
 			class IndexTask implements Runnable {
 				File target;
+
 				IndexTask(File target) {
 					this.target = target;
 				}
+
 				@Override
 				public void run() {
 					File[] filesAndFolders = target.listFiles();
@@ -66,7 +74,7 @@ public class ImageLoader implements ImageSource {
 					}
 				}
 			}
-			
+
 			threadpool.execute(new IndexTask(folder));
 			threadpool.shutdown();
 			threadpool.awaitTermination(1, TimeUnit.DAYS);
@@ -85,10 +93,14 @@ public class ImageLoader implements ImageSource {
 			try {
 				String mimeType = Files.probeContentType(f.toPath());
 
-				if (mimeType == null) return true;
-				if (!mimeType.contains("image/")) return true;
-				if (!ImageUtils.READSVG && mimeType.contains("svg+xml")) return true;
-				if (!ImageUtils.READGIF && mimeType.contains("image/gif")) return true;
+				if (mimeType == null)
+					return true;
+				if (!mimeType.contains("image/"))
+					return true;
+				if (!ImageUtils.READSVG && mimeType.contains("svg+xml"))
+					return true;
+				if (!ImageUtils.READGIF && mimeType.contains("image/gif"))
+					return true;
 				return false;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -99,27 +111,31 @@ public class ImageLoader implements ImageSource {
 		this.files.removeAll(toRemove);
 	}
 
-	public int estimatedRemaining() {
-		synchronized (files) {
-			return this.files.size();
-		}
-	}
-
 	private File originalFolder;
 	private List<File> files = new ArrayList<>(); // Splits into copies on trySplit()
 	private List<File> failedLoads = new Vector<>();
 
-	public List<File> getRemainingItems() { return files; }
+	public ImageLoader clone() {
+		return new ImageLoader(this.originalFolder, new ArrayList<>(this.files), new Vector<>(this.failedLoads));
+	}
 
-	public List<File> getFailedLoads() { return failedLoads; }
+	public List<File> getRemainingItems() {
+		return files;
+	}
+
+	public List<File> getFailedLoads() {
+		return failedLoads;
+	}
 
 	@Override
 	public SourcedImage next() {
 		// Get file, handle if can't.
 		File f;
 		synchronized (files) {
-			if (!files.isEmpty()) f = files.remove(files.size() - 1);
-			else return null;
+			if (!files.isEmpty())
+				f = files.remove(files.size() - 1);
+			else
+				return null;
 		}
 
 		// Beyond this point, we have a file.
@@ -174,11 +190,16 @@ public class ImageLoader implements ImageSource {
 	}
 
 	@Override
-	public String getSourceName() { return this.originalFolder.toString(); }
+	public String getSourceName() {
+		return this.originalFolder.toString();
+	}
 
-	public File getOriginalFolder() { return this.originalFolder; }
+	public File getOriginalFolder() {
+		return this.originalFolder;
+	}
 
-	private ImageLoader(List<File> files, List<File> failedLoads) {
+	private ImageLoader(File originalFolder, List<File> files, List<File> failedLoads) {
+		this.originalFolder = originalFolder;
 		this.files = files;
 		this.failedLoads = failedLoads;
 	}
@@ -186,14 +207,15 @@ public class ImageLoader implements ImageSource {
 	@Override
 	public Spliterator<SourcedImage> trySplit() {
 		synchronized (files) {
-			if (files.size() < 50) return null;
+			if (files.size() < 50)
+				return null;
 
 			int size = files.size();
 			List<File> first = new ArrayList<>(files.subList(0, (size + 1) / 2));
 			List<File> second = new ArrayList<>(files.subList((size + 1) / 2, size));
 
 			this.files = first;
-			return new ImageLoader(second, failedLoads);
+			return new ImageLoader(this.originalFolder, second, failedLoads);
 		}
 	}
 

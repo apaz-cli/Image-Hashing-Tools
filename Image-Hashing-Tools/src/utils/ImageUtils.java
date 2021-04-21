@@ -94,12 +94,12 @@ public class ImageUtils {
 	public static BufferedImage openImage(File imgFile) throws IOException {
 		BufferedImage ret = null;
 		try {
-			if (!imgFile.isFile()) throw new IllegalArgumentException("imgFile is not a file. File: " + imgFile);
-			if (!imgFile.canRead())
-				throw new IllegalArgumentException("Insufficient permission to read file: " + imgFile);
+			if (!imgFile.canRead()) throw new IllegalArgumentException("Either this file does not exist, or this program does not have sufficient permission to read it: " + imgFile);
 			ret = ImageIO.read(imgFile);
 		} catch (Exception e) {
+			System.err.println("Error for file: " + imgFile);
 			failedOpens.add(e);
+			e.printStackTrace();
 		}
 		return ret;
 	}

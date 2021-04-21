@@ -26,10 +26,13 @@ public class ImageHash implements Serializable {
 	private final byte[] bits;
 
 	// @nof
-	// This field is stored as one string for memory reasons. It should be laid out with:
+	// This field is stored as one string for memory reasons. It should be laid out
+	// with:
 	// hashName,hashLength,comparisonType
-	// With all of the information coming from the IHashAlgorithm that created it. It's stored this way because 
-	// Strings are interned, meaning that only one instance of that string actually exists, and each ImageHash
+	// With all of the information coming from the IHashAlgorithm that created it.
+	// It's stored this way because
+	// Strings are interned, meaning that only one instance of that string actually
+	// exists, and each ImageHash
 	// only needs to hold a reference to it.
 	// @dof
 	private final IHashAlgorithm creator;
@@ -76,11 +79,8 @@ public class ImageHash implements Serializable {
 	@Override
 	public String toString() {
 		// @nof
-		return new StringBuilder()
-				.append(this.hexHash()).append(",")
-				.append(creator.algName()).append(",")
-				.append(creator.toArguments()).append(',')
-				.append(this.source).toString();
+		return new StringBuilder().append(this.hexHash()).append(",").append(creator.algName()).append(",")
+				.append(creator.toArguments()).append(',').append(this.source).toString();
 		// @dof
 	}
 
@@ -137,12 +137,9 @@ public class ImageHash implements Serializable {
 		// or algorithm hasn't been loaded)
 		IHashAlgorithm creator = AlgLoader.loadAlgorithm(algName, algArgs);
 
-		// Resize the bytes we parsed into a buffer of the size the creator is
-		// expecting.
+		// Resize the bytes we parsed into a buffer of the size the creator is expecting.
 		int len = creator.getHashLength();
 		len = len + (len % 8);
-		len /= 8;
-
 		if (len < bytes.length) {
 			throw new IllegalArgumentException("Did not read enough bits to create a hash. Expected " + len
 					+ " bytes of data, corresponding to " + len * 2 + " characters. Got : " + bits.toUpperCase()
@@ -165,7 +162,9 @@ public class ImageHash implements Serializable {
 		} else if (hexInt > 0x9) {
 			// Collapse lower range so 0-9, 10-15 for hex integer
 			hexInt -= 7;
-			if (hexInt > 0xF) { throw new IllegalArgumentException("Serialized hash contains non-hex characters."); }
+			if (hexInt > 0xF) {
+				throw new IllegalArgumentException("Serialized hash contains non-hex characters.");
+			}
 		}
 		return (byte) hexInt;
 	}
@@ -174,23 +173,36 @@ public class ImageHash implements Serializable {
 	/* Getters */
 	/***********/
 
-	public BitSet getBitSet() { return BitSet.valueOf(this.bits); }
+	public BitSet getBitSet() {
+		return BitSet.valueOf(this.bits);
+	}
 
-	public byte[] getBits() { return this.bits; }
+	public byte[] getBits() {
+		return this.bits;
+	}
 
-	public IHashAlgorithm getAlgorithm() { return this.creator; }
+	public IHashAlgorithm getAlgorithm() {
+		return this.creator;
+	}
 
 	// These should never throw exceptions. If they do, an IHashAlgorithm was
 	// implemented incorrectly.
 
-	public String getAlgName() { return this.creator.algName(); }
+	public String getAlgName() {
+		return this.creator.algName();
+	}
 
-	public int getLength() { return this.creator.getHashLength(); }
+	public int getLength() {
+		return this.creator.getHashLength();
+	}
 
-	public String getSource() { return this.source; }
+	public String getSource() {
+		return this.source;
+	}
 
 	public SourcedImage loadFromSource() throws IOException {
-		if (this.source == null || this.source.equals("null")) throw new IOException("This image has no source.");
+		if (this.source == null || this.source.equals("null"))
+			throw new IOException("This image has no source.");
 
 		boolean isURL = ImageUtils.validURL(this.source);
 
@@ -252,8 +264,10 @@ public class ImageHash implements Serializable {
 
 	@Override
 	public boolean equals(Object h) {
-		if (h == null) return false;
-		if (!(h instanceof ImageHash)) return false;
+		if (h == null)
+			return false;
+		if (!(h instanceof ImageHash))
+			return false;
 		ImageHash o = (ImageHash) h;
 		String thatSauce = o.source == null ? "null" : o.source;
 		String thisSauce = this.source == null ? "null" : this.source;
@@ -264,8 +278,6 @@ public class ImageHash implements Serializable {
 	public int hashCode() {
 		int saucehash = this.source == null ? "null".hashCode() : this.source.hashCode();
 		int bithash = Arrays.hashCode(this.bits);
-		// TODO make sure all the IHashAlgorithms override hashCode() correctly so that
-		// this works
 		int creatorhash = this.creator.hashCode();
 		int x = saucehash ^ bithash ^ creatorhash;
 		return (x >> 2) ^ x ^ (x << 2);
@@ -273,8 +285,10 @@ public class ImageHash implements Serializable {
 
 	// Deep equals for everything but the source
 	public boolean equalsIgnoreSource(Object h) {
-		if (h == null) return false;
-		if (!(h instanceof ImageHash)) return false;
+		if (h == null)
+			return false;
+		if (!(h instanceof ImageHash))
+			return false;
 		ImageHash o = (ImageHash) h;
 		return Arrays.equals(this.bits, o.bits) && this.creator.canCompare(this, o);
 	}

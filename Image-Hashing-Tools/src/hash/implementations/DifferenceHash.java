@@ -78,7 +78,7 @@ public class DifferenceHash implements IHashAlgorithm {
 	public double distance(ImageHash hash1, ImageHash hash2) {
 		if (this.canCompare(hash1, hash2)) {
 			return HashUtils.hammingDistance(hash1.bitsToLongArray(), hash2.bitsToLongArray());
-		} else throw new IllegalArgumentException("The chosen ");
+		} else throw new IllegalArgumentException("The chosen image hashes are not comparable because they came from different algorithms.");
 	}
 
 	@Override

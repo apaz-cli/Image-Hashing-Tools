@@ -27,7 +27,8 @@ public class PerceptualHash implements IHashAlgorithm {
 	}
 
 	public PerceptualHash(int sideLength) {
-		if (PixelUtils.safeSquare(sideLength) % 2 != 0) throw new IllegalArgumentException("sideLength must be even.");
+		if (PixelUtils.safeSquare(sideLength) % 2 != 0)
+			throw new IllegalArgumentException("sideLength must be even.");
 		this.sideLength = sideLength;
 		this.DCTCoefficients = HalfDCTII.createHalfDCTIICoefficients(sideLength);
 	}
@@ -43,11 +44,14 @@ public class PerceptualHash implements IHashAlgorithm {
 
 	@Override
 	public void setMatchMode(MatchMode mode) {
-		if (mode != null) this.mm = mode;
+		if (mode != null)
+			this.mm = mode;
 	}
 
 	@Override
-	public MatchMode getMatchMode() { return mm; }
+	public MatchMode getMatchMode() {
+		return mm;
+	}
 
 	@Override
 	public String algName() {
@@ -55,10 +59,14 @@ public class PerceptualHash implements IHashAlgorithm {
 	}
 
 	@Override
-	public int getHashLength() { return (this.sideLength / 2) * (this.sideLength / 2); }
+	public int getHashLength() {
+		return (this.sideLength / 2) * (this.sideLength / 2);
+	}
 
 	@Override
-	public ComparisonType getComparisonType() { return ComparisonType.HAMMING; }
+	public ComparisonType getComparisonType() {
+		return ComparisonType.HAMMING;
+	}
 
 	@Override
 	public String toArguments() {
@@ -78,24 +86,29 @@ public class PerceptualHash implements IHashAlgorithm {
 	public double distance(ImageHash hash1, ImageHash hash2) {
 		if (this.canCompare(hash1, hash2)) {
 			return HashUtils.hammingDistance(hash1.bitsToLongArray(), hash2.bitsToLongArray());
-		} else throw new IllegalArgumentException("The chosen ");
+		} else
+			throw new IllegalArgumentException("The chosen ");
 	}
 
 	@Override
 	public boolean algEquals(IHashAlgorithm o) {
-		if (!(o instanceof PerceptualHash)) return false;
-		else return ((PerceptualHash) o).sideLength == this.sideLength && ((PerceptualHash) o).mm.equals(mm);
+		if (!(o instanceof PerceptualHash))
+			return false;
+		else
+			return ((PerceptualHash) o).sideLength == this.sideLength && ((PerceptualHash) o).mm.equals(mm);
 	}
 
 	@Override
 	public boolean equals(Object o) {
-		if (!(o instanceof IHashAlgorithm)) return false;
-		else return this.algEquals((IHashAlgorithm) o);
+		if (!(o instanceof IHashAlgorithm))
+			return false;
+		else
+			return this.algEquals((IHashAlgorithm) o);
 	}
 
 	@Override
 	public int hashCode() {
-		return (this.sideLength << 2) ^ this.mm.hashCode();
+		return (this.sideLength << 4) ^ this.mm.hashCode();
 	}
 
 	@Override
@@ -104,7 +117,8 @@ public class PerceptualHash implements IHashAlgorithm {
 			throw new IllegalArgumentException("Algorithm " + hash1.getAlgName() + " and algorithm "
 					+ hash2.getAlgName() + " are not comparable under algorithm " + this.algName() + ".");
 		}
-		if (mode == null) mode = mm;
+		if (mode == null)
+			mode = mm;
 
 		// Doubles are represented exactly for a very large number of bits, so this is
 		// okay.

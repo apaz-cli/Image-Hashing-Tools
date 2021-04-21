@@ -5,6 +5,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * This class is used in the implementation of LinearHashStore.
+ * 
+ * @author apaz
+ * @param <K> The type of data being stored.
+ */
 @SuppressWarnings("serial")
 public class NNList<K> extends ArrayList<K> {
 	int k;

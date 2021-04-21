@@ -94,7 +94,7 @@ public class AverageHash implements IHashAlgorithm {
 
 	@Override
 	public int hashCode() {
-		return (this.sideLength << 2) ^ this.mm.hashCode();
+		return (this.sideLength << 3) ^ this.mm.hashCode();
 	}
 
 	@Override
